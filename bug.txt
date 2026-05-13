@@ -1,0 +1,20 @@
+elNET:
+1. ipv4中分配347行分配标识id时会导致异步卡死
+2. ipv4分片重组没写完，没测
+3. net_err_t nbuf_splice(nbuf_t * des, nbuf_t * src)此函数有bug
+4. 本地环回未测
+5. netif中162行宏定义的问题(已解决，如果将宏
+#define IPV4_ADDR_NETWORK(ip,mask)              (IPV4_STRUCT_TO_IP(ip) & IPV4_STRUCT_TO_IP(mask))
+改为
+#define IPV4_ADDR_NETWORK(ip,mask)              (IPV4_STRUCT_TO_IP(ip)) & (IPV4_STRUCT_TO_IP(mask))
+会产生逻辑错误)
+6. main.c中接收和处理线程的同步问题待解决和测试(已解决)
+7. 每秒发送速率为什么和包的大小有关，且占不满带宽？
+8. netif.c添加网卡函数的最后没有做资源的回收
+
+ESDBox_IPGUI:
+1. 在ipgui_bmp_dec.c中使用test_bmp有bug，看此文件按
+
+Makefile
+1. 修改了头文件后再make不会重编译
+2. 如何使makefile支持自动保存，也就是输入make回车之后，根据makefile规则自动保存已修改的文件，再执行编译

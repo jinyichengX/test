@@ -1,0 +1,28 @@
+__IPGUI_API__ ipgui_edge_coord_t edge_x_at_y(
+    ipgui_edge_param_t * p, 
+    ipgui_coord_t y)
+{
+    if (p->dy == 0) return 0;
+    s64_t temp;
+    ipgui_edge_coord_t dy;
+
+    dy = (y * 64) - p->y1;
+    temp = (s64_t)dy * p->dx;
+    return temp / p->dy + p->x1;
+}
+如果将上面的代码改为
+__IPGUI_API__ ipgui_edge_coord_t edge_x_at_y(
+    ipgui_edge_param_t * p, 
+    ipgui_coord_t y)
+{
+    if (p->dy == 0) return 0;
+    s64_t temp;
+    ipgui_edge_coord_t dy;
+
+    dy = (y * 64) - p->y1;
+    temp = dy * p->dx;
+    return temp / p->dy + p->x1;
+}
+在斜率太小时（大概几百分之一吧）就会发生temp计算溢出
+原因是：C 语言标准，两个 s32_t 相乘，其临时中间结果也会被放在一个 s32_t 宽度的寄存器里。
+尽管temp是64位，但是也不行,这时候再大的“桶”（s64_t）也接不到已经洒掉的水了

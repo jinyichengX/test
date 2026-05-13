@@ -1,0 +1,3 @@
+坐标类设备（Pointer） 和 动作类设备（Action） 分开。
+Pointer: 处理 $(x, y)$，做点击测试（Hit Test）确定点到了哪个组件。适合鼠标、触摸屏。
+Action: 直接作用于当前选中的组件（Focus Slot），适合按键、旋钮、语音。

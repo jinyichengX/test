@@ -1,0 +1,206 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2025 JinYiCheng
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#include "ipgui_darray.h"
+#include "ipgui_memory.h"
+#include "stdlib.h"
+
+void * ipgui_darray_alloc_default(unsigned int size, ipgui_darray_t * darray)
+{
+    return ipgui_mem_alloc(ipgui_smem, size);
+}
+
+void * ipgui_darray_free_default(void * p, ipgui_darray_t * darray)
+{
+    ipgui_mem_free(ipgui_smem, p);
+}
+
+void * ipgui_darray_realloc_default(unsigned int size, ipgui_darray_t * darray)
+{
+    return ipgui_mem_realloc(ipgui_smem, darray->elements, size);
+}
+
+/* initialize the array */
+__IPGUI_API__ void ipgui_darray_init(ipgui_darray_t * darray, unsigned int elem_size)
+{
+    darray->size = 0;
+    darray->elem_num = 0;
+    darray->elem_size = elem_size;
+    darray->elements = (char *)0;
+    darray->alloc = (darray_alloc)ipgui_darray_alloc_default;
+    darray->free = (darray_free)ipgui_darray_free_default;
+    darray->realloc = (darray_realloc)ipgui_darray_realloc_default;
+}
+
+__IPGUI_API__ void ipgui_darray_deinit(ipgui_darray_t * darray)
+{
+    darray->size = 0;
+    darray->elem_num = 0;
+    darray->elem_size = 0;
+    ipgui_mem_free(ipgui_smem, darray->elements);
+    darray->elements = (char *)0;
+    darray->alloc = (darray_alloc)0;
+    darray->free = (darray_free)0;
+}
+
+/* get total size of array（能容纳多少个元素） */
+__IPGUI_STATIC__ __IPGUI_INLINE__ unsigned int ipgui_darray_size(ipgui_darray_t * darray)
+{
+    return darray->size;
+}
+
+/* get number of elements in array（有多少个元素） */
+__IPGUI_STATIC__ __IPGUI_INLINE__ unsigned int ipgui_darray_num_elements(const ipgui_darray_t * darray)
+{
+    return darray->elem_num;
+}
+
+/* truncate the array to a new size */
+__IPGUI_API__ void ipgui_darray_truncate(ipgui_darray_t * darray, unsigned int new_elem_size)
+{
+    if (new_elem_size < darray->elem_num)
+    {
+        darray->elem_num = new_elem_size;
+    }
+}
+
+/* get element at index */
+/* 必须保证有够量的元素能被index到，否则访问越界 */
+__IPGUI_API__ void * ipgui_darray_index(ipgui_darray_t * darray, unsigned int index)
+{
+    if(darray && darray->elem_num && index < darray->elem_num)
+    {
+        return (void *)(darray->elements + (size_t)index * darray->elem_size);
+    }
+    return (void *)0;
+}
+
+/* get const element at index */
+__IPGUI_API__ const void * ipgui_darray_index_const(const ipgui_darray_t * darray, unsigned int index)
+{
+    if(darray && darray->elem_num && index < darray->elem_num)
+    {
+        return darray->elements + (size_t)index * darray->elem_size;
+    }
+    return (void *)0;
+}
+
+/* copy element at index to param to */
+__IPGUI_API__ void ipgui_darray_element_copy(ipgui_darray_t * darray, unsigned int index, void * to)
+{
+    const void * src = ipgui_darray_index_const(darray, index);
+    if(src)
+    {
+        ipgui_memcpy(to, src, darray->elem_size);
+    }
+}
+
+/* update element at index */
+__IPGUI_API__ void ipgui_darray_element_updata(ipgui_darray_t * darray, unsigned int index, void * from)
+{
+    void * src = ipgui_darray_index(darray, index);
+    if(src)
+    {
+        ipgui_memcpy(src, from, darray->elem_size);
+    }
+}
+
+/* expand the array to contain the extra num(formal parameter) elements */
+__IPGUI_STATIC__ void ipgui_darray_expand_num(ipgui_darray_t * darray, unsigned int num, void ** copy_to)
+{
+    void * new_elements = (void *)0;
+    unsigned int cur_cap = ipgui_darray_size(darray);
+    unsigned int need_cap = darray->elem_num + num;
+    unsigned int new_cap;
+
+    if( need_cap > 2147483647/* int max */ ){
+        return;
+    }
+
+    if( cur_cap >= need_cap ){
+        * copy_to = (void *)(darray->elements + darray->elem_num * darray->elem_size);
+        darray->elem_num += num;
+        return;
+    }
+
+    if( !cur_cap ){
+        new_cap = 1;
+    }else{
+        new_cap = cur_cap << 1;
+    }
+    while( new_cap < need_cap )
+    {
+        new_cap <<= 1;
+    }
+    
+    // new_elements = ipgui_mem_realloc(ipgui_smem, darray->elements, new_cap * darray->elem_size);
+    new_elements = darray->realloc(new_cap * darray->elem_size, darray);
+    
+    if( new_elements == (void *)0 ){
+        return;
+    }
+    darray->size = new_cap;
+    darray->elements = new_elements;
+    darray->elem_num += num;
+    * copy_to = (void *)((char *)new_elements + cur_cap * darray->elem_size);
+}
+
+/* append elements to array */
+/* 添加成功就返回（被添加的这些元素的）起始索引，否则返回-1 */
+__IPGUI_API__ int ipgui_darray_element_append(ipgui_darray_t * darray, void * elements, unsigned int num)
+{
+    void * copy_to = (void *)0;
+    ipgui_darray_expand_num(darray, num, &copy_to);
+    if( copy_to == (void *)0 ){
+        return -1;
+    }
+    ipgui_memcpy(copy_to, elements, num * darray->elem_size);
+    return ((char *)copy_to - darray->elements) / darray->elem_size;
+}
+
+__IPGUI_API__ void * ipgui_darray_last_element(ipgui_darray_t * darray)
+{
+    return ipgui_darray_index(darray, darray->elem_num - 1);
+}
+
+__IPGUI_API__ void * ipgui_darray_first_element(ipgui_darray_t * darray)
+{
+    return ipgui_darray_index(darray, 0);
+}
+
+/* pop the last element */
+__IPGUI_API__ int ipgui_darray_element_pop(ipgui_darray_t * darray, void * to)
+{
+    void * p;
+
+    if( !to )
+        return -1;
+    p = ipgui_darray_last_element(darray);
+    if( p == (void *)0 ){
+        return -1;
+    }
+    ipgui_darray_element_copy(darray, darray->elem_num - 1, to);
+    darray->elem_num --;
+    return 0;
+}

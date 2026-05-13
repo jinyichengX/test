@@ -1,0 +1,70 @@
+#ifndef IPGUI_BLEND_IMAGE_H
+#define IPGUI_BLEND_IMAGE_H
+
+#include "ipgui_conf.h"
+#include "ipgui_core.h"
+#include "ipgui_blend_mode.h"
+
+typedef enum {
+    /* luminance */
+    IPGUI_IMG_FMT_L8 = 0,       /* 8bit亮度（灰度图） */
+    IPGUI_IMG_FMT_LA88,     /* 带alpha通道的8bit亮度（灰度图） */
+
+    /* 16bit */
+    IPGUI_IMG_FMT_RGB565,   /* 内存顺序: R[4:0]G[5:3] | G[2:0]B[4:0] */
+    IPGUI_IMG_FMT_BGR565,   /* 内存顺序: B[4:0]G[5:3] | G[2:0]R[4:0] */
+
+    /* 这个内存顺序是对的，可以取消注释 */
+    // IPGUI_IMG_FMT_RGBA5658, /* 内存顺序: R[4:0]G[4:3] | G[2:1]B[4:0] A[7:0] */
+    // IPGUI_IMG_FMT_ARGB8565, /* 内存顺序: A[7:0] R[4:0]G[4:3] | G[2:1]B[4:0] */
+    // IPGUI_IMG_FMT_BGRA5658, /* 内存顺序: B[4:0]G[5:3] | G[2:0]R[4:0] A[7:0] */
+    // IPGUI_IMG_FMT_ABGR8565, /* 内存顺序: A[7:0] B[4:0]G[5:3] | G[2:0]R[4:0] */
+    
+    /* 注释掉的部分内存顺序可能不对 */
+    // IPGUI_IMG_FMT_RGBA5551, /* 内存顺序: R[4:0]G[4:0]B[4:0] A[0] */
+    // IPGUI_IMG_FMT_ARGB1555, /* 内存顺序: A[0] R[4:0]G[4:0]B[4:0] */
+    // IPGUI_IMG_FMT_BGRA5551, /* 内存顺序: B[4:0]G[4:0]R[4:0] A[0] */
+    // IPGUI_IMG_FMT_ABGR1555, /* 内存顺序: A[0] B[4:0]G[4:0]R[4:0] */
+
+    // IPGUI_IMG_FMT_RGBA4444, /* 内存顺序: R[3:0]G[3:0]B[3:0] A[3:0] */
+    // IPGUI_IMG_FMT_ARGB4444, /* 内存顺序: A[3:0] R[3:0]G[3:0]B[3:0] */
+    // IPGUI_IMG_FMT_BGRA4444, /* 内存顺序: B[3:0]G[3:0]R[3:0] A[3:0] */
+    // IPGUI_IMG_FMT_ABGR4444, /* 内存顺序: A[3:0] B[3:0]G[3:0]R[3:0] */
+
+    /* 24bit */
+    IPGUI_IMG_FMT_RGB888,   /* 内存顺序: R-G-B */
+    IPGUI_IMG_FMT_BGR888,   /* 内存顺序: B-G-R */
+
+    /* 32bit */
+    IPGUI_IMG_FMT_ARGB8888, /* 内存顺序: A[7:0]R[7:0]G[7:0]B[7:0] */
+    IPGUI_IMG_FMT_ABGR8888, /* 内存顺序: A[7:0]B[7:0]G[7:0]R[7:0] */
+    IPGUI_IMG_FMT_RGBA8888, /* 内存顺序: R[7:0]G[7:0]B[7:0]A[7:0] */
+    IPGUI_IMG_FMT_BGRA8888, /* 内存顺序: B[7:0]G[7:0]R[7:0]A[7:0] */
+
+    /* pattle */
+    IPGUI_IMG_FMT_I8,       /* 调色板索引图 */
+
+    IPGUI_IMG_FMT_MAX,
+}ipgui_image_fomat_t;
+
+typedef struct {
+    ipgui_aabb_t      * img_aabb;   /* 图像包围盒，包围盒必须与图像大小一致！ */
+    u8_t              * buf;        /* 图像数据 */
+    u8_t                px_size;    /* 每像素大小（单位：字节），必须大于等于像素格式对应的字节数 */
+    ipgui_image_fomat_t img_pxfmt;  /* 图像像素格式 */
+    u32_t               stride;     /* 图像行跨度（单位：字节） */   
+}ipgui_image_src_t;
+
+extern __IPGUI_API__ void ipgui_blend_image(
+    ipgui_surf_t      * surf,
+    ipgui_aabb_t      * clip,
+
+    ipgui_image_src_t * img_src,
+
+    u8_t              * mask,       /* 蒙版 */
+    ipgui_aabb_t      * mask_aabb,  /* 蒙版区域，必须大于等于图像包围盒*/
+
+    u8_t                opacity,
+    ipgui_blend_mode_t  blend_mode);
+
+#endif

@@ -1,0 +1,7 @@
+1. 所有alpha通道全部忽略
+2. 调用ipgui_bmp_dec时，其中的struct bmp_inf * inf指向的结构体实例必须是由IPGUI框架来管理的！！因为bmp_inf中会分配pattle内存。
+3. 调用流程
+    （1）ipgui_bmp_dec_create
+    （2）ipgui_bmp_dec
+    （3）ipgui_bmp_read_linebyline
+    （4）ipgui_bmp_dec_destroy
