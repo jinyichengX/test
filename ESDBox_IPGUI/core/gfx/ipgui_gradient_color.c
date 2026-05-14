@@ -226,6 +226,7 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_interpolate_color(
     res->b = b;
 #else
 #if 0
+    /* 原理版本 */
     u8_t a, r, g, b;
     a = (s32_t)(c2->a * dist + 127) / 255 + (s32_t)(c1->a * idist + 127) / 255;
     r = (s32_t)(c2->r * dist + 127) / 255 + (s32_t)(c1->r * idist + 127) / 255;
@@ -236,6 +237,7 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_interpolate_color(
     res->g = g;
     res->b = b;
 #else
+    /* 优化版本 */
     res->v = interpolate_pixel(c2->v, dist, c1->v, idist);
 #endif
 #endif
