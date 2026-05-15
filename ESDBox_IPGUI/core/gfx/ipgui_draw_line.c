@@ -279,6 +279,24 @@ __IPGUI_STATIC__ void ipgui_draw_ver_line(
     }
 }
 
+__IPGUI_STATIC__ void ipgui_draw_line_round_cap(       
+                ipgui_surf_t       * surf,
+                ipgui_aabb_t       * clip,
+                ipgui_line_t       * line, 
+                ipgui_line_style_t * style)
+{
+
+}
+
+__IPGUI_STATIC__ void ipgui_draw_line_butt_cap(       
+                ipgui_surf_t       * surf,
+                ipgui_aabb_t       * clip,
+                ipgui_line_t       * line, 
+                ipgui_line_style_t * style)
+{
+
+}
+
 __IPGUI_API__ void ipgui_draw_line(       
                 ipgui_surf_t       * surf,
                 ipgui_aabb_t       * clip,
@@ -300,9 +318,8 @@ __IPGUI_API__ void ipgui_draw_line(
         return;
     }
 
-    
-    if (style->cap == IPGUI_LINE_CAP_ROUND) ;
+    if (style->cap == IPGUI_LINE_CAP_ROUND)
+        ipgui_draw_line_round_cap(surf, clip, line, style);
     else if (style->cap == IPGUI_LINE_CAP_BUTT) ;
-
-    
+        ipgui_draw_line_butt_cap(surf, clip, line, style);
 }
