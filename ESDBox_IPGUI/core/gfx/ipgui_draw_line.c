@@ -279,19 +279,17 @@ __IPGUI_STATIC__ void ipgui_draw_ver_line(
     }
 }
 
-__IPGUI_STATIC__ void ipgui_draw_line_round_cap(       
-                ipgui_surf_t       * surf,
-                ipgui_aabb_t       * clip,
-                ipgui_line_t       * line, 
+__IPGUI_STATIC__ void ipgui_draw_line_round_cap(
+                ipgui_aabb_t       * draw,
+                ipgui_line_t       * line,
                 ipgui_line_style_t * style)
 {
 
 }
 
-__IPGUI_STATIC__ void ipgui_draw_line_butt_cap(       
-                ipgui_surf_t       * surf,
-                ipgui_aabb_t       * clip,
-                ipgui_line_t       * line, 
+__IPGUI_STATIC__ void ipgui_draw_line_butt_cap(
+                ipgui_aabb_t       * draw,
+                ipgui_line_t       * line,
                 ipgui_line_style_t * style)
 {
 
@@ -318,8 +316,26 @@ __IPGUI_API__ void ipgui_draw_line(
         return;
     }
 
+    /* clip surf and get draw aabb */
+    ipgui_aabb_t draw, self;
+    if (clip) {
+        if (0 != ipgui_aabb_overlap(&draw, &surf->surf, clip))
+            return;/* not intersect, then just return */
+    } else {
+        draw = surf->surf;
+    }
+
+    /* calc line region and clip self with draw */
+    // self.start.y = IPGUI_MIN(line->start.y, line->end.y);
+    // self.end.y   = IPGUI_MAX(line->start.y, line->end.y);
+    // self.start.x = line->start.x - (style->width >> 1);
+    // self.end.x   = self.start.x  + style->width - 1;
+
+    if (0 != ipgui_aabb_overlap(&draw, &self, &draw))
+        return;/* not intersect, then just return */
+
     if (style->cap == IPGUI_LINE_CAP_ROUND)
-        ipgui_draw_line_round_cap(surf, clip, line, style);
+        ipgui_draw_line_round_cap(&draw, line, style);
     else if (style->cap == IPGUI_LINE_CAP_BUTT) ;
-        ipgui_draw_line_butt_cap(surf, clip, line, style);
+        ipgui_draw_line_butt_cap(&draw, line, style);
 }
