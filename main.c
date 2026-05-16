@@ -236,7 +236,7 @@ int main(void)
 
 
     ipgui_img_dsc_t img_dsc;
-    if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/keli.bmp", &img_dsc))
+    if(0 != test_bmp("./ESDBox_IPGUI/core/image/decoder/material/bmp/keli.bmp", &img_dsc))
     {
         printf("Failed to load bitmap image\n");
         return -1;
