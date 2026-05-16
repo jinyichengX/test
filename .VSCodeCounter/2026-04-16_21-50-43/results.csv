@@ -68,8 +68,8 @@
 "m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_polygon回退用.c", "C", 0, 0, 0, 0, 0, 0, 0, 757, 118, 875
 "m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_triangle.c", "C", 0, 0, 251, 0, 0, 0, 0, 12, 35, 298
 "m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_triangle.h", "C++", 0, 0, 0, 23, 0, 0, 0, 3, 8, 34
-"m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_mask.c", "C", 0, 0, 157, 0, 0, 0, 0, 14, 26, 197
-"m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_mask.h", "C++", 0, 0, 0, 53, 0, 0, 0, 2, 16, 71
+"m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_halfplane_mask.c", "C", 0, 0, 157, 0, 0, 0, 0, 14, 26, 197
+"m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_halfplane_mask.h", "C++", 0, 0, 0, 53, 0, 0, 0, 2, 16, 71
 "m:\test\ESDBox_IPGUI\core\gfx\ipgui_gradient_color.c", "C", 0, 0, 483, 0, 0, 0, 0, 52, 79, 614
 "m:\test\ESDBox_IPGUI\core\gfx\ipgui_gradient_color.h", "C++", 0, 0, 0, 82, 0, 0, 0, 15, 33, 130
 "m:\test\ESDBox_IPGUI\core\gfx\ipgui_mask_buf.c", "C", 0, 0, 28, 0, 0, 0, 0, 2, 7, 37

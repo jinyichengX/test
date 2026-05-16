@@ -1,5 +1,5 @@
 #include "ipgui_draw_arc.h"
-#include "ipgui_edge_mask.h"
+#include "ipgui_edge_halfplane_mask.h"
 #include "ipgui_ring_mask.h"
 #include "ipgui_draw_box_border.h"
 #include "ipgui_debug.h"
@@ -39,7 +39,7 @@ static void edge_clip_ring_mask_no_aa(
     if ((!edge->dx) || (!edge->dy)) return; /* 补丁 */
 
     ipgui_coord_t y = mask_aabb->start.y;
-    ipgui_edge_mask_dsc_t dsc;
+    ipgui_edge_halfplane_mask_dsc_t dsc;
     u8_t * row_mask = mask;
 
     if (edge_dir == EDGE_HALFPLANE_DIR_LEFT) {
@@ -92,7 +92,7 @@ static void edge_clip_ring_mask_with_aa(
     if ((!edge->dx) || (!edge->dy)) return; /* 补丁 */
 
     ipgui_coord_t y = mask_aabb->start.y;
-    ipgui_edge_mask_dsc_t dsc;
+    ipgui_edge_halfplane_mask_dsc_t dsc;
     u8_t * row_mask = mask;
 
     if (edge_dir == EDGE_HALFPLANE_DIR_LEFT) {
@@ -112,7 +112,7 @@ static void edge_clip_ring_mask_with_aa(
             ipgui_coord_t mask_mix_x = mask_aabb->start.x + mask_idx;
 
             while (mask_len_rem > 0) {
-                m = ipgui_edge_mask(&dsc, mask_mix_x);
+                m = ipgui_edge_halfplane_mask(&dsc, mask_mix_x);
                 if (!m) {
                     /* 进入全0区，右侧剩余部分全部抹除 */
                     ipgui_memset(row_mask + mask_idx, 0, mask_len_rem);
@@ -149,7 +149,7 @@ static void edge_clip_ring_mask_with_aa(
             mask_idx = mask_len_tmp - 1;
             mask_mix_x = mask_aabb->start.x + mask_idx;  /* 不能用mask_mix_x = dsc.x_start;因为整行mask都可能在x_start左边 */
             while (mask_len_tmp) {
-                m = ipgui_edge_mask(&dsc, mask_mix_x);
+                m = ipgui_edge_halfplane_mask(&dsc, mask_mix_x);
                 if (!m) {
                     /* set 0 before */
                     ipgui_memset(row_mask, 0, mask_len_tmp);

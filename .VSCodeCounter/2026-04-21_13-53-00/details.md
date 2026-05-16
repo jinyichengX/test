@@ -84,8 +84,8 @@ Total : 440 files,  259950 codes, 159793 comments, 24111 blanks, all 443854 line
 | [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_polygon回退用.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_polygon%E5%9B%9E%E9%80%80%E7%94%A8.c) | C | 0 | 757 | 118 | 875 |
 | [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_triangle.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_triangle.c) | C | 251 | 12 | 35 | 298 |
 | [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_triangle.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_triangle.h) | C++ | 23 | 3 | 8 | 34 |
-| [ESDBox\_IPGUI/core/gfx/ipgui\_edge\_mask.c](/ESDBox_IPGUI/core/gfx/ipgui_edge_mask.c) | C | 159 | 14 | 26 | 199 |
-| [ESDBox\_IPGUI/core/gfx/ipgui\_edge\_mask.h](/ESDBox_IPGUI/core/gfx/ipgui_edge_mask.h) | C++ | 53 | 2 | 16 | 71 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_edge\_mask.c](/ESDBox_IPGUI/core/gfx/ipgui_edge_halfplane_mask.c) | C | 159 | 14 | 26 | 199 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_edge\_mask.h](/ESDBox_IPGUI/core/gfx/ipgui_edge_halfplane_mask.h) | C++ | 53 | 2 | 16 | 71 |
 | [ESDBox\_IPGUI/core/gfx/ipgui\_gradient\_color.c](/ESDBox_IPGUI/core/gfx/ipgui_gradient_color.c) | C | 497 | 52 | 79 | 628 |
 | [ESDBox\_IPGUI/core/gfx/ipgui\_gradient\_color.h](/ESDBox_IPGUI/core/gfx/ipgui_gradient_color.h) | C++ | 82 | 15 | 33 | 130 |
 | [ESDBox\_IPGUI/core/gfx/ipgui\_mask\_buf.c](/ESDBox_IPGUI/core/gfx/ipgui_mask_buf.c) | C | 31 | 2 | 7 | 40 |

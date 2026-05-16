@@ -1,6 +1,6 @@
 "filename", "language", "C++", "C", "comment", "blank", "total"
 "m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_line.c", "C", 0, 4, 0, 0, 4
-"m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_mask.c", "C", 0, 2, 0, 0, 2
+"m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_halfplane_mask.c", "C", 0, 2, 0, 0, 2
 "m:\test\ESDBox_IPGUI\core\gfx\ipgui_gradient_color.c", "C", 0, 14, 0, 0, 14
 "m:\test\ESDBox_IPGUI\core\gfx\ipgui_mask_buf.c", "C", 0, 3, 0, 0, 3
 "m:\test\ESDBox_IPGUI\core\misc\ipgui_line.c", "C", 0, -106, -23, -16, -145

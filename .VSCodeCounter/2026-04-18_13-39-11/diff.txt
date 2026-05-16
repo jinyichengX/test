@@ -26,7 +26,7 @@ Files
 | filename                                             | language | code       | comment    | blank      | total      |
 +------------------------------------------------------+----------+------------+------------+------------+------------+
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_line.c      | C        |          4 |          0 |          0 |          4 |
-| m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_mask.c      | C        |          2 |          0 |          0 |          2 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_halfplane_mask.c      | C        |          2 |          0 |          0 |          2 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_gradient_color.c | C        |         14 |          0 |          0 |         14 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_mask_buf.c       | C        |          3 |          0 |          0 |          3 |
 | m:\test\ESDBox_IPGUI\core\misc\ipgui_line.c          | C        |       -106 |        -23 |        -16 |       -145 |

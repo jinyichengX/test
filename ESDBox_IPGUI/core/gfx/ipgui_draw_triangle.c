@@ -1,5 +1,5 @@
 #include "ipgui_draw_triangle.h"
-#include "ipgui_edge_mask.h"
+#include "ipgui_edge_halfplane_mask.h"
 #include "ipgui_mask_buf.h"
 #include "ipgui_memory.h"
 #include "ipgui_debug.h"
@@ -45,8 +45,8 @@ __IPGUI_STATIC__ void fill_mask_two_edges(
     u8_t                  * mask, 
     ipgui_coord_t           sx, 
     ipgui_coord_t           len,
-    ipgui_edge_mask_dsc_t * right, /* right's halfspan must be right */
-    ipgui_edge_mask_dsc_t * left)  /* left's  halfspan must be left   */
+    ipgui_edge_halfplane_mask_dsc_t * right, /* right's halfspan must be right */
+    ipgui_edge_halfplane_mask_dsc_t * left)  /* left's  halfspan must be left   */
 {
     ipgui_coord_t lx, rx;
     lx = right->x_start + 1; /* the first point which mask is 255 */
@@ -61,7 +61,7 @@ __IPGUI_STATIC__ void fill_mask_two_edges(
         left_mask_len = IPGUI_MIN(left_mask_len, len);
         ipgui_coord_t mask_idx = x - sx;
         while(x >= sx) {
-            mask[mask_idx] = ipgui_edge_mask(right, x);
+            mask[mask_idx] = ipgui_edge_halfplane_mask(right, x);
             if(!mask[mask_idx])
                 break;
             x --;
@@ -93,7 +93,7 @@ __IPGUI_STATIC__ void fill_mask_two_edges(
     /* 右侧抗锯齿区 */
     ipgui_coord_t mask_idx = 0;
     while (mask_idx < len) {
-        u8_t m = ipgui_edge_mask(left, sx + mask_idx);
+        u8_t m = ipgui_edge_halfplane_mask(left, sx + mask_idx);
         mask[mask_idx] = m;
         
         if (m == 0) {
@@ -180,9 +180,9 @@ __IPGUI_API__ void ipgui_draw_triangle(
         mask_aabb.start.x = bottom_tri.start.x;
         mask_aabb.end.x   = bottom_tri.end.x;
 
-        ipgui_edge_mask_dsc_t em1, em2;
+        ipgui_edge_halfplane_mask_dsc_t em1, em2;
         ipgui_coord_t y = bottom_tri.start.y;
-        ipgui_edge_mask_dsc_t * e_left, * e_right;
+        ipgui_edge_halfplane_mask_dsc_t * e_left, * e_right;
         if (e_long_dir == EDGE_HALFPLANE_DIR_LEFT) {
             e_left  = &em2;
             e_right = &em1;
@@ -203,7 +203,7 @@ __IPGUI_API__ void ipgui_draw_triangle(
 #if 0
                 /* 逐像素遍历 */
                 for (int j = 0; j < w; j ++) {
-                    mask_buf[j] = ((u32_t)ipgui_edge_mask(&em1, mask_aabb.start.x + j) * ipgui_edge_mask(&em2, mask_aabb.start.x + j) + 255) >> 8;
+                    mask_buf[j] = ((u32_t)ipgui_edge_halfplane_mask(&em1, mask_aabb.start.x + j) * ipgui_edge_halfplane_mask(&em2, mask_aabb.start.x + j) + 255) >> 8;
                 }
 #else
                 fill_mask_two_edges(mask_buf, mask_aabb.start.x, w, e_right, e_left);
@@ -230,9 +230,9 @@ _ras_top_tri:
         mask_aabb.start.x = top_tri.start.x;
         mask_aabb.end.x   = top_tri.end.x;
 
-        ipgui_edge_mask_dsc_t em1, em2;
+        ipgui_edge_halfplane_mask_dsc_t em1, em2;
         ipgui_coord_t y = top_tri.start.y;
-        ipgui_edge_mask_dsc_t * e_left, * e_right;
+        ipgui_edge_halfplane_mask_dsc_t * e_left, * e_right;
         if (e_long_dir == EDGE_HALFPLANE_DIR_LEFT) {
             e_left  = &em2;
             e_right = &em1;
@@ -253,7 +253,7 @@ _ras_top_tri:
 #if 0
                 /* 逐像素遍历 */
                 for (int j = 0; j < w; j ++) {
-                    mask_buf[j] = ((u32_t)ipgui_edge_mask(&em1, mask_aabb.start.x + j) * ipgui_edge_mask(&em2, mask_aabb.start.x + j) + 255) >> 8;
+                    mask_buf[j] = ((u32_t)ipgui_edge_halfplane_mask(&em1, mask_aabb.start.x + j) * ipgui_edge_halfplane_mask(&em2, mask_aabb.start.x + j) + 255) >> 8;
                 }
 #else         
                 fill_mask_two_edges(mask_buf, mask_aabb.start.x, w, e_right, e_left);
@@ -276,7 +276,7 @@ _ras_mid_line:
         ipgui_edge_param_t e_short1 = ipgui_edge_param_init(pa[0]->x * 64, pa[0]->y * 64, pa[1]->x * 64, pa[1]->y * 64);
         ipgui_edge_param_t e_short2 = ipgui_edge_param_init(pa[1]->x * 64, pa[1]->y * 64, pa[2]->x * 64, pa[2]->y * 64);
 
-        ipgui_edge_mask_dsc_t em1, em2, em3;
+        ipgui_edge_halfplane_mask_dsc_t em1, em2, em3;
         ipgui_gen_edge_halfplane_mask(&em1, e_short_dir, &e_short1, mask_aabb.start.y);
         ipgui_gen_edge_halfplane_mask(&em3, e_short_dir, &e_short2, mask_aabb.start.y);
         ipgui_gen_edge_halfplane_mask(&em2, e_long_dir,  &e_long,   mask_aabb.start.y);
@@ -285,9 +285,9 @@ _ras_mid_line:
         u8_t m1, m2, m3;
         
         for (int j = 0; j < w; j ++) {
-            m1 = ipgui_edge_mask(&em1, mask_aabb.start.x + j);
-            m2 = ipgui_edge_mask(&em2, mask_aabb.start.x + j);
-            m3 = ipgui_edge_mask(&em3, mask_aabb.start.x + j);
+            m1 = ipgui_edge_halfplane_mask(&em1, mask_aabb.start.x + j);
+            m2 = ipgui_edge_halfplane_mask(&em2, mask_aabb.start.x + j);
+            m3 = ipgui_edge_halfplane_mask(&em3, mask_aabb.start.x + j);
             mask_buf[j] = ((u32_t)m1 * m2 * m3 + 65535) >> 16;
         }
         ipgui_blend(surf, (ipgui_aabb_t *)0, &mask_aabb, &style->paint, style->opacity, mask, &mask_aabb, style->blend_mode);

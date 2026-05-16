@@ -38,7 +38,7 @@
 #include "ipgui_draw_box_background.h"
 #include "ipgui_draw_box_shadow.h"
 #include "ipgui_draw_box_border.h"
-#include "ipgui_edge_mask.h"
+#include "ipgui_edge_halfplane_mask.h"
 #include "ipgui_draw_triangle.h"
 #include "ipgui_draw_arc.h"
 #include "ipgui_draw_polygon.h"
