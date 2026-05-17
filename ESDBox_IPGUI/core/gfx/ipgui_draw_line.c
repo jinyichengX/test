@@ -282,7 +282,7 @@ __IPGUI_STATIC__ void ipgui_draw_ver_line(
 __IPGUI_STATIC__ void ipgui_draw_line_round_cap(
                 ipgui_aabb_t       * draw,
                 ipgui_line_t       * line,
-                ipgui_line_style_t * style)
+                ipgui_line_style_t * style)/* style->cap must be IPGUI_LINE_CAP_ROUND */
 {
 
 }
@@ -290,7 +290,7 @@ __IPGUI_STATIC__ void ipgui_draw_line_round_cap(
 __IPGUI_STATIC__ void ipgui_draw_line_butt_cap(
                 ipgui_aabb_t       * draw,
                 ipgui_line_t       * line,
-                ipgui_line_style_t * style)
+                ipgui_line_style_t * style)/* style->cap must be IPGUI_LINE_CAP_BUTT */
 {
 
 }
