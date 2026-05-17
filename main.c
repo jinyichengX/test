@@ -562,7 +562,7 @@ ipgui_button_style_t btn_style = {
 #endif
         sdl_scr->drv->flush(sdl_scr);
 arc.start += 1;
-arc_style.paint.src.grad_src.grad.conic_grad.angle_start ++;
+// arc_style.paint.src.grad_src.grad.conic_grad.angle_start ++;
         /* 改变位置 */
         // if(cnt11 ++ < 400) {
         //     box.start.x += 1;
