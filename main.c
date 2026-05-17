@@ -197,10 +197,10 @@ int main(void)
     ipgui_liner_gradient_add_stop(&line_style.paint.src.grad_src.grad.liner_grad, &stop01);
 
     ipgui_aabb_t box;
-    box.start.x = 0;
-    box.start.y = 0;
-    box.end.x = 199;
-    box.end.y = 99;
+    box.start.x = 0 + 300;
+    box.start.y = 0 + 300;
+    box.end.x = 199+ 300;
+    box.end.y = 99+ 300;
     
     ipgui_box_style_t box_style;
     box_style.bottom_padding = 0;
@@ -208,37 +208,35 @@ int main(void)
     box_style.top_padding = 0;
     box_style.right_padding = 0;
 
-    box_style.left_bottom_radius = 10;
-    box_style.left_top_radius = 10;
-    box_style.right_bottom_radius = 10;
-    box_style.right_top_radius = 10;
+    box_style.left_bottom_radius = 20;
+    box_style.left_top_radius = 20;
+    box_style.right_bottom_radius = 20;
+    box_style.right_top_radius = 20;
 
     ipgui_box_border_style_t box_border_style;
     box_border_style.blend_mode = 0;
     box_border_style.width = 3;
-    box_border_style.blend_mode = 0;
-    box_border_style.opacity = 150;
-    box_border_style.paint.type = IPGUI_PAINT_GRADIENT;
-
-    box_border_style.paint.src.color = g_color;
-
-    box_border_style.paint.src.grad_src.grad_type = IPGUI_GRADIENT_TYPE_RADIAL;
-    ipgui_radial_gradient_init(&box_border_style.paint.src.grad_src.grad.radial_grad, 
-        (box.start.x + box.end.x) / 2, (box.start.y + box.end.y) / 2, 330);
-    ipgui_gradient_color_stop_t stop3;
-    stop3.pos = 0;
-    IPGUI_COLOR_SET(stop3.color, 255, IPGUI_COLOR_65);
-    ipgui_gradient_color_stop_t stop4;
-    stop4.pos = 255;
-    IPGUI_COLOR_SET(stop4.color, 255, IPGUI_COLOR_5);
-    ipgui_radial_gradient_add_stop(&box_border_style.paint.src.grad_src.grad.radial_grad, &stop3);
-    ipgui_radial_gradient_add_stop(&box_border_style.paint.src.grad_src.grad.radial_grad, &stop4);
+    box_border_style.opacity = 155;
+    box_border_style.paint.type = IPGUI_PAINT_COLOR;
+    IPGUI_COLOR_SET(box_border_style.paint.src.color, 255, IPGUI_COLOR_463);
+    // IPGUI_COLOR_SET(box_border_style.paint.src.color, 255, IPGUI_COLOR_283);
+    // box_border_style.paint.src.grad_src.grad_type = IPGUI_GRADIENT_TYPE_RADIAL;
+    // ipgui_radial_gradient_init(&box_border_style.paint.src.grad_src.grad.radial_grad, 
+    //     (box.start.x + box.end.x) / 2, (box.start.y + box.end.y) / 2, 330);
+    // ipgui_gradient_color_stop_t stop3;
+    // stop3.pos = 0;
+    // IPGUI_COLOR_SET(stop3.color, 255, IPGUI_COLOR_118);
+    // ipgui_gradient_color_stop_t stop4;
+    // stop4.pos = 255;
+    // IPGUI_COLOR_SET(stop4.color, 255, IPGUI_COLOR_160);
+    // ipgui_radial_gradient_add_stop(&box_border_style.paint.src.grad_src.grad.radial_grad, &stop3);
+    // ipgui_radial_gradient_add_stop(&box_border_style.paint.src.grad_src.grad.radial_grad, &stop4);
 
 
     ipgui_img_dsc_t img_dsc;
     if(0 != test_bmp("./ESDBox_IPGUI/core/image/decoder/material/bmp/keli.bmp", &img_dsc))
     {
-        printf("Failed to load bitmap image\n");
+        printf("Failed to load bitmap image, please run the program at the main.c page\n");
         return -1;
     }
 
@@ -254,7 +252,7 @@ int main(void)
     pivot.x = img_dsc.w / 2;
     pivot.y = img_dsc.h / 2;
     ipgui_point_t anchor;
-    anchor.x = sdl_scr->drv->xreso / 2;
+    anchor.x = sdl_scr->drv->xreso / 2 + 200;
     anchor.y = sdl_scr->drv->yreso / 2;
 // anchor.x = anchor.y = 0;
     ipgui_image_draw_style_t img_style;
@@ -263,19 +261,19 @@ int main(void)
 
     ipgui_box_bg_style_t box_bg_style;
     box_bg_style.blend_mode = 0;
-    box_bg_style.opacity = 50;
+    box_bg_style.opacity = 200;
     box_bg_style.paint.type = IPGUI_PAINT_GRADIENT;
     // box_bg_style.paint.src.image_src = image_src1;
     box_bg_style.paint.src.color = g_color;
     box_bg_style.paint.src.grad_src.grad_type = IPGUI_GRADIENT_TYPE_LINEAR;
     ipgui_liner_gradient_init_direct(&box_bg_style.paint.src.grad_src.grad.liner_grad, 
-        0, 0, 799, 419);
+        300, 300, 500, 419);
     ipgui_gradient_color_stop_t stop1;
     stop1.pos = 0;
-    IPGUI_COLOR_SET(stop1.color, 255, IPGUI_COLOR_44);
+    IPGUI_COLOR_SET(stop1.color, 255, 0x283c86);
     ipgui_gradient_color_stop_t stop2;
     stop2.pos = 255;
-    IPGUI_COLOR_SET(stop2.color, 255, IPGUI_COLOR_177);
+    IPGUI_COLOR_SET(stop2.color, 255, 0x45a247);
     ipgui_liner_gradient_add_stop(&box_bg_style.paint.src.grad_src.grad.liner_grad, &stop1);
     ipgui_liner_gradient_add_stop(&box_bg_style.paint.src.grad_src.grad.liner_grad, &stop2);
 
@@ -371,7 +369,7 @@ int main(void)
     IPGUI_COLOR_SET(stop31.color, 255, IPGUI_COLOR_390);
     ipgui_gradient_color_stop_t stop41;
     stop41.pos = 128;
-    IPGUI_COLOR_SET(stop41.color, 200, IPGUI_COLOR_254);
+    IPGUI_COLOR_SET(stop41.color, 200, IPGUI_COLOR_RED);
     ipgui_gradient_color_stop_t stop51;
     stop51.pos = 192;
     IPGUI_COLOR_SET(stop51.color, 255, IPGUI_COLOR_313);
@@ -393,10 +391,10 @@ int main(void)
         0,0, 400,0);
     ipgui_gradient_color_stop_t stop111;
     stop111.pos = 0;
-    IPGUI_COLOR_SET(stop111.color, 255, IPGUI_COLOR_CYAN);
+    IPGUI_COLOR_SET(stop111.color, 255, IPGUI_COLOR_BLACK);
     ipgui_gradient_color_stop_t stop222;
     stop222.pos = 255;
-    IPGUI_COLOR_SET(stop222.color, 255, IPGUI_COLOR_234);
+    IPGUI_COLOR_SET(stop222.color, 255, IPGUI_COLOR_483);
     ipgui_liner_gradient_add_stop(&font_style.paint.src.grad_src.grad.liner_grad, &stop111);
     ipgui_liner_gradient_add_stop(&font_style.paint.src.grad_src.grad.liner_grad, &stop222);
 
@@ -420,7 +418,7 @@ int main(void)
     shadow_style.spread        = 0;
     shadow_style.offset_x      = 0;
     shadow_style.offset_y      = 0;
-    shadow_style.corner_radius = 10;
+    shadow_style.corner_radius = 20;
     shadow_style.opacity       = 200;
     shadow_style.blend_mode    = 0;
 
@@ -484,10 +482,10 @@ ipgui_button_style_t btn_style = {
                 //     &btn1,
                 //     &btn_style);
 
-                // ipgui_draw_box_shadow(&surf1, 
-                //     NULL, 
-                //     &box, 
-                //     &shadow_style);
+                ipgui_draw_box_shadow(&surf1, 
+                    NULL, 
+                    &box, 
+                    &shadow_style);
 
                 ipgui_draw_image(
                     &surf1,
@@ -535,7 +533,7 @@ ipgui_button_style_t btn_style = {
                     &surf1,
                     NULL,
                     &font_style,
-                    "hello kitty@@@@@%%5",
+                    "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
                     50,
                     50);
 

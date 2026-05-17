@@ -195,7 +195,7 @@ volatile int cnt = 0;
 /* flatten the curve3, it is a test function */
 __IPGUI_API__ void ipgui_curve3_flatten(ipgui_curve3_t * curve, ipgui_scr_t * scr)
 {
-    // color_test_t color;
+    // ipgui_color_t color;
     // ipgui_color32_set_v(color, 0x2d0c13);
     if (!ipgui_curve3_is_sufficently_flat(curve)) {
         cnt ++;

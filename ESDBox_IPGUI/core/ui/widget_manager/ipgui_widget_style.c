@@ -247,7 +247,7 @@
 //  *===========================================================================*/
 
 // /* 背景 */
-// __IPGUI_API__ void ipgui_style_set_bg_color(ipgui_style_t * s, color_test_t color)
+// __IPGUI_API__ void ipgui_style_set_bg_color(ipgui_style_t * s, ipgui_color_t color)
 // {
 //     if (!s) return;
 //     s->bg_color = color;
@@ -261,7 +261,7 @@
 //     IPGUI_STYLE_PROP_SET(s->prop_map, IPGUI_STYLE_PROP_BG_ALPHA);
 // }
 
-// __IPGUI_API__ void ipgui_style_set_bg_grad(ipgui_style_t * s, color_test_t end_color, ipgui_grad_dir_t dir)
+// __IPGUI_API__ void ipgui_style_set_bg_grad(ipgui_style_t * s, ipgui_color_t end_color, ipgui_grad_dir_t dir)
 // {
 //     if (!s) return;
 //     s->bg_grad_color = end_color;
@@ -323,7 +323,7 @@
 
 // /* 边框 */
 // __IPGUI_API__ void ipgui_style_set_border(ipgui_style_t * s, ipgui_coord_t width,
-//                                            color_test_t color, unsigned char alpha)
+//                                            ipgui_color_t color, unsigned char alpha)
 // {
 //     ipgui_style_set_border_width(s, width);
 //     ipgui_style_set_border_color(s, color);
@@ -337,7 +337,7 @@
 //     IPGUI_STYLE_PROP_SET(s->prop_map, IPGUI_STYLE_PROP_BORDER_WIDTH);
 // }
 
-// __IPGUI_API__ void ipgui_style_set_border_color(ipgui_style_t * s, color_test_t color)
+// __IPGUI_API__ void ipgui_style_set_border_color(ipgui_style_t * s, ipgui_color_t color)
 // {
 //     if (!s) return;
 //     s->border_color = color;
@@ -353,7 +353,7 @@
 
 // /* 外阴影 */
 // __IPGUI_API__ void ipgui_style_set_shadow_out(ipgui_style_t * s,
-//     color_test_t color, unsigned char alpha,
+//     ipgui_color_t color, unsigned char alpha,
 //     ipgui_coord_t blur, ipgui_coord_t spread,
 //     ipgui_coord_t offset_x, ipgui_coord_t offset_y)
 // {
@@ -374,7 +374,7 @@
 
 // /* 内阴影 */
 // __IPGUI_API__ void ipgui_style_set_shadow_in(ipgui_style_t * s,
-//     color_test_t color, unsigned char alpha,
+//     ipgui_color_t color, unsigned char alpha,
 //     ipgui_coord_t blur, ipgui_coord_t spread,
 //     ipgui_coord_t offset_x, ipgui_coord_t offset_y)
 // {
@@ -394,7 +394,7 @@
 // }
 
 // /* 文字 */
-// __IPGUI_API__ void ipgui_style_set_text_color(ipgui_style_t * s, color_test_t color)
+// __IPGUI_API__ void ipgui_style_set_text_color(ipgui_style_t * s, ipgui_color_t color)
 // {
 //     if (!s) return;
 //     s->text_color = color;
@@ -482,18 +482,18 @@
 //     } while(0)
 
 // /* 背景 */
-// __IPGUI_API__ color_test_t ipgui_widget_style_get_bg_color(const ipgui_widget_style_t * ws)
+// __IPGUI_API__ ipgui_color_t ipgui_widget_style_get_bg_color(const ipgui_widget_style_t * ws)
 // {
-//     color_test_t def; ipgui_memset(&def, 0, sizeof(def));
+//     ipgui_color_t def; ipgui_memset(&def, 0, sizeof(def));
 //     STYLE_GET_IMPL(ws, IPGUI_STYLE_PROP_BG_COLOR, bg_color, def);
 // }
 // __IPGUI_API__ unsigned char ipgui_widget_style_get_bg_alpha(const ipgui_widget_style_t * ws)
 // {
 //     STYLE_GET_IMPL(ws, IPGUI_STYLE_PROP_BG_ALPHA, bg_alpha, DEFAULT_BG_ALPHA);
 // }
-// __IPGUI_API__ color_test_t ipgui_widget_style_get_bg_grad_color(const ipgui_widget_style_t * ws)
+// __IPGUI_API__ ipgui_color_t ipgui_widget_style_get_bg_grad_color(const ipgui_widget_style_t * ws)
 // {
-//     color_test_t def; ipgui_memset(&def, 0, sizeof(def));
+//     ipgui_color_t def; ipgui_memset(&def, 0, sizeof(def));
 //     STYLE_GET_IMPL(ws, IPGUI_STYLE_PROP_BG_GRAD_COLOR, bg_grad_color, def);
 // }
 // __IPGUI_API__ ipgui_grad_dir_t ipgui_widget_style_get_bg_grad_dir(const ipgui_widget_style_t * ws)
@@ -544,9 +544,9 @@
 // {
 //     STYLE_GET_IMPL(ws, IPGUI_STYLE_PROP_BORDER_WIDTH, border_width, DEFAULT_BORDER_WIDTH);
 // }
-// __IPGUI_API__ color_test_t ipgui_widget_style_get_border_color(const ipgui_widget_style_t * ws)
+// __IPGUI_API__ ipgui_color_t ipgui_widget_style_get_border_color(const ipgui_widget_style_t * ws)
 // {
-//     color_test_t def; ipgui_memset(&def, 0, sizeof(def));
+//     ipgui_color_t def; ipgui_memset(&def, 0, sizeof(def));
 //     STYLE_GET_IMPL(ws, IPGUI_STYLE_PROP_BORDER_COLOR, border_color, def);
 // }
 // __IPGUI_API__ unsigned char ipgui_widget_style_get_border_alpha(const ipgui_widget_style_t * ws)
@@ -555,9 +555,9 @@
 // }
 
 // /* 外阴影 */
-// __IPGUI_API__ color_test_t ipgui_widget_style_get_shadow_out_color(const ipgui_widget_style_t * ws)
+// __IPGUI_API__ ipgui_color_t ipgui_widget_style_get_shadow_out_color(const ipgui_widget_style_t * ws)
 // {
-//     color_test_t def; ipgui_memset(&def, 0, sizeof(def));
+//     ipgui_color_t def; ipgui_memset(&def, 0, sizeof(def));
 //     STYLE_GET_IMPL(ws, IPGUI_STYLE_PROP_SHADOW_OUT_COLOR, shadow_out_color, def);
 // }
 // __IPGUI_API__ unsigned char ipgui_widget_style_get_shadow_out_alpha(const ipgui_widget_style_t * ws)
@@ -582,9 +582,9 @@
 // }
 
 // /* 内阴影 */
-// __IPGUI_API__ color_test_t ipgui_widget_style_get_shadow_in_color(const ipgui_widget_style_t * ws)
+// __IPGUI_API__ ipgui_color_t ipgui_widget_style_get_shadow_in_color(const ipgui_widget_style_t * ws)
 // {
-//     color_test_t def; ipgui_memset(&def, 0, sizeof(def));
+//     ipgui_color_t def; ipgui_memset(&def, 0, sizeof(def));
 //     STYLE_GET_IMPL(ws, IPGUI_STYLE_PROP_SHADOW_IN_COLOR, shadow_in_color, def);
 // }
 // __IPGUI_API__ unsigned char ipgui_widget_style_get_shadow_in_alpha(const ipgui_widget_style_t * ws)
@@ -609,9 +609,9 @@
 // }
 
 // /* 文字 */
-// __IPGUI_API__ color_test_t ipgui_widget_style_get_text_color(const ipgui_widget_style_t * ws)
+// __IPGUI_API__ ipgui_color_t ipgui_widget_style_get_text_color(const ipgui_widget_style_t * ws)
 // {
-//     color_test_t def; ipgui_memset(&def, 0, sizeof(def));
+//     ipgui_color_t def; ipgui_memset(&def, 0, sizeof(def));
 //     STYLE_GET_IMPL(ws, IPGUI_STYLE_PROP_TEXT_COLOR, text_color, def);
 // }
 // __IPGUI_API__ unsigned char ipgui_widget_style_get_text_alpha(const ipgui_widget_style_t * ws)

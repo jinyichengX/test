@@ -106,9 +106,9 @@
 //     const struct ipgui_style_t * parent;
 
 //     /* ---- 背景 ---- */
-//     color_test_t           bg_color;
+//     ipgui_color_t           bg_color;
 //     unsigned char           bg_alpha;
-//     color_test_t           bg_grad_color;
+//     ipgui_color_t           bg_grad_color;
 //     ipgui_grad_dir_t        bg_grad_dir;
 //     const ipgui_image_t *   bg_image;
 //     ipgui_image_mode_t      bg_image_mode;
@@ -124,11 +124,11 @@
 
 //     /* ---- 边框 ---- */
 //     ipgui_coord_t           border_width;
-//     color_test_t           border_color;
+//     ipgui_color_t           border_color;
 //     unsigned char           border_alpha;
 
 //     /* ---- 外阴影 ---- */
-//     color_test_t           shadow_out_color;
+//     ipgui_color_t           shadow_out_color;
 //     unsigned char           shadow_out_alpha;
 //     ipgui_coord_t           shadow_out_blur;
 //     ipgui_coord_t           shadow_out_spread;
@@ -136,7 +136,7 @@
 //     ipgui_coord_t           shadow_out_offset_y;
 
 //     /* ---- 内阴影 ---- */
-//     color_test_t           shadow_in_color;
+//     ipgui_color_t           shadow_in_color;
 //     unsigned char           shadow_in_alpha;
 //     ipgui_coord_t           shadow_in_blur;
 //     ipgui_coord_t           shadow_in_spread;
@@ -144,7 +144,7 @@
 //     ipgui_coord_t           shadow_in_offset_y;
 
 //     /* ---- 文字 ---- */
-//     color_test_t           text_color;
+//     ipgui_color_t           text_color;
 //     unsigned char           text_alpha;
 //     const ipgui_font_t *    text_font;
 //     ipgui_text_align_t      text_align;
@@ -261,9 +261,9 @@
 //  *===========================================================================*/
 
 // /* 背景 */
-// __IPGUI_API__ void ipgui_style_set_bg_color        (ipgui_style_t * s, color_test_t color);
+// __IPGUI_API__ void ipgui_style_set_bg_color        (ipgui_style_t * s, ipgui_color_t color);
 // __IPGUI_API__ void ipgui_style_set_bg_alpha        (ipgui_style_t * s, unsigned char alpha);
-// __IPGUI_API__ void ipgui_style_set_bg_grad         (ipgui_style_t * s, color_test_t end_color, ipgui_grad_dir_t dir);
+// __IPGUI_API__ void ipgui_style_set_bg_grad         (ipgui_style_t * s, ipgui_color_t end_color, ipgui_grad_dir_t dir);
 // __IPGUI_API__ void ipgui_style_set_bg_image        (ipgui_style_t * s, const ipgui_image_t * img, ipgui_image_mode_t mode);
 // __IPGUI_API__ void ipgui_style_set_bg_image_opacity(ipgui_style_t * s, unsigned char opacity);
 // __IPGUI_API__ void ipgui_style_set_bg_image_lerp   (ipgui_style_t * s, ipgui_image_lerp_t lerp);
@@ -276,23 +276,23 @@
 
 // /* 边框 */
 // __IPGUI_API__ void ipgui_style_set_border          (ipgui_style_t * s, ipgui_coord_t width,
-//                                                      color_test_t color, unsigned char alpha);
+//                                                      ipgui_color_t color, unsigned char alpha);
 // __IPGUI_API__ void ipgui_style_set_border_width    (ipgui_style_t * s, ipgui_coord_t width);
-// __IPGUI_API__ void ipgui_style_set_border_color    (ipgui_style_t * s, color_test_t color);
+// __IPGUI_API__ void ipgui_style_set_border_color    (ipgui_style_t * s, ipgui_color_t color);
 // __IPGUI_API__ void ipgui_style_set_border_alpha    (ipgui_style_t * s, unsigned char alpha);
 
 // /* 外阴影 */
-// __IPGUI_API__ void ipgui_style_set_shadow_out      (ipgui_style_t * s, color_test_t color, unsigned char alpha,
+// __IPGUI_API__ void ipgui_style_set_shadow_out      (ipgui_style_t * s, ipgui_color_t color, unsigned char alpha,
 //                                                      ipgui_coord_t blur, ipgui_coord_t spread,
 //                                                      ipgui_coord_t offset_x, ipgui_coord_t offset_y);
 
 // /* 内阴影 */
-// __IPGUI_API__ void ipgui_style_set_shadow_in       (ipgui_style_t * s, color_test_t color, unsigned char alpha,
+// __IPGUI_API__ void ipgui_style_set_shadow_in       (ipgui_style_t * s, ipgui_color_t color, unsigned char alpha,
 //                                                      ipgui_coord_t blur, ipgui_coord_t spread,
 //                                                      ipgui_coord_t offset_x, ipgui_coord_t offset_y);
 
 // /* 文字 */
-// __IPGUI_API__ void ipgui_style_set_text_color      (ipgui_style_t * s, color_test_t color);
+// __IPGUI_API__ void ipgui_style_set_text_color      (ipgui_style_t * s, ipgui_color_t color);
 // __IPGUI_API__ void ipgui_style_set_text_alpha      (ipgui_style_t * s, unsigned char alpha);
 // __IPGUI_API__ void ipgui_style_set_text_font       (ipgui_style_t * s, const ipgui_font_t * font);
 // __IPGUI_API__ void ipgui_style_set_text_align      (ipgui_style_t * s, ipgui_text_align_t align);
@@ -310,9 +310,9 @@
 //  *===========================================================================*/
 
 // /* 背景 */
-// __IPGUI_API__ color_test_t         ipgui_widget_style_get_bg_color        (const ipgui_widget_style_t * ws);
+// __IPGUI_API__ ipgui_color_t         ipgui_widget_style_get_bg_color        (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ unsigned char         ipgui_widget_style_get_bg_alpha        (const ipgui_widget_style_t * ws);
-// __IPGUI_API__ color_test_t         ipgui_widget_style_get_bg_grad_color   (const ipgui_widget_style_t * ws);
+// __IPGUI_API__ ipgui_color_t         ipgui_widget_style_get_bg_grad_color   (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ ipgui_grad_dir_t      ipgui_widget_style_get_bg_grad_dir     (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ const ipgui_image_t * ipgui_widget_style_get_bg_image        (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ ipgui_image_mode_t    ipgui_widget_style_get_bg_image_mode   (const ipgui_widget_style_t * ws);
@@ -328,11 +328,11 @@
 
 // /* 边框 */
 // __IPGUI_API__ ipgui_coord_t         ipgui_widget_style_get_border_width    (const ipgui_widget_style_t * ws);
-// __IPGUI_API__ color_test_t         ipgui_widget_style_get_border_color    (const ipgui_widget_style_t * ws);
+// __IPGUI_API__ ipgui_color_t         ipgui_widget_style_get_border_color    (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ unsigned char         ipgui_widget_style_get_border_alpha    (const ipgui_widget_style_t * ws);
 
 // /* 外阴影 */
-// __IPGUI_API__ color_test_t         ipgui_widget_style_get_shadow_out_color  (const ipgui_widget_style_t * ws);
+// __IPGUI_API__ ipgui_color_t         ipgui_widget_style_get_shadow_out_color  (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ unsigned char         ipgui_widget_style_get_shadow_out_alpha  (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ ipgui_coord_t         ipgui_widget_style_get_shadow_out_blur   (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ ipgui_coord_t         ipgui_widget_style_get_shadow_out_spread (const ipgui_widget_style_t * ws);
@@ -340,7 +340,7 @@
 // __IPGUI_API__ ipgui_coord_t         ipgui_widget_style_get_shadow_out_offy   (const ipgui_widget_style_t * ws);
 
 // /* 内阴影 */
-// __IPGUI_API__ color_test_t         ipgui_widget_style_get_shadow_in_color   (const ipgui_widget_style_t * ws);
+// __IPGUI_API__ ipgui_color_t         ipgui_widget_style_get_shadow_in_color   (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ unsigned char         ipgui_widget_style_get_shadow_in_alpha   (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ ipgui_coord_t         ipgui_widget_style_get_shadow_in_blur    (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ ipgui_coord_t         ipgui_widget_style_get_shadow_in_spread  (const ipgui_widget_style_t * ws);
@@ -348,7 +348,7 @@
 // __IPGUI_API__ ipgui_coord_t         ipgui_widget_style_get_shadow_in_offy    (const ipgui_widget_style_t * ws);
 
 // /* 文字 */
-// __IPGUI_API__ color_test_t         ipgui_widget_style_get_text_color      (const ipgui_widget_style_t * ws);
+// __IPGUI_API__ ipgui_color_t         ipgui_widget_style_get_text_color      (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ unsigned char         ipgui_widget_style_get_text_alpha      (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ const ipgui_font_t *  ipgui_widget_style_get_text_font       (const ipgui_widget_style_t * ws);
 // __IPGUI_API__ ipgui_text_align_t    ipgui_widget_style_get_text_align      (const ipgui_widget_style_t * ws);

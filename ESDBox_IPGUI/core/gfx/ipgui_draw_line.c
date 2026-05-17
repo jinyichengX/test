@@ -334,6 +334,7 @@ __IPGUI_API__ void ipgui_draw_line(
     if (0 != ipgui_aabb_overlap(&draw, &self, &draw))
         return;/* not intersect, then just return */
 
+        
     if (style->cap == IPGUI_LINE_CAP_ROUND)
         ipgui_draw_line_round_cap(&draw, line, style);
     else if (style->cap == IPGUI_LINE_CAP_BUTT) ;
