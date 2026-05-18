@@ -73,7 +73,7 @@ __IPGUI_API__ ipgui_edge_wdf_param_t ipgui_edge_wdf_param_init(
 }
 
 /* 求横向跨度 */
-__IPGUI_API__ ipgui_coord_t ipgui_calc_xspan(
+__IPGUI_API__ ipgui_coord_t ipgui_edge_wdf_xspan(
     ipgui_edge_wdf_param_t * param,
     ipgui_coord_t width)
 {
@@ -114,7 +114,7 @@ __IPGUI_API__ void ipgui_gen_edge_mask_dsc(
     ipgui_coord_t               width)
 {
     /* gen x_half_span */
-    res->x_half_span = ipgui_calc_xspan(param, width);
+    res->x_half_span = ipgui_edge_wdf_xspan(param, width);
 
     /* gen x_step */
     res->x_step.inte = param->dx / param->dy;

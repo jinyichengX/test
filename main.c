@@ -142,7 +142,7 @@ int main(void)
     p = ipgui_edge_wdf_param_init(0,0, 1000, 1000);
     
     ipgui_coord_t x_span;
-    x_span = ipgui_calc_xspan(&p, 300);
+    x_span = ipgui_edge_wdf_xspan(&p, 300);
 
     printf("x_span: %d\n");
     return 0;
