@@ -25,22 +25,21 @@ __IPGUI_STATIC__ void ipgui_line_x_at_y(
 }
 
 __IPGUI_STATIC__ void ipgui_line_x_step(
-    ipgui_xidx_t * x_idx,
-    ipgui_xstep_t  step,
-    ipgui_coord_t  dx,
-    ipgui_coord_t  dy)
+    ipgui_xidx_t              * x_idx,
+    ipgui_xstep_t               step,
+    ipgui_edge_wdf_mask_dsc_t * dsc)
 {
     x_idx->inte += step.inte;
     x_idx->frac += step.frac;
 
-    while (IPGUI_ABS(x_idx->frac) >= dy)
+    while (IPGUI_ABS(x_idx->frac) >= dsc->p->dy)
     {
-        if (dx > 0) {
+        if (dsc->p->dx > 0) {
             x_idx->inte += 1;
-            x_idx->frac -= dy;
+            x_idx->frac -= dsc->p->dy;
         } else {
             x_idx->inte -= 1;
-            x_idx->frac += dy; 
+            x_idx->frac += dsc->p->dy; 
         }
     }
 }
@@ -111,6 +110,7 @@ __IPGUI_API__ ipgui_coord_t ipgui_edge_wdf_xspan(
 __IPGUI_API__ void ipgui_gen_edge_mask_dsc(
     ipgui_edge_wdf_mask_dsc_t * res,
     ipgui_edge_wdf_param_t    * param,
+    ipgui_coord_t               start_y,
     ipgui_coord_t               width)
 {
     /* gen x_half_span */
@@ -119,9 +119,34 @@ __IPGUI_API__ void ipgui_gen_edge_mask_dsc(
     /* gen x_step */
     res->x_step.inte = param->dx / param->dy;
     res->x_step.frac = param->dx - res->x_step.inte * param->dy;
+
+    /* 计算起始点的x坐标和frac */
+    ipgui_line_x_at_y(param, start_y, &res->x_idx.inte, &res->x_idx.frac);
+
+    res->p = param;
 }
 
-__IPGUI_API__ void ipgui_edge_wdf_mask()
+__IPGUI_API__ void ipgui_edeg_wdf_mask_dsc_next_y(
+    ipgui_edge_wdf_mask_dsc_t * dsc)
 {
+    ipgui_line_x_step(&dsc->x_idx, dsc->x_step, dsc);
+}
 
+__IPGUI_API__ void ipgui_edge_wdf_mask(
+    ipgui_edge_wdf_mask_dsc_t * dsc,
+    ipgui_coord_t               x,
+    u8_t                      * mask,
+    ipgui_coord_t               len/* length of mask buffer */)
+{
+    ipgui_coord_t x_left, x_right;
+    
+    if (dsc->x_idx.frac) {
+        x_left  = dsc->x_idx.inte - dsc->x_half_span - 1;
+        x_right = dsc->x_idx.inte + dsc->x_half_span + 1;
+    } else {
+        x_left  = dsc->x_idx.inte - dsc->x_half_span;
+        x_right = dsc->x_idx.inte + dsc->x_half_span;
+    }
+
+    
 }

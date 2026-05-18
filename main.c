@@ -145,7 +145,7 @@ int main(void)
     x_span = ipgui_edge_wdf_xspan(&p, 300);
 
     printf("x_span: %d\n");
-    return 0;
+    // return 0;
 
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
     if(ipgui_init() != IPGUI_ERR_OK)
