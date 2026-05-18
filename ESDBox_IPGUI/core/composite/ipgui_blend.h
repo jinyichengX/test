@@ -24,7 +24,7 @@ typedef struct {
         ipgui_color_t     color;
         ipgui_grad_src_t  grad_src;
         ipgui_image_src_t image_src;
-    }src; 
+    }src;
 
     // ipgui_gradient_mask * mask_image; //考虑将渐变蒙版加到这
 }ipgui_paint_t;

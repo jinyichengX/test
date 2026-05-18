@@ -1,6 +1,31 @@
 #ifndef IPGUI_EDGE_WDF_MASK_H
 #define IPGUI_EDGE_WDF_MASK_H
 
+#include "ipgui_types.h"
+#include "ipgui_coord.h"
+#include "ipgui_color.h"
+#include "ipgui_core.h"
 
+typedef struct {
+    ipgui_coord_t a, b, c;
+
+    ipgui_coord_t x1, y1, x2, y2;
+
+    u32_t a2_plus_b2;
+}ipgui_edge_wdf_param_t;
+
+typedef struct {
+    ipgui_coord_t x_half_span;
+}ipgui_edge_wdf_mask_dsc_t;
+
+extern __IPGUI_API__ ipgui_edge_wdf_param_t ipgui_edge_wdf_param_init(
+    ipgui_coord_t x1,
+    ipgui_coord_t y1,
+    ipgui_coord_t x2,
+    ipgui_coord_t y2);
+    
+extern __IPGUI_API__ ipgui_coord_t ipgui_calc_xspan(
+    ipgui_edge_wdf_param_t * param,
+    ipgui_coord_t width);
 
 #endif

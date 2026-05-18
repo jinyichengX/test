@@ -39,6 +39,7 @@
 #include "ipgui_draw_box_shadow.h"
 #include "ipgui_draw_box_border.h"
 #include "ipgui_edge_halfplane_mask.h"
+#include "ipgui_edge_wdf_mask.h"
 #include "ipgui_draw_triangle.h"
 #include "ipgui_draw_arc.h"
 #include "ipgui_draw_polygon.h"
@@ -137,6 +138,15 @@ int cnt11 = 0;
 // #define RENDER_MODE 3 /* 全屏渲染 */
 int main(void)
 {
+    ipgui_edge_wdf_param_t p;
+    p = ipgui_edge_wdf_param_init(0,0, 1000, 1000);
+    
+    ipgui_coord_t x_span;
+    x_span = ipgui_calc_xspan(&p, 300);
+
+    printf("x_span: %d\n");
+    return 0;
+
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
     if(ipgui_init() != IPGUI_ERR_OK)
     {
@@ -482,10 +492,10 @@ ipgui_button_style_t btn_style = {
                 //     &btn1,
                 //     &btn_style);
 
-                ipgui_draw_box_shadow(&surf1, 
-                    NULL, 
-                    &box, 
-                    &shadow_style);
+                // ipgui_draw_box_shadow(&surf1, 
+                //     NULL, 
+                //     &box, 
+                //     &shadow_style);
 
                 ipgui_draw_image(
                     &surf1,
