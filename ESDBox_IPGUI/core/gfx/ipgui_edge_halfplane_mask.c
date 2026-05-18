@@ -156,7 +156,7 @@ __IPGUI_API__ u8_t ipgui_edge_halfplane_mask(
         }
     }
     if (dsc->p->flatten) {
-        d = ((s64_t)delta_x * dsc->p->delta_y + 32768) >> 16;
+        d = ((s64_t)delta_x * dsc->p->delta_y + 32768) >> 16;/* 转化成轴向距离 */
     } else {
         d = delta_x;
     }
