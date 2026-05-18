@@ -9,13 +9,19 @@
 typedef struct {
     ipgui_coord_t a, b, c;
 
-    ipgui_coord_t x1, y1, x2, y2;
-
-    u32_t a2_plus_b2;
+    ipgui_coord_t x1, y1; /* 线段中y值小的那个点 */
+ 
+    ipgui_coord_t dy, dx; /* dy always > 0 */
 }ipgui_edge_wdf_param_t;
 
 typedef struct {
+    ipgui_coord_t inte;
+    s32_t frac;    /* 0 ~ dy */
+}ipgui_xstep_t, ipgui_xidx_t;
+
+typedef struct {
     ipgui_coord_t x_half_span;
+    ipgui_xstep_t x_step;
 }ipgui_edge_wdf_mask_dsc_t;
 
 extern __IPGUI_API__ ipgui_edge_wdf_param_t ipgui_edge_wdf_param_init(
