@@ -19,7 +19,7 @@ __IPGUI_API__ ipgui_edge_coord_t edge_x_at_y(
  * 此时轴向距离和垂直距离差距不大，不用修正
  * 其实斜率小于1/10时这两个距离就差不太多了，等RAM/ROM不够再优化吧
  */
-static const u8_t correction_frac[127] = {
+const u8_t correction_frac[127] = {
          255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 254, 254,
     254, 254, 254, 253, 253, 253, 253, 252, 252, 252, 251, 251, 251, 250, 250, 250,
     249, 249, 248, 248, 247, 247, 247, 246, 246, 245, 245, 244, 244, 243, 243, 242,
@@ -52,7 +52,7 @@ __IPGUI_API__ ipgui_edge_param_t ipgui_edge_param_init(
         param.y1 = y2;
     }
 
-    if (IPGUI_ABS(param.dx) >= IPGUI_ABS(param.dy)) {
+    if (IPGUI_ABS(param.dx) >= param.dy) {
         /* mark the edge flatten 
          * and scale to delta_y / 65536
          */

@@ -68,6 +68,12 @@ __IPGUI_API__ ipgui_edge_wdf_param_t ipgui_edge_wdf_param_init(
         param.y1 = y1;
     }
 
+    if (IPGUI_ABS(param.dx) >= param.dy) {
+        param.flatten = 1;
+    } else {
+        param.flatten = 0;
+    }
+
     return param;
 }
 
@@ -120,6 +126,9 @@ __IPGUI_API__ void ipgui_gen_edge_mask_dsc(
     res->x_step.inte = param->dx / param->dy;
     res->x_step.frac = param->dx - res->x_step.inte * param->dy;
 
+    /* gen half_width64 */
+    res->half_width64 = width << 5;
+
     /* 计算起始点的x坐标和frac */
     ipgui_line_x_at_y(param, start_y, &res->x_idx.inte, &res->x_idx.frac);
 
@@ -132,21 +141,74 @@ __IPGUI_API__ void ipgui_edeg_wdf_mask_dsc_next_y(
     ipgui_line_x_step(&dsc->x_idx, dsc->x_step, dsc);
 }
 
+extern const u8_t correction_frac[127];
+
+typedef struct {
+    ipgui_coord_t left_coord;
+    ipgui_coord_t right_coord;
+    u8_t          left_mask;
+    u8_t          right_mask;
+}ipgui_edge_wdf_mask_t;
+
+#define correct_d_and_mask(distance, half_width)\
+    distance = distance * correction_frac[dsc->p->correction_frac_index] >> 8;\
+    if (distance >= (half_width + 64)) mask = 0;\
+    else if (distance <= half_width) mask = 255;\
+    else mask = (64 - (distance - half_width)) << 2;\
+
 __IPGUI_API__ void ipgui_edge_wdf_mask(
     ipgui_edge_wdf_mask_dsc_t * dsc,
     ipgui_coord_t               x,
-    u8_t                      * mask,
+    u8_t                      * mask_buf,
     ipgui_coord_t               len/* length of mask buffer */)
 {
     ipgui_coord_t x_left, x_right;
-    
+
+    u8_t lfrac64 = 0, rfrac64 = 0;
     if (dsc->x_idx.frac) {
         x_left  = dsc->x_idx.inte - dsc->x_half_span - 1;
         x_right = dsc->x_idx.inte + dsc->x_half_span + 1;
+        lfrac64 = ((s64_t)dsc->x_idx.frac << 6) / dsc->p->dy;/* x_idx.frac scale to 0 - 64 */
+        rfrac64 = 64 - lfrac64;
     } else {
         x_left  = dsc->x_idx.inte - dsc->x_half_span;
         x_right = dsc->x_idx.inte + dsc->x_half_span;
     }
 
-    
+    /* generate edge wdf mask */
+    ipgui_edge_wdf_mask_t edge_wdf_mask;
+    u8_t mask;
+    u32_t dist64, d;
+
+    dist64 = (dsc->x_idx.inte - x_left) << 6;
+    dist64 += lfrac64;
+    while (1) {
+        if (dsc->p->flatten) {
+            d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成轴向距离 */
+        } else {
+            d = dist64;
+        }
+        correct_d_and_mask(d, dsc->half_width64);
+        if (mask == 255) {
+            break;
+        }
+        x_left ++;
+        dist64 -= 64;
+    }
+
+    dist64 = (x_right - (dsc->x_idx.inte + 1)) << 6;
+    dist64 += rfrac64;
+    while (1) {
+        if (dsc->p->flatten) {
+            d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成轴向距离 */
+        } else {
+            d = dist64;
+        }
+        correct_d_and_mask(d, dsc->half_width64);
+        if (mask == 255) {
+            break;
+        }
+        x_right --;
+        dist64 -= 64;
+    }
 }
