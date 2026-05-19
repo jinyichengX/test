@@ -183,14 +183,14 @@ int main(void)
 
     // ipgui_color_t color[sdl_scr->drv->yreso * sdl_scr->drv->xreso];
     ipgui_line_t line;
-    line.start.x = 450;
-    line.start.y = 200;
-    line.end.x = 250;
-    line.end.y = 500;
+    line.start.x = 0;
+    line.start.y = 0;
+    line.end.x = 100;
+    line.end.y = 100;
     ipgui_line_style_t line_style;
     line_style.opacity = 255;
     line_style.blend_mode = 0;
-    line_style.width = 3;
+    line_style.width = 10;
     line_style.paint.type = IPGUI_PAINT_GRADIENT;
 
     line_style.paint.src.color = g_color;
@@ -244,7 +244,7 @@ int main(void)
 
 
     ipgui_img_dsc_t img_dsc;
-    if(0 != test_bmp("./ESDBox_IPGUI/core/image/decoder/material/bmp/keli.bmp", &img_dsc))
+    if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/paimeng24.bmp", &img_dsc))
     {
         printf("Failed to load bitmap image, please run the program at the main.c page\n");
         return -1;
@@ -258,6 +258,20 @@ int main(void)
     img_data.w = img_dsc.w;
     img_data.h = img_dsc.h;
 
+    ipgui_img_dsc_t img2_dsc;
+    if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/keli.bmp", &img2_dsc))
+    {
+        printf("Failed to load bitmap image, please run the program at the main.c page\n");
+        return -1;
+    }
+    ipgui_image_data_t img2_data;
+    img2_data.pixmap = img2_dsc.pixmap;
+    img2_data.px_size = img2_dsc.stride / img2_dsc.w;
+    img2_data.fmt = IPGUI_IMG_FMT_BGR888;//可以改成L8或者LA88或者RGB565试试，虽然这么改逻辑上不对，但是有效果
+    img2_data.stride = img2_dsc.stride;
+    img2_data.w = img2_dsc.w;
+    img2_data.h = img2_dsc.h;
+
     ipgui_point_t pivot;
     pivot.x = img_dsc.w / 2;
     pivot.y = img_dsc.h / 2;
@@ -265,9 +279,13 @@ int main(void)
     anchor.x = sdl_scr->drv->xreso / 2 + 200;
     anchor.y = sdl_scr->drv->yreso / 2;
 // anchor.x = anchor.y = 0;
+
     ipgui_image_draw_style_t img_style;
     img_style.blend_mode = 0;
     img_style.opacity = 255;
+    ipgui_image_draw_style_t img2_style;
+    img2_style.blend_mode = 0;
+    img2_style.opacity = 100;
 
     ipgui_box_bg_style_t box_bg_style;
     box_bg_style.blend_mode = 0;
@@ -497,56 +515,65 @@ ipgui_button_style_t btn_style = {
                 //     &box, 
                 //     &shadow_style);
 
-                ipgui_draw_image(
-                    &surf1,
-                    NULL,
-                    &img_data,
-                    &pivot,
-                    &anchor,
-                    NULL,
-                    &img_style
-                );
+                // ipgui_draw_image(
+                //     &surf1,
+                //     NULL,
+                //     &img_data,
+                //     &pivot,
+                //     &anchor,
+                //     NULL,
+                //     &img_style
+                // );
 
-                ipgui_draw_arc(
-                    &surf1, 
-                    NULL,
-                    &arc, 
-                    &arc_style);
+                // ipgui_draw_image(
+                //     &surf1,
+                //     NULL,
+                //     &img2_data,
+                //     &pivot,
+                //     &anchor,
+                //     NULL,
+                //     &img2_style
+                // );
 
-                ipgui_draw_triangle(
-                    &surf1,
-                    NULL,
-                    &tri_p1, &tri_p2, &tri_p3,
-                    &tri_style);
 
-                ipgui_draw_box_background(
-                    &surf1,
-                    NULL,
-                    &box,
-                    &box_style,
-                    &box_bg_style);
+                // ipgui_draw_arc(
+                //     &surf1, 
+                //     NULL,
+                //     &arc, 
+                //     &arc_style);
 
-                ipgui_draw_box_border(
-                    &surf1,
-                    NULL,
-                    &box,
-                    &box_style,
-                    &box_border_style);
+                // ipgui_draw_triangle(
+                //     &surf1,
+                //     NULL,
+                //     &tri_p1, &tri_p2, &tri_p3,
+                //     &tri_style);
 
+                // ipgui_draw_box_background(
+                //     &surf1,
+                //     NULL,
+                //     &box,
+                //     &box_style,
+                //     &box_bg_style);
+
+                // ipgui_draw_box_border(
+                //     &surf1,
+                //     NULL,
+                //     &box,
+                //     &box_style,
+                //     &box_border_style);
+
+                // ipgui_draw_builtin_text(
+                //     &surf1,
+                //     NULL,
+                //     &font_style,
+                //     "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
+                //     50,
+                //     50);
                 ipgui_draw_line(
                     &surf1,
                     NULL,
                     &line,
                     &line_style);
-
-                ipgui_draw_builtin_text(
-                    &surf1,
-                    NULL,
-                    &font_style,
-                    "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
-                    50,
-                    50);
-
                 /* 画图结束 */
 #if RENDER_MODE == 1
                 ipgui_screen_fill_region(sdl_scr, 

@@ -28,12 +28,12 @@ typedef enum {
 }ipgui_line_gradient_dir_t;
 
 typedef struct {
-    ipgui_coord_t width;
-    ipgui_line_cap_t cap; /* 默认垂直/水平线为平头线帽，斜线为圆头线帽 */
+    ipgui_coord_t      width;
+    ipgui_line_cap_t   cap; /* 默认垂直/水平线为平头线帽，斜线为圆头线帽 */
 
-    ipgui_paint_t paint;
+    ipgui_paint_t      paint;
 
-    u8_t opacity;
+    u8_t               opacity;
     ipgui_blend_mode_t blend_mode;
 }ipgui_line_style_t;
 

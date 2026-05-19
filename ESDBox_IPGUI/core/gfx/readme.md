@@ -61,4 +61,4 @@ __IPGUI_API__ ipgui_edge_coord_t edge_x_at_y(
 
 edge_halfplane_mask和edge_wdf_mask的区别：
 edge_halfplane_mask是用于生成一个edge的半平面的mask
-edge_wdf_mask是用于生成一个edge的距离场(width distance-field)的mask
+edge_wdf_mask是用于生成一个edge的距离场(width distance-field)的mask，但是只用于整数端点线段！！！

@@ -42,4 +42,10 @@ extern __IPGUI_API__ ipgui_coord_t ipgui_edge_wdf_xspan(
     ipgui_edge_wdf_param_t * param,
     ipgui_coord_t width);
 
+extern __IPGUI_API__ void ipgui_gen_edge_mask_dsc(
+    ipgui_edge_wdf_mask_dsc_t * res,
+    ipgui_edge_wdf_param_t    * param,
+    ipgui_coord_t               start_y,
+    ipgui_coord_t               width);
+
 #endif

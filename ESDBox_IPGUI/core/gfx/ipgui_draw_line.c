@@ -1,4 +1,6 @@
 #include "ipgui_draw_line.h"
+#include "ipgui_edge_wdf_mask.h"
+#include "ipgui_mask_buf.h"
 
 extern premult_blend_func_t premult_blend_table[PIX_FMT_MAX];
 
@@ -284,6 +286,17 @@ __IPGUI_STATIC__ void ipgui_draw_line_round_cap(
                 ipgui_line_t       * line,
                 ipgui_line_style_t * style)/* style->cap must be IPGUI_LINE_CAP_ROUND */
 {
+    /* allocate mask buffer first  */
+    
+
+    ipgui_edge_wdf_param_t param;
+
+    ipgui_edge_wdf_param_init(
+        line->start.x, 
+        line->start.y, 
+        line->end.x, 
+        line->end.y);
+    
 
 }
 
@@ -292,7 +305,26 @@ __IPGUI_STATIC__ void ipgui_draw_line_butt_cap(
                 ipgui_line_t       * line,
                 ipgui_line_style_t * style)/* style->cap must be IPGUI_LINE_CAP_BUTT */
 {
+    /* allocate mask buffer first  */
+    
 
+    ipgui_edge_wdf_mask_dsc_t mask_dsc;
+    ipgui_edge_wdf_param_t    param;
+
+    param = ipgui_edge_wdf_param_init(
+        line->start.x, 
+        line->start.y, 
+        line->end.x, 
+        line->end.y);
+    
+    /* generate mask description */
+    ipgui_gen_edge_mask_dsc(
+        &mask_dsc, 
+        &param, 
+        draw->start.y, 
+        style->width);
+    
+    
 }
 
 __IPGUI_API__ void ipgui_draw_line(       
@@ -304,7 +336,7 @@ __IPGUI_API__ void ipgui_draw_line(
     if ((!surf) || (!line) || (!style))
         return;
 
-    if (style->opacity < 3)
+    if ((style->opacity < 3) || (style->width < 1))
         return;
 
     if (line->start.x == line->end.x) {
@@ -326,15 +358,12 @@ __IPGUI_API__ void ipgui_draw_line(
     }
 
     /* calc line region and clip self with draw */
-    // self.start.y = IPGUI_MIN(line->start.y, line->end.y);
-    // self.end.y   = IPGUI_MAX(line->start.y, line->end.y);
-    // self.start.x = line->start.x - (style->width >> 1);
-    // self.end.x   = self.start.x  + style->width - 1;
+    ipgui_aabb_generate_with_points(&self, &line->start, 2);
+    ipgui_aabb_expand(&self, (style->width >> 1) + (style->width & 1));
 
     if (0 != ipgui_aabb_overlap(&draw, &self, &draw))
         return;/* not intersect, then just return */
 
-        
     if (style->cap == IPGUI_LINE_CAP_ROUND)
         ipgui_draw_line_round_cap(&draw, line, style);
     else if (style->cap == IPGUI_LINE_CAP_BUTT) ;

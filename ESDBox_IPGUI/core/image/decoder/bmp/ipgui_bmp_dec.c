@@ -520,9 +520,12 @@ extern void clear_fucking_screen(ipgui_scr_t * scr);
 void test_bmp_rotate(u8_t * buffer, s32_t w, s32_t h, s32_t pix_sz, ipgui_angle_t angle);
 int test_bmp(const s8_t * path, ipgui_img_dsc_t * image) 
 {
-    static u8_t buffer[1024*1024*6];
+    // static u8_t buffer[1024*1024*6];
     static u8_t mask_buffer[1024*1024];
-    ipgui_memset(mask_buffer, 255, sizeof(mask_buffer));
+
+    void * buffer = malloc(1024*1024);
+
+    ipgui_memset(mask_buffer, 255, 1024*1024);
     struct bmp_inf inf;
     ipgui_err_t ret;
     ret = ipgui_bmp_dec(path, &inf);

@@ -168,8 +168,6 @@ __IPGUI_API__ void ipgui_aabb_expand(ipgui_aabb_t * aabb, ipgui_coord_t e)
     aabb->end.y += e;
 }
 
-
-
 /* if point in rect, if return 1, else return 0 */
 __IPGUI_API__ int ipgui_point_in_rect(ipgui_point_t * point, ipgui_rect_t * rect)
 {

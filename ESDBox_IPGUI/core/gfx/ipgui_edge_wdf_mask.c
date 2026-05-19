@@ -70,8 +70,27 @@ __IPGUI_API__ ipgui_edge_wdf_param_t ipgui_edge_wdf_param_init(
 
     if (IPGUI_ABS(param.dx) >= param.dy) {
         param.flatten = 1;
+
+        s64_t scaled_dy = (s64_t)param.dy << 16;
+        s32_t half_dx   = param.dx / 2;
+
+        if (param.dx > 0) {
+            param.delta_y = (scaled_dy + half_dx) / IPGUI_ABS(param.dx);
+        } else if (param.dx < 0) {
+            param.delta_y = (scaled_dy - half_dx) / IPGUI_ABS(param.dx);
+        }
+
+        /* 计算修正因子索引 */ 
+        s32_t abs_dx = IPGUI_ABS(param.dx);
+        s32_t abs_dy = param.dy;
+        param.correction_frac_index = (u8_t)((abs_dy * 126 + (abs_dx >> 1)) / abs_dx);
     } else {
         param.flatten = 0;
+        
+        /* 计算修正因子索引 */ 
+        s32_t abs_dx = IPGUI_ABS(param.dx);
+        s32_t abs_dy = param.dy;
+        param.correction_frac_index = (u8_t)((abs_dx * 126 + (abs_dy >> 1)) / abs_dy);
     }
 
     return param;
