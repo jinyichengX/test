@@ -160,20 +160,13 @@ __IPGUI_API__ void ipgui_edeg_wdf_mask_dsc_next_y(
     ipgui_line_x_step(&dsc->x_idx, dsc->x_step, dsc);
 }
 
-extern const u8_t correction_frac[127];
-
-typedef struct {
-    ipgui_coord_t left_coord;
-    ipgui_coord_t right_coord;
-    u8_t          left_mask;
-    u8_t          right_mask;
-}ipgui_edge_wdf_mask_t;
-
 #define correct_d_and_mask(distance, half_width)\
     distance = distance * correction_frac[dsc->p->correction_frac_index] >> 8;\
     if (distance >= (half_width + 64)) mask = 0;\
     else if (distance <= half_width) mask = 255;\
     else mask = (64 - (distance - half_width)) << 2;\
+
+extern const u8_t correction_frac[127];
 
 __IPGUI_API__ void ipgui_edge_wdf_mask(
     ipgui_edge_wdf_mask_dsc_t * dsc,
@@ -195,7 +188,6 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
     }
 
     /* generate edge wdf mask */
-    ipgui_edge_wdf_mask_t edge_wdf_mask;
     u8_t mask;
     u32_t dist64, d;
 
@@ -231,3 +223,65 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
         dist64 -= 64;
     }
 }
+
+__IPGUI_API__ u8_t ipgui_edge_wdf_mask_point(
+    ipgui_edge_wdf_mask_dsc_t * dsc,
+    ipgui_coord_t               x)
+{
+    u8_t mask;
+    u32_t dist64, d;
+    u8_t lfrac64 = 0;
+    lfrac64 = ((s64_t)dsc->x_idx.frac << 6) / dsc->p->dy;/* x_idx.frac scale to 0 - 64 */
+    if (dsc->x_idx.frac) {
+        if (x <= dsc->x_idx.inte) {
+            dist64 = ((dsc->x_idx.inte - x) << 6) + lfrac64;
+        } else {
+            dist64 = ((x - dsc->x_idx.inte) << 6) - lfrac64;
+        }
+    } else {
+        dist64 = (IPGUI_ABS(x - dsc->x_idx.inte)) << 6;
+    }
+    if (dsc->p->flatten) {
+        d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成轴向距离 */
+    } else {
+        d = dist64;
+    }
+    correct_d_and_mask(d, dsc->half_width64);
+    return mask;
+}
+
+#if 1
+/* 测试，逐点遍历效率很低 */
+#include "ipgui_pattle.h"
+void test_first_octant_wdf(ipgui_surf_t * surf)
+{
+    ipgui_color_t g_color;
+    IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
+
+    ipgui_edge_wdf_param_t edge_param = ipgui_edge_wdf_param_init(
+        0, 0 , 100, 200
+    );
+
+    ipgui_edge_wdf_mask_dsc_t dsc;
+    ipgui_gen_edge_mask_dsc(&dsc, &edge_param, 0, 10);
+
+    for (ipgui_coord_t y = 0; y < 480; y ++) {
+        for (ipgui_coord_t x = 0; x < 800; x ++) {
+            u8_t mask = ipgui_edge_wdf_mask_point(&dsc, x);
+            if (mask > 0) {
+                ipgui_draw_pixel(
+                    surf,
+                    NULL,
+                    x, y,
+                    g_color,
+                    mask,
+                    255,
+                    0
+                );
+            }
+        }
+
+        ipgui_edeg_wdf_mask_dsc_next_y(&dsc);
+    }
+}
+#endif

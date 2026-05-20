@@ -1,17 +1,16 @@
-Date : 2026-04-16 21:50:43
+Date : 2026-05-19 21:43:32
 Directory : m:\test
-Total : 437 files,  257895 codes, 159699 comments, 23956 blanks, all 441550 lines
+Total : 455 files,  260337 codes, 159939 comments, 24242 blanks, all 444518 lines
 
 Languages
 +----------+------------+------------+------------+------------+------------+
 | language | files      | code       | comment    | blank      | total      |
 +----------+------------+------------+------------+------------+------------+
-| C        |        260 |    199,355 |    133,900 |     17,538 |    350,793 |
-| C++      |        161 |     57,672 |     25,753 |      6,244 |     89,669 |
+| C        |        269 |    201,683 |    134,121 |     17,754 |    353,558 |
+| C++      |        171 |     57,826 |     25,772 |      6,305 |     89,903 |
 | CMake    |         11 |        578 |          0 |        100 |        678 |
-| Makefile |          2 |        194 |         46 |         68 |        308 |
-| HTML     |          1 |         57 |          0 |          3 |         60 |
-| PostCSS  |          1 |         35 |          0 |          2 |         37 |
+| Makefile |          2 |        196 |         46 |         68 |        310 |
+| Markdown |          1 |         50 |          0 |         14 |         64 |
 | Ini      |          1 |          4 |          0 |          1 |          5 |
 +----------+------------+------------+------------+------------+------------+
 
@@ -19,46 +18,47 @@ Directories
 +---------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
 | path                                                                            | files      | code       | comment    | blank      | total      |
 +---------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
-| .                                                                               |        437 |    257,895 |    159,699 |     23,956 |    441,550 |
-| . (Files)                                                                       |          5 |        543 |        421 |        135 |      1,099 |
-| ESDBox_IPGUI                                                                    |        317 |    240,648 |    152,743 |     20,186 |    413,577 |
-| ESDBox_IPGUI (Files)                                                            |          4 |         95 |         23 |         35 |        153 |
+| .                                                                               |        455 |    260,337 |    159,939 |     24,242 |    444,518 |
+| . (Files)                                                                       |          5 |        566 |        503 |        140 |      1,209 |
+| ESDBox_IPGUI                                                                    |        335 |    243,067 |    152,901 |     20,467 |    416,435 |
+| ESDBox_IPGUI (Files)                                                            |          4 |        102 |         36 |         40 |        178 |
 | ESDBox_IPGUI\Include                                                            |          4 |        233 |         43 |         72 |        348 |
-| ESDBox_IPGUI\al                                                                 |          6 |        787 |        119 |        167 |      1,073 |
-| ESDBox_IPGUI\al\hal                                                             |          4 |        337 |         34 |         73 |        444 |
+| ESDBox_IPGUI\al                                                                 |         10 |        804 |        120 |        175 |      1,099 |
+| ESDBox_IPGUI\al\hal                                                             |          8 |        354 |         35 |         81 |        470 |
 | ESDBox_IPGUI\al\vfs                                                             |          2 |        450 |         85 |         94 |        629 |
-| ESDBox_IPGUI\base                                                               |         25 |      2,977 |        924 |        681 |      4,582 |
+| ESDBox_IPGUI\base                                                               |         27 |      3,189 |        942 |        722 |      4,853 |
 | ESDBox_IPGUI\base (Files)                                                       |          1 |         58 |         15 |         29 |        102 |
-| ESDBox_IPGUI\base\inc                                                           |         11 |        354 |          6 |        130 |        490 |
-| ESDBox_IPGUI\base\inc (Files)                                                   |         10 |        349 |          6 |        127 |        482 |
+| ESDBox_IPGUI\base\inc                                                           |         12 |        369 |          6 |        140 |        515 |
+| ESDBox_IPGUI\base\inc (Files)                                                   |         11 |        364 |          6 |        137 |        507 |
 | ESDBox_IPGUI\base\inc\cache                                                     |          1 |          5 |          0 |          3 |          8 |
-| ESDBox_IPGUI\base\src                                                           |         13 |      2,565 |        903 |        522 |      3,990 |
-| ESDBox_IPGUI\base\src (Files)                                                   |         12 |      2,558 |        903 |        518 |      3,979 |
+| ESDBox_IPGUI\base\src                                                           |         14 |      2,762 |        921 |        553 |      4,236 |
+| ESDBox_IPGUI\base\src (Files)                                                   |         13 |      2,755 |        921 |        549 |      4,225 |
 | ESDBox_IPGUI\base\src\cache                                                     |          1 |          7 |          0 |          4 |         11 |
 | ESDBox_IPGUI\charset                                                            |          3 |     20,919 |        120 |         16 |     21,055 |
-| ESDBox_IPGUI\core                                                               |        109 |     12,504 |      4,363 |      2,638 |     19,505 |
-| ESDBox_IPGUI\core\composite                                                     |          9 |        952 |        129 |        190 |      1,271 |
-| ESDBox_IPGUI\core\composite (Files)                                             |          3 |         82 |         15 |         11 |        108 |
+| ESDBox_IPGUI\core                                                               |        119 |     14,687 |      4,489 |      2,863 |     22,039 |
+| ESDBox_IPGUI\core\composite                                                     |         11 |      2,810 |        188 |        316 |      3,314 |
+| ESDBox_IPGUI\core\composite (Files)                                             |          3 |         91 |          3 |         12 |        106 |
 | ESDBox_IPGUI\core\composite\blend_color                                         |          2 |        610 |        101 |        127 |        838 |
 | ESDBox_IPGUI\core\composite\blend_gradient                                      |          2 |        260 |         13 |         50 |        323 |
-| ESDBox_IPGUI\core\composite\blend_image                                         |          2 |          0 |          0 |          2 |          2 |
-| ESDBox_IPGUI\core\gfx                                                           |         32 |      4,617 |      1,344 |      1,003 |      6,964 |
-| ESDBox_IPGUI\core\image                                                         |         25 |      2,578 |        439 |        461 |      3,478 |
-| ESDBox_IPGUI\core\image (Files)                                                 |          2 |         21 |          1 |          8 |         30 |
-| ESDBox_IPGUI\core\image\decoder                                                 |         16 |      2,077 |        265 |        358 |      2,700 |
+| ESDBox_IPGUI\core\composite\blend_icon                                          |          2 |          0 |          0 |          2 |          2 |
+| ESDBox_IPGUI\core\composite\blend_image                                         |          2 |      1,849 |         71 |        125 |      2,045 |
+| ESDBox_IPGUI\core\gfx                                                           |         39 |      5,102 |      1,391 |      1,122 |      7,615 |
+| ESDBox_IPGUI\core\image                                                         |         24 |      2,576 |        439 |        461 |      3,476 |
+| ESDBox_IPGUI\core\image (Files)                                                 |          2 |         16 |          0 |          7 |         23 |
+| ESDBox_IPGUI\core\image\decoder                                                 |         16 |      2,080 |        266 |        360 |      2,706 |
 | ESDBox_IPGUI\core\image\decoder (Files)                                         |          2 |         76 |          5 |         16 |         97 |
-| ESDBox_IPGUI\core\image\decoder\bmp                                             |          2 |        431 |        132 |         92 |        655 |
+| ESDBox_IPGUI\core\image\decoder\bmp                                             |          2 |        434 |        133 |         94 |        661 |
 | ESDBox_IPGUI\core\image\decoder\gif                                             |          3 |          0 |          0 |          3 |          3 |
 | ESDBox_IPGUI\core\image\decoder\jpeg                                            |          2 |        789 |         54 |         95 |        938 |
 | ESDBox_IPGUI\core\image\decoder\png                                             |          4 |        781 |         74 |        149 |      1,004 |
 | ESDBox_IPGUI\core\image\decoder\qoi                                             |          3 |          0 |          0 |          3 |          3 |
 | ESDBox_IPGUI\core\image\proc                                                    |          3 |        443 |         99 |         69 |        611 |
-| ESDBox_IPGUI\core\image\show                                                    |          4 |         37 |         74 |         26 |        137 |
-| ESDBox_IPGUI\core\misc                                                          |         16 |      2,606 |        328 |        406 |      3,340 |
-| ESDBox_IPGUI\core\ui                                                            |         17 |        865 |      1,655 |        345 |      2,865 |
+| ESDBox_IPGUI\core\image\show                                                    |          3 |         37 |         74 |         25 |        136 |
+| ESDBox_IPGUI\core\misc                                                          |         16 |      2,605 |        328 |        404 |      3,337 |
+| ESDBox_IPGUI\core\ui                                                            |         21 |        920 |      1,693 |        368 |      2,981 |
 | ESDBox_IPGUI\core\ui\test                                                       |          2 |        349 |        135 |         64 |        548 |
-| ESDBox_IPGUI\core\ui\widget_manager                                             |         15 |        516 |      1,520 |        281 |      2,317 |
-| ESDBox_IPGUI\core\vector_render                                                 |         10 |        886 |        468 |        233 |      1,587 |
+| ESDBox_IPGUI\core\ui\widget_manager                                             |         19 |        571 |      1,558 |        304 |      2,433 |
+| ESDBox_IPGUI\core\vector_render                                                 |          8 |        674 |        450 |        192 |      1,316 |
 | ESDBox_IPGUI\examples                                                           |         11 |        403 |         57 |         45 |        505 |
 | ESDBox_IPGUI\font                                                               |         53 |    174,131 |    125,913 |     12,077 |    312,121 |
 | ESDBox_IPGUI\font (Files)                                                       |          6 |         57 |          5 |         21 |         83 |
@@ -75,6 +75,9 @@ Directories
 | ESDBox_IPGUI\scr_driver\imx6ull                                                 |          3 |        161 |         23 |         44 |        228 |
 | ESDBox_IPGUI\scr_driver\stm32                                                   |          5 |        553 |        160 |        115 |        828 |
 | ESDBox_IPGUI\scr_driver\stm32\stm32f4                                           |          5 |        553 |        160 |        115 |        828 |
+| ESDBox_IPGUI\widget                                                             |          2 |          0 |          0 |          2 |          2 |
+| ESDBox_IPGUI\widget\inc                                                         |          1 |          0 |          0 |          1 |          1 |
+| ESDBox_IPGUI\widget\src                                                         |          1 |          0 |          0 |          1 |          1 |
 | elNET                                                                           |        115 |     16,704 |      6,535 |      3,635 |     26,874 |
 | elNET (Files)                                                                   |          3 |        197 |        305 |        127 |        629 |
 | elNET\apps                                                                      |         10 |        178 |          9 |         35 |        222 |
@@ -111,8 +114,12 @@ Files
 | m:\test\ESDBox_IPGUI\Include\ipgui_defs.h                                       | C        |         38 |          7 |         16 |         61 |
 | m:\test\ESDBox_IPGUI\Include\ipgui_types.h                                      | C        |         60 |          3 |         14 |         77 |
 | m:\test\ESDBox_IPGUI\Include\ipgui_utils.h                                      | C        |        106 |         32 |         35 |        173 |
+| m:\test\ESDBox_IPGUI\al\hal\ipgui_action.c                                      | C        |          0 |          0 |          1 |          1 |
+| m:\test\ESDBox_IPGUI\al\hal\ipgui_action.h                                      | C++      |          0 |          0 |          1 |          1 |
 | m:\test\ESDBox_IPGUI\al\hal\ipgui_input.c                                       | C        |        139 |         10 |         25 |        174 |
 | m:\test\ESDBox_IPGUI\al\hal\ipgui_input.h                                       | C        |         81 |          0 |         17 |         98 |
+| m:\test\ESDBox_IPGUI\al\hal\ipgui_pointer.c                                     | C        |          0 |          0 |          1 |          1 |
+| m:\test\ESDBox_IPGUI\al\hal\ipgui_pointer.h                                     | C++      |         17 |          1 |          5 |         23 |
 | m:\test\ESDBox_IPGUI\al\hal\ipgui_screen.c                                      | C        |         64 |         23 |         14 |        101 |
 | m:\test\ESDBox_IPGUI\al\hal\ipgui_screen.h                                      | C        |         53 |          1 |         17 |         71 |
 | m:\test\ESDBox_IPGUI\al\vfs\ipgui_vfs.c                                         | C        |        369 |         83 |         71 |        523 |
@@ -129,6 +136,7 @@ Files
 | m:\test\ESDBox_IPGUI\base\inc\ipgui_queue.h                                     | C++      |         44 |          2 |         15 |         61 |
 | m:\test\ESDBox_IPGUI\base\inc\ipgui_time.h                                      | C        |         13 |          0 |          9 |         22 |
 | m:\test\ESDBox_IPGUI\base\inc\ipgui_timer.h                                     | C        |         59 |          1 |         10 |         70 |
+| m:\test\ESDBox_IPGUI\base\inc\ipgui_vector.h                                    | C        |         15 |          0 |         10 |         25 |
 | m:\test\ESDBox_IPGUI\base\src\cache\ipgui_lru.c                                 | C        |          7 |          0 |          4 |         11 |
 | m:\test\ESDBox_IPGUI\base\src\ipgui_avl.c                                       | C        |        360 |         67 |         32 |        459 |
 | m:\test\ESDBox_IPGUI\base\src\ipgui_darray.c                                    | C        |        145 |         37 |         24 |        206 |
@@ -142,6 +150,7 @@ Files
 | m:\test\ESDBox_IPGUI\base\src\ipgui_time.c                                      | C        |         41 |         24 |         12 |         77 |
 | m:\test\ESDBox_IPGUI\base\src\ipgui_timer.c                                     | C        |        318 |         52 |         73 |        443 |
 | m:\test\ESDBox_IPGUI\base\src\ipgui_utils.c                                     | C        |        306 |         61 |         34 |        401 |
+| m:\test\ESDBox_IPGUI\base\src\ipgui_vector.c                                    | C        |        197 |         18 |         31 |        246 |
 | m:\test\ESDBox_IPGUI\charset\ipgui_charset.c                                    | C        |          0 |        119 |         10 |        129 |
 | m:\test\ESDBox_IPGUI\charset\ipgui_charset.h                                    | C++      |         10 |          0 |          5 |         15 |
 | m:\test\ESDBox_IPGUI\charset\ipgui_map_utf8_gbk.h                               | C++      |     20,909 |          1 |          1 |     20,911 |
@@ -149,16 +158,16 @@ Files
 | m:\test\ESDBox_IPGUI\core\composite\blend_color\ipgui_blend_color.h             | C++      |         32 |          0 |          9 |         41 |
 | m:\test\ESDBox_IPGUI\core\composite\blend_gradient\ipgui_blend_gradient_color.c | C        |        223 |         13 |         43 |        279 |
 | m:\test\ESDBox_IPGUI\core\composite\blend_gradient\ipgui_blend_gradient_color.h | C++      |         37 |          0 |          7 |         44 |
-| m:\test\ESDBox_IPGUI\core\composite\blend_image\ipgui_blend_image.c             | C        |          0 |          0 |          1 |          1 |
-| m:\test\ESDBox_IPGUI\core\composite\blend_image\ipgui_blend_image.h             | C++      |          0 |          0 |          1 |          1 |
-| m:\test\ESDBox_IPGUI\core\composite\ipgui_blend.c                               | C        |         41 |         10 |          1 |         52 |
-| m:\test\ESDBox_IPGUI\core\composite\ipgui_blend.h                               | C++      |         33 |          5 |          8 |         46 |
+| m:\test\ESDBox_IPGUI\core\composite\blend_icon\ipgui_blend_icon.c               | C        |          0 |          0 |          1 |          1 |
+| m:\test\ESDBox_IPGUI\core\composite\blend_icon\ipgui_blend_icon.h               | C++      |          0 |          0 |          1 |          1 |
+| m:\test\ESDBox_IPGUI\core\composite\blend_image\ipgui_blend_image.c             | C        |      1,814 |         52 |        108 |      1,974 |
+| m:\test\ESDBox_IPGUI\core\composite\blend_image\ipgui_blend_image.h             | C++      |         35 |         19 |         17 |         71 |
+| m:\test\ESDBox_IPGUI\core\composite\ipgui_blend.c                               | C        |         49 |          0 |          1 |         50 |
+| m:\test\ESDBox_IPGUI\core\composite\ipgui_blend.h                               | C++      |         34 |          3 |          9 |         46 |
 | m:\test\ESDBox_IPGUI\core\composite\ipgui_blend_mode.h                          | C++      |          8 |          0 |          2 |         10 |
-| m:\test\ESDBox_IPGUI\core\gfx\box.html                                          | HTML     |         57 |          0 |          3 |         60 |
-| m:\test\ESDBox_IPGUI\core\gfx\box_style.css                                     | PostCSS  |         35 |          0 |          2 |         37 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_box_style.h                                 | C++      |         14 |          5 |          4 |         23 |
-| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_arc.c                                  | C        |        312 |         20 |         50 |        382 |
-| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_arc.h                                  | C++      |         40 |          0 |         11 |         51 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_arc.c                                  | C        |        384 |         28 |         60 |        472 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_arc.h                                  | C++      |         41 |          0 |         11 |         52 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_box_background.c                       | C        |        199 |         26 |         35 |        260 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_box_background.h                       | C++      |         23 |          3 |          8 |         34 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_box_border.c                           | C        |        203 |         25 |         36 |        264 |
@@ -167,7 +176,11 @@ Files
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_box_shadow.h                           | C++      |         33 |          0 |          6 |         39 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_builtin_font.c                         | C        |        148 |         19 |         31 |        198 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_builtin_font.h                         | C++      |         64 |          6 |         14 |         84 |
-| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_line.c                                 | C        |        267 |         21 |         41 |        329 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_icon.c                                 | C        |          0 |          0 |          1 |          1 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_icon.h                                 | C++      |          0 |          0 |          1 |          1 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_image.c                                | C        |        112 |         27 |         23 |        162 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_image.h                                | C++      |         28 |         12 |         12 |         52 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_line.c                                 | C        |        302 |         16 |         53 |        371 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_line.h                                 | C        |         40 |          3 |         13 |         56 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_pixel.c                                | C        |         34 |          2 |          8 |         44 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_pixel.h                                | C++      |         20 |          0 |          5 |         25 |
@@ -176,17 +189,22 @@ Files
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_polygon回退用.c                           | C        |          0 |        757 |        118 |        875 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_triangle.c                             | C        |        251 |         12 |         35 |        298 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_triangle.h                             | C++      |         23 |          3 |          8 |         34 |
-| m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_halfplane_mask.c                                 | C        |        157 |         14 |         26 |        197 |
-| m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_halfplane_mask.h                                 | C++      |         53 |          2 |         16 |         71 |
-| m:\test\ESDBox_IPGUI\core\gfx\ipgui_gradient_color.c                            | C        |        483 |         52 |         79 |        614 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_halfplane_mask.c                       | C        |        159 |         14 |         26 |        199 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_halfplane_mask.h                       | C++      |         53 |          2 |         16 |         71 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_wdf_mask.c                             | C        |        184 |         16 |         34 |        234 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_edge_wdf_mask.h                             | C++      |         39 |          0 |         12 |         51 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_gradient_color.c                            | C        |        497 |         54 |         79 |        630 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_gradient_color.h                            | C++      |         82 |         15 |         33 |        130 |
-| m:\test\ESDBox_IPGUI\core\gfx\ipgui_mask_buf.c                                  | C        |         28 |          2 |          7 |         37 |
-| m:\test\ESDBox_IPGUI\core\gfx\ipgui_mask_buf.h                                  | C++      |          6 |         15 |          8 |         29 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_image_buf.c                                 | C        |         31 |          0 |          6 |         37 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_image_buf.h                                 | C++      |          6 |          2 |          4 |         12 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_mask_buf.c                                  | C        |         31 |          0 |          6 |         37 |
+| m:\test\ESDBox_IPGUI\core\gfx\ipgui_mask_buf.h                                  | C++      |          6 |          2 |          4 |         12 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_mask_gradient.c                             | C        |        303 |          9 |         55 |        367 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_mask_gradient.h                             | C++      |         93 |         25 |         30 |        148 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_ring_mask.c                                 | C        |        632 |         49 |        101 |        782 |
 | m:\test\ESDBox_IPGUI\core\gfx\ipgui_ring_mask.h                                 | C++      |         34 |          1 |          8 |         43 |
-| m:\test\ESDBox_IPGUI\core\image\decoder\bmp\ipgui_bmp_dec.c                     | C        |        431 |        132 |         91 |        654 |
+| m:\test\ESDBox_IPGUI\core\gfx\readme.md                                         | Markdown |         50 |          0 |         14 |         64 |
+| m:\test\ESDBox_IPGUI\core\image\decoder\bmp\ipgui_bmp_dec.c                     | C        |        434 |        133 |         93 |        660 |
 | m:\test\ESDBox_IPGUI\core\image\decoder\bmp\ipgui_bmp_dec.h                     | C++      |          0 |          0 |          1 |          1 |
 | m:\test\ESDBox_IPGUI\core\image\decoder\gif\ipgui_gif.h                         | C++      |          0 |          0 |          1 |          1 |
 | m:\test\ESDBox_IPGUI\core\image\decoder\gif\ipgui_gif_dec.c                     | C        |          0 |          0 |          1 |          1 |
@@ -203,11 +221,10 @@ Files
 | m:\test\ESDBox_IPGUI\core\image\decoder\qoi\ipgui_qoi_dec.c                     | C        |          0 |          0 |          1 |          1 |
 | m:\test\ESDBox_IPGUI\core\image\decoder\qoi\ipgui_qoi_enc.c                     | C        |          0 |          0 |          1 |          1 |
 | m:\test\ESDBox_IPGUI\core\image\ipgui_image.c                                   | C        |          0 |          0 |          1 |          1 |
-| m:\test\ESDBox_IPGUI\core\image\ipgui_image.h                                   | C        |         21 |          1 |          7 |         29 |
+| m:\test\ESDBox_IPGUI\core\image\ipgui_image.h                                   | C        |         16 |          0 |          6 |         22 |
 | m:\test\ESDBox_IPGUI\core\image\proc\ipgui_image_enhance.c                      | C        |          0 |          0 |          1 |          1 |
 | m:\test\ESDBox_IPGUI\core\image\proc\ipgui_image_geometry_transform.c           | C        |        412 |         95 |         62 |        569 |
 | m:\test\ESDBox_IPGUI\core\image\proc\ipgui_image_geometry_transform.h           | C++      |         31 |          4 |          6 |         41 |
-| m:\test\ESDBox_IPGUI\core\image\show\ipgui_draw_image.c                         | C        |          0 |          0 |          1 |          1 |
 | m:\test\ESDBox_IPGUI\core\image\show\ipgui_image_ras.c                          | C        |          0 |         68 |         13 |         81 |
 | m:\test\ESDBox_IPGUI\core\image\show\ipgui_image_ras.h                          | C++      |         36 |          6 |         10 |         52 |
 | m:\test\ESDBox_IPGUI\core\image\show\ipgui_image_ras_ori_mode..c                | C        |          1 |          0 |          2 |          3 |
@@ -220,28 +237,32 @@ Files
 | m:\test\ESDBox_IPGUI\core\misc\ipgui_handler.c                                  | C        |         44 |         23 |          7 |         74 |
 | m:\test\ESDBox_IPGUI\core\misc\ipgui_handler.h                                  | C        |         25 |          1 |          3 |         29 |
 | m:\test\ESDBox_IPGUI\core\misc\ipgui_lcd_pix_fmt.h                              | C++      |         14 |         11 |          6 |         31 |
-| m:\test\ESDBox_IPGUI\core\misc\ipgui_line.c                                     | C        |        106 |         23 |         16 |        145 |
-| m:\test\ESDBox_IPGUI\core\misc\ipgui_line.h                                     | C        |         15 |          0 |          4 |         19 |
+| m:\test\ESDBox_IPGUI\core\misc\ipgui_line_clip.c                                | C        |        106 |         23 |         16 |        145 |
+| m:\test\ESDBox_IPGUI\core\misc\ipgui_line_clip.h                                | C++      |         15 |          0 |          4 |         19 |
 | m:\test\ESDBox_IPGUI\core\misc\ipgui_pattle.h                                   | C        |        541 |          0 |          5 |        546 |
-| m:\test\ESDBox_IPGUI\core\misc\ipgui_prim.c                                     | C        |        174 |         51 |         40 |        265 |
-| m:\test\ESDBox_IPGUI\core\misc\ipgui_prim.h                                     | C        |         95 |          1 |         25 |        121 |
+| m:\test\ESDBox_IPGUI\core\misc\ipgui_prim.c                                     | C        |        174 |         51 |         38 |        263 |
+| m:\test\ESDBox_IPGUI\core\misc\ipgui_prim.h                                     | C        |         94 |          1 |         25 |        120 |
 | m:\test\ESDBox_IPGUI\core\misc\ipgui_widget.c                                   | C        |        672 |         99 |        111 |        882 |
 | m:\test\ESDBox_IPGUI\core\misc\ipgui_widget.h                                   | C        |        108 |          9 |         28 |        145 |
 | m:\test\ESDBox_IPGUI\core\ui\test\test_dirty_rect..c                            | C        |        260 |        134 |         47 |        441 |
 | m:\test\ESDBox_IPGUI\core\ui\test\test_widget_tree.c                            | C        |         89 |          1 |         17 |        107 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_dirty_rect.c                  | C        |        193 |         38 |         25 |        256 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_dirty_rect.h                  | C++      |         31 |         10 |          8 |         49 |
-| m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_event..c               | C        |          0 |          5 |          0 |          5 |
+| m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_draw.c                 | C        |          5 |          1 |          2 |          8 |
+| m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_draw.h                 | C++      |          5 |          0 |          4 |          9 |
+| m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_event.c                | C        |          0 |         33 |          2 |         35 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_geometry.c             | C        |          0 |          9 |          0 |          9 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_geometry.h             | C++      |         16 |          4 |          6 |         26 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_layout.c               | C        |          2 |         17 |          2 |         21 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_ref.c                  | C        |          0 |          5 |          0 |          5 |
-| m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_render.c               | C        |          8 |          9 |          9 |         26 |
+| m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_render.c               | C        |         36 |         10 |         15 |         61 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_render.h               | C++      |          5 |          0 |          2 |          7 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_state.c                | C        |          0 |        235 |         33 |        268 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_state.h                | C++      |          0 |        159 |         30 |        189 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_style.c                | C        |          0 |        673 |         57 |        730 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_style.h                | C++      |          7 |        319 |         66 |        392 |
+| m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_temp.c                 | C        |         10 |          8 |          5 |         23 |
+| m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_temp.h                 | C++      |          7 |          0 |          4 |         11 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_tree.c                 | C        |        223 |         37 |         37 |        297 |
 | m:\test\ESDBox_IPGUI\core\ui\widget_manager\ipgui_widget_tree.h                 | C++      |         31 |          0 |          6 |         37 |
 | m:\test\ESDBox_IPGUI\core\vector_render\ipgui_curve.c                           | C        |        128 |         59 |         29 |        216 |
@@ -252,8 +273,6 @@ Files
 | m:\test\ESDBox_IPGUI\core\vector_render\ipgui_stroker.h                         | C        |         38 |         23 |          8 |         69 |
 | m:\test\ESDBox_IPGUI\core\vector_render\ipgui_transform.c                       | C        |        151 |         41 |         38 |        230 |
 | m:\test\ESDBox_IPGUI\core\vector_render\ipgui_transform.h                       | C        |         26 |          0 |          7 |         33 |
-| m:\test\ESDBox_IPGUI\core\vector_render\ipgui_vector.c                          | C        |        197 |         18 |         31 |        246 |
-| m:\test\ESDBox_IPGUI\core\vector_render\ipgui_vector.h                          | C        |         15 |          0 |         10 |         25 |
 | m:\test\ESDBox_IPGUI\examples\ipgui_widget_plane_and_traverse.c                 | C        |          0 |         38 |          2 |         40 |
 | m:\test\ESDBox_IPGUI\examples\test_binary_heap.c                                | C        |         44 |          1 |          1 |         46 |
 | m:\test\ESDBox_IPGUI\examples\test_darray.c                                     | C        |         48 |          3 |          1 |         52 |
@@ -321,7 +340,7 @@ Files
 | m:\test\ESDBox_IPGUI\ipgui_check.h                                              | C++      |          4 |          0 |          2 |          6 |
 | m:\test\ESDBox_IPGUI\ipgui_conf.h                                               | C        |         43 |          8 |         20 |         71 |
 | m:\test\ESDBox_IPGUI\ipgui_core.c                                               | C        |         27 |          0 |          4 |         31 |
-| m:\test\ESDBox_IPGUI\ipgui_core.h                                               | C        |         21 |         15 |          9 |         45 |
+| m:\test\ESDBox_IPGUI\ipgui_core.h                                               | C        |         28 |         28 |         14 |         70 |
 | m:\test\ESDBox_IPGUI\port\sdl\include\SDL2\SDL.h                                | C++      |         63 |        155 |         16 |        234 |
 | m:\test\ESDBox_IPGUI\port\sdl\include\SDL2\SDL_assert.h                         | C++      |        130 |        163 |         30 |        323 |
 | m:\test\ESDBox_IPGUI\port\sdl\include\SDL2\SDL_atomic.h                         | C++      |        106 |        276 |         33 |        415 |
@@ -424,7 +443,9 @@ Files
 | m:\test\ESDBox_IPGUI\scr_driver\stm32\stm32f4\ipgui_cm4.h                       | C        |         42 |          0 |         10 |         52 |
 | m:\test\ESDBox_IPGUI\scr_driver\stm32\stm32f4\stm32f429_39xx.c                  | C        |        424 |        160 |         93 |        677 |
 | m:\test\ESDBox_IPGUI\scr_driver\stm32\stm32f4\stm32f429_39xx.h                  | C++      |         84 |          0 |          9 |         93 |
-| m:\test\Makefile                                                                | Makefile |        136 |         31 |         39 |        206 |
+| m:\test\ESDBox_IPGUI\widget\inc\ipgui_button.h                                  | C        |          0 |          0 |          1 |          1 |
+| m:\test\ESDBox_IPGUI\widget\src\ipgui_button.c                                  | C        |          0 |          0 |          1 |          1 |
+| m:\test\Makefile                                                                | Makefile |        138 |         31 |         39 |        208 |
 | m:\test\ceshi.c                                                                 | C        |          0 |         43 |          0 |         43 |
 | m:\test\desktop.ini                                                             | Ini      |          4 |          0 |          1 |          5 |
 | m:\test\elNET\apps\dns.c                                                        | C        |          0 |          0 |          1 |          1 |
@@ -542,7 +563,7 @@ Files
 | m:\test\elNET\src\timer.c                                                       | C        |         97 |         45 |         28 |        170 |
 | m:\test\elNET\test\main.c                                                       | C        |         45 |          0 |         12 |         57 |
 | m:\test\elNET\test\test_socket.c                                                | C        |         22 |          3 |          3 |         28 |
-| m:\test\main.c                                                                  | C        |        403 |         67 |         66 |        536 |
+| m:\test\main.c                                                                  | C        |        424 |        149 |         71 |        644 |
 | m:\test\net_example.c                                                           | C        |          0 |        280 |         29 |        309 |
-| Total                                                                           |          |    257,895 |    159,699 |     23,956 |    441,550 |
+| Total                                                                           |          |    260,337 |    159,939 |     24,242 |    444,518 |
 +---------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

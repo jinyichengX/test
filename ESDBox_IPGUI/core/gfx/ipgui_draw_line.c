@@ -1,6 +1,7 @@
 #include "ipgui_draw_line.h"
 #include "ipgui_edge_wdf_mask.h"
 #include "ipgui_mask_buf.h"
+#include "ipgui_debug.h"
 
 extern premult_blend_func_t premult_blend_table[PIX_FMT_MAX];
 
@@ -281,50 +282,42 @@ __IPGUI_STATIC__ void ipgui_draw_ver_line(
     }
 }
 
-__IPGUI_STATIC__ void ipgui_draw_line_round_cap(
-                ipgui_aabb_t       * draw,
-                ipgui_line_t       * line,
-                ipgui_line_style_t * style)/* style->cap must be IPGUI_LINE_CAP_ROUND */
-{
-    /* allocate mask buffer first  */
-    
-
-    ipgui_edge_wdf_param_t param;
-
-    ipgui_edge_wdf_param_init(
-        line->start.x, 
-        line->start.y, 
-        line->end.x, 
-        line->end.y);
-    
-
-}
-
-__IPGUI_STATIC__ void ipgui_draw_line_butt_cap(
+__IPGUI_STATIC__ void ipgui_draw_line_impl(
                 ipgui_aabb_t       * draw,
                 ipgui_line_t       * line,
                 ipgui_line_style_t * style)/* style->cap must be IPGUI_LINE_CAP_BUTT */
 {
     /* allocate mask buffer first  */
-    
+    ipgui_coord_t draw_w, draw_h, res_h;
+
+    draw_w = ipgui_aabb_width (&draw);
+    draw_h = ipgui_aabb_height(&draw);
+
+    u8_t * mask = ipgui_mask_buf_acquire(draw_w, draw_h, &res_h);
+    if ((!res_h) || (!mask)) {
+        ipgui_dbg_error("error: line rasterization failed to acquire mask buffer\r\n");
+        return;
+    }
 
     ipgui_edge_wdf_mask_dsc_t mask_dsc;
     ipgui_edge_wdf_param_t    param;
 
     param = ipgui_edge_wdf_param_init(
-        line->start.x, 
-        line->start.y, 
-        line->end.x, 
+        line->start.x,
+        line->start.y,
+        line->end.x,
         line->end.y);
     
     /* generate mask description */
     ipgui_gen_edge_mask_dsc(
-        &mask_dsc, 
-        &param, 
-        draw->start.y, 
+        &mask_dsc,
+        &param,
+        draw->start.y,
         style->width);
     
-    
+    if (style->cap == IPGUI_LINE_CAP_ROUND) {
+        /* draw circle endpoints */
+    }
 }
 
 __IPGUI_API__ void ipgui_draw_line(       
@@ -364,8 +357,5 @@ __IPGUI_API__ void ipgui_draw_line(
     if (0 != ipgui_aabb_overlap(&draw, &self, &draw))
         return;/* not intersect, then just return */
 
-    if (style->cap == IPGUI_LINE_CAP_ROUND)
-        ipgui_draw_line_round_cap(&draw, line, style);
-    else if (style->cap == IPGUI_LINE_CAP_BUTT) ;
-        ipgui_draw_line_butt_cap(&draw, line, style);
+    ipgui_draw_line_impl(&draw, line, style);
 }
