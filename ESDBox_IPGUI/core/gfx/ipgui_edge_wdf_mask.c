@@ -259,7 +259,7 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
 
     ipgui_edge_wdf_param_t edge_param = ipgui_edge_wdf_param_init(
-        0, 0 , 100, 200
+        0, 100, 10, 200 /* 改成0, 100, 200, 10试试，有bug */
     );
 
     ipgui_edge_wdf_mask_dsc_t dsc;
