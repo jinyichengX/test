@@ -181,8 +181,8 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
     ipgui_coord_t               len/* length of mask buffer */)
 {
     ipgui_coord_t x_left, x_right;
-
     u8_t lfrac64 = 0, rfrac64 = 0;
+
     if (dsc->x_idx.frac) {
         x_left  = dsc->x_idx.inte - dsc->x_half_span;
         x_right = dsc->x_idx.inte + 1 + dsc->x_half_span;
@@ -265,11 +265,11 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
     ipgui_color_t g_color;
     IPGUI_COLOR_SET(g_color, 255, 0x2196f3);
 
-    static ipgui_coord_t y_step = 800;
+    static ipgui_coord_t y_step = 101;
 
     ipgui_edge_wdf_param_t edge_param = ipgui_edge_wdf_param_init(
         0,   100,   /* 自己定义起点 */
-        200, 10     /* 自己定义终点 */
+        200, y_step ++     /* 自己定义终点 */
     );
 
     ipgui_edge_wdf_mask_dsc_t dsc;
@@ -277,7 +277,7 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
 
 
     for (ipgui_coord_t y = 0; y < 480; y ++) {
-#if 0 /* 单点 */
+#if 0 /* 单点 */ /* 这个分支测试完成 */
         for (ipgui_coord_t x = 0; x < 800; x ++) {
             u8_t mask = ipgui_edge_wdf_mask_point(&dsc, x);
             if (mask > 0) {
@@ -292,7 +292,7 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
                 );
             }
         }
-#else /* 批量 */
+#else /* 批量 */ /* 这个分支未测试 */
         static u8_t mask_buf[800];
         ipgui_edge_wdf_mask(&dsc, 0, mask_buf, 800);
         for (ipgui_coord_t x = 0; x < 800; x ++) {
