@@ -137,7 +137,7 @@ __IPGUI_API__ ipgui_coord_t ipgui_edge_wdf_x_halfspan(
     return x_half_span;
 }
 
-__IPGUI_API__ void ipgui_gen_edge_mask_dsc(
+__IPGUI_API__ void ipgui_gen_edge_wdf_mask_dsc(
     ipgui_edge_wdf_mask_dsc_t * res,
     ipgui_edge_wdf_param_t    * param,
     ipgui_coord_t               start_y,
@@ -176,9 +176,9 @@ extern const u8_t correction_frac[127];
 /* 单行（批量）mask生成，不混合只填充 */
 __IPGUI_API__ void ipgui_edge_wdf_mask(
     ipgui_edge_wdf_mask_dsc_t * dsc,
-    ipgui_coord_t               x,
+    ipgui_coord_t               sx, /* start coordinate of x */
     u8_t                      * mask_buf,
-    ipgui_coord_t               len/* length of mask buffer */)
+    ipgui_coord_t               len /* length of mask buffer */)
 {
     ipgui_coord_t x_left, x_right;
     u8_t lfrac64 = 0, rfrac64 = 0;
@@ -201,7 +201,7 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
     dist64 += lfrac64;
     while (1) {
         if (dsc->p->flatten) {
-            d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成轴向距离 */
+            d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成到直线的轴向距离 */
         } else {
             d = dist64;
         }
@@ -217,7 +217,7 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
     dist64 += rfrac64;
     while (1) {
         if (dsc->p->flatten) {
-            d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成轴向距离 */
+            d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成到直线的轴向距离 */
         } else {
             d = dist64;
         }
@@ -273,7 +273,7 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
     );
 
     ipgui_edge_wdf_mask_dsc_t dsc;
-    ipgui_gen_edge_mask_dsc(&dsc, &edge_param, 0, 100);
+    ipgui_gen_edge_wdf_mask_dsc(&dsc, &edge_param, 0, 100);
 
 
     for (ipgui_coord_t y = 0; y < 480; y ++) {

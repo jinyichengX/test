@@ -44,7 +44,7 @@ static void edge_clip_ring_mask_no_aa(
 
     if (edge_dir == EDGE_HALFPLANE_DIR_LEFT) {
         for (; y <= mask_aabb->end.y; y ++) {
-            ipgui_gen_edge_halfplane_mask(&dsc, edge_dir, edge, y);
+            ipgui_gen_edge_halfplane_mask_dsc(&dsc, edge_dir, edge, y);
 
             /* * LEFT 方向：保留左侧，抹除右侧。
              * dsc.x_start 是分界线点。
@@ -62,7 +62,7 @@ static void edge_clip_ring_mask_no_aa(
         ipgui_coord_t mask_len_tmp;
         for (; y <= mask_aabb->end.y; y ++) {
             mask_len_tmp = mask_stride;
-            ipgui_gen_edge_halfplane_mask(&dsc, edge_dir, edge, y);
+            ipgui_gen_edge_halfplane_mask_dsc(&dsc, edge_dir, edge, y);
 
             /* clip mask no aa */
             if (mask_aabb->end.x >= (dsc.x_start + 1)) {
@@ -98,7 +98,7 @@ static void edge_clip_ring_mask_with_aa(
     if (edge_dir == EDGE_HALFPLANE_DIR_LEFT) {
         u8_t          m;
         for (; y <= mask_aabb->end.y; y ++) {
-            ipgui_gen_edge_halfplane_mask(&dsc, edge_dir, edge, y);
+            ipgui_gen_edge_halfplane_mask_dsc(&dsc, edge_dir, edge, y);
 
             /* 跳过左侧全255区域 */
             ipgui_coord_t skip_255_len = 0;
@@ -134,7 +134,7 @@ static void edge_clip_ring_mask_with_aa(
         u8_t          m;
         for (; y <= mask_aabb->end.y; y ++) {
             mask_len_tmp = mask_stride;
-            ipgui_gen_edge_halfplane_mask(&dsc, edge_dir, edge, y);
+            ipgui_gen_edge_halfplane_mask_dsc(&dsc, edge_dir, edge, y);
 
             /* clip mask with aa */
             if (mask_aabb->end.x >= (dsc.x_start + 1)) {

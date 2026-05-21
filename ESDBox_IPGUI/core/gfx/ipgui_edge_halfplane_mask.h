@@ -51,7 +51,7 @@ extern __IPGUI_API__ ipgui_edge_param_t ipgui_edge_param_init(
     ipgui_edge_coord_t   x2,
     ipgui_edge_coord_t   y2);
 
-extern __IPGUI_API__ void ipgui_gen_edge_halfplane_mask(
+extern __IPGUI_API__ void ipgui_gen_edge_halfplane_mask_dsc(
     ipgui_edge_halfplane_mask_dsc_t * res,
     edge_halfplane_dir_t              dir,
     ipgui_edge_param_t              * p, 

@@ -309,7 +309,7 @@ __IPGUI_STATIC__ void ipgui_draw_line_impl(
         line->end.y);
     
     /* generate mask description */
-    ipgui_gen_edge_mask_dsc(
+    ipgui_gen_edge_wdf_mask_dsc(
         &mask_dsc,
         &param,
         draw->start.y,

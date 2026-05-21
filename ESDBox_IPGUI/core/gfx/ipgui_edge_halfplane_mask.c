@@ -105,7 +105,7 @@ ipgui_edge_coord_t align_up_64(ipgui_edge_coord_t c)
     return (c + 63) & ~(ipgui_edge_coord_t)63;
 }
 
-__IPGUI_API__ void ipgui_gen_edge_halfplane_mask(
+__IPGUI_API__ void ipgui_gen_edge_halfplane_mask_dsc(
     ipgui_edge_halfplane_mask_dsc_t * res,
     edge_halfplane_dir_t    dir,
     ipgui_edge_param_t    * p,
@@ -179,7 +179,7 @@ void test_first_octant_halfplane(ipgui_surf_t * surf)
     ipgui_edge_halfplane_mask_dsc_t dsc;
     
     for (ipgui_coord_t y = 0; y < 480; y ++) {
-        ipgui_gen_edge_halfplane_mask(&dsc, EDGE_HALFPLANE_DIR_LEFT, &edge_param, y);
+        ipgui_gen_edge_halfplane_mask_dsc(&dsc, EDGE_HALFPLANE_DIR_LEFT, &edge_param, y);
         for (ipgui_coord_t x = 0; x < 800; x ++) {
             u8_t mask = ipgui_edge_halfplane_mask(&dsc, x);
             if (mask > 0) {

@@ -196,8 +196,8 @@ __IPGUI_API__ void ipgui_draw_triangle(
             mask_aabb.end.y   = y + current_h - 1;
 
             for (; y <= mask_aabb.end.y; y ++) {
-                ipgui_gen_edge_halfplane_mask(&em1, e_short_dir, &e1,     y);
-                ipgui_gen_edge_halfplane_mask(&em2, e_long_dir,  &e_long, y);
+                ipgui_gen_edge_halfplane_mask_dsc(&em1, e_short_dir, &e1,     y);
+                ipgui_gen_edge_halfplane_mask_dsc(&em2, e_long_dir,  &e_long, y);
 
                 u8_t * mask_buf = mask + w * (y - mask_aabb.start.y);
 #if 0
@@ -246,8 +246,8 @@ _ras_top_tri:
             mask_aabb.end.y   = y + current_h - 1;
 
             for (; y <= mask_aabb.end.y; y ++) {
-                ipgui_gen_edge_halfplane_mask(&em1, e_short_dir, &e1,     y);
-                ipgui_gen_edge_halfplane_mask(&em2, e_long_dir,  &e_long, y);
+                ipgui_gen_edge_halfplane_mask_dsc(&em1, e_short_dir, &e1,     y);
+                ipgui_gen_edge_halfplane_mask_dsc(&em2, e_long_dir,  &e_long, y);
 
                 u8_t * mask_buf = mask + w * (y - mask_aabb.start.y);
 #if 0
@@ -277,9 +277,9 @@ _ras_mid_line:
         ipgui_edge_param_t e_short2 = ipgui_edge_param_init(pa[1]->x * 64, pa[1]->y * 64, pa[2]->x * 64, pa[2]->y * 64);
 
         ipgui_edge_halfplane_mask_dsc_t em1, em2, em3;
-        ipgui_gen_edge_halfplane_mask(&em1, e_short_dir, &e_short1, mask_aabb.start.y);
-        ipgui_gen_edge_halfplane_mask(&em3, e_short_dir, &e_short2, mask_aabb.start.y);
-        ipgui_gen_edge_halfplane_mask(&em2, e_long_dir,  &e_long,   mask_aabb.start.y);
+        ipgui_gen_edge_halfplane_mask_dsc(&em1, e_short_dir, &e_short1, mask_aabb.start.y);
+        ipgui_gen_edge_halfplane_mask_dsc(&em3, e_short_dir, &e_short2, mask_aabb.start.y);
+        ipgui_gen_edge_halfplane_mask_dsc(&em2, e_long_dir,  &e_long,   mask_aabb.start.y);
 
         u8_t * mask_buf = mask; 
         u8_t m1, m2, m3;
