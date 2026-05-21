@@ -131,21 +131,13 @@ ipgui_color_t g_color;
 ipgui_surf_t surf;
 ipgui_aabb_t clip;
 int cnt11 = 0;
-extern void test_first_octant_wdf(ipgui_surf_t * surf);
+
 #define RENDER_MODE 3
 // #define RENDER_MODE 1 /* 单行渲染 */
 // #define RENDER_MODE 2 /* 单行渲染 */
 // #define RENDER_MODE 3 /* 全屏渲染 */
 int main(void)
 {
-    ipgui_edge_wdf_param_t p;
-    p = ipgui_edge_wdf_param_init(0,0, 1000, 1000);
-    
-    ipgui_coord_t x_span;
-    x_span = ipgui_edge_wdf_xspan(&p, 300);
-
-    printf("x_span: %d\n");
-    // return 0;
 
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
     if(ipgui_init() != IPGUI_ERR_OK)
@@ -569,12 +561,12 @@ ipgui_button_style_t btn_style = {
                 //     "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
                 //     50,
                 //     50);
-                test_first_octant_wdf(&surf1);
-                // ipgui_draw_line(
-                //     &surf1,
-                //     NULL,
-                //     &line,
-                //     &line_style);
+
+                ipgui_draw_line(
+                    &surf1,
+                    NULL,
+                    &line,
+                    &line_style);
                 /* 画图结束 */
 #if RENDER_MODE == 1
                 ipgui_screen_fill_region(sdl_scr, 

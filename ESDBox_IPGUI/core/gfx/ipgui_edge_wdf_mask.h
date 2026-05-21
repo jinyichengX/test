@@ -38,7 +38,7 @@ extern __IPGUI_API__ ipgui_edge_wdf_param_t ipgui_edge_wdf_param_init(
     ipgui_coord_t x2,
     ipgui_coord_t y2);
     
-extern __IPGUI_API__ ipgui_coord_t ipgui_edge_wdf_xspan(
+extern __IPGUI_API__ ipgui_coord_t ipgui_edge_wdf_x_halfspan(
     ipgui_edge_wdf_param_t * param,
     ipgui_coord_t width);
 

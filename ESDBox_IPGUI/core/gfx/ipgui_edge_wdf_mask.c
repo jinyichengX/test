@@ -32,12 +32,17 @@ __IPGUI_STATIC__ void ipgui_line_x_step(
     x_idx->inte += step.inte;
     x_idx->frac += step.frac;
 
-    while (IPGUI_ABS(x_idx->frac) >= dsc->p->dy)
-    {
-        if (dsc->p->dx > 0) {
+    if (dsc->p->dx > 0) {
+        while (IPGUI_ABS(x_idx->frac) >= dsc->p->dy) {
             x_idx->inte += 1;
             x_idx->frac -= dsc->p->dy;
-        } else {
+        }
+    } else {
+        while (IPGUI_ABS(x_idx->frac) >= dsc->p->dy) {
+            x_idx->inte -= 1;
+            x_idx->frac += dsc->p->dy; 
+        }
+        if (x_idx->frac < 0) {
             x_idx->inte -= 1;
             x_idx->frac += dsc->p->dy; 
         }
@@ -97,9 +102,9 @@ __IPGUI_API__ ipgui_edge_wdf_param_t ipgui_edge_wdf_param_init(
 }
 
 /* 求横向跨度 */
-__IPGUI_API__ ipgui_coord_t ipgui_edge_wdf_xspan(
+__IPGUI_API__ ipgui_coord_t ipgui_edge_wdf_x_halfspan(
     ipgui_edge_wdf_param_t * param,
-    ipgui_coord_t width)
+    ipgui_coord_t            width)
 {
     /* 随便选取一个直线端点向右单点步进试探
      * 直到 d^2 <= (Ax0 + By0 + C)^2 / (A^2 + B^2) 
@@ -139,7 +144,7 @@ __IPGUI_API__ void ipgui_gen_edge_mask_dsc(
     ipgui_coord_t               width)
 {
     /* gen x_half_span */
-    res->x_half_span = ipgui_edge_wdf_xspan(param, width);
+    res->x_half_span = ipgui_edge_wdf_x_halfspan(param, width);
 
     /* gen x_step */
     res->x_step.inte = param->dx / param->dy;
@@ -168,6 +173,7 @@ __IPGUI_API__ void ipgui_edeg_wdf_mask_dsc_next_y(
 
 extern const u8_t correction_frac[127];
 
+/* 单行（批量）mask生成，不混合只填充 */
 __IPGUI_API__ void ipgui_edge_wdf_mask(
     ipgui_edge_wdf_mask_dsc_t * dsc,
     ipgui_coord_t               x,
@@ -178,8 +184,8 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
 
     u8_t lfrac64 = 0, rfrac64 = 0;
     if (dsc->x_idx.frac) {
-        x_left  = dsc->x_idx.inte - dsc->x_half_span - 1;
-        x_right = dsc->x_idx.inte + dsc->x_half_span + 1;
+        x_left  = dsc->x_idx.inte - dsc->x_half_span;
+        x_right = dsc->x_idx.inte + 1 + dsc->x_half_span;
         lfrac64 = ((s64_t)dsc->x_idx.frac << 6) / dsc->p->dy;/* x_idx.frac scale to 0 - 64 */
         rfrac64 = 64 - lfrac64;
     } else {
@@ -224,6 +230,7 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
     }
 }
 
+/* 单点mask生成 */
 __IPGUI_API__ u8_t ipgui_edge_wdf_mask_point(
     ipgui_edge_wdf_mask_dsc_t * dsc,
     ipgui_coord_t               x)
@@ -256,16 +263,21 @@ __IPGUI_API__ u8_t ipgui_edge_wdf_mask_point(
 void test_first_octant_wdf(ipgui_surf_t * surf)
 {
     ipgui_color_t g_color;
-    IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
+    IPGUI_COLOR_SET(g_color, 255, 0x2196f3);
+
+    static ipgui_coord_t y_step = 800;
 
     ipgui_edge_wdf_param_t edge_param = ipgui_edge_wdf_param_init(
-        0, 100, 10, 200 /* 改成0, 100, 200, 10试试，有bug */
+        0,   100,   /* 自己定义起点 */
+        200, 10     /* 自己定义终点 */
     );
 
     ipgui_edge_wdf_mask_dsc_t dsc;
-    ipgui_gen_edge_mask_dsc(&dsc, &edge_param, 0, 10);
+    ipgui_gen_edge_mask_dsc(&dsc, &edge_param, 0, 100);
+
 
     for (ipgui_coord_t y = 0; y < 480; y ++) {
+#if 0 /* 单点 */
         for (ipgui_coord_t x = 0; x < 800; x ++) {
             u8_t mask = ipgui_edge_wdf_mask_point(&dsc, x);
             if (mask > 0) {
@@ -280,7 +292,24 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
                 );
             }
         }
-
+#else /* 批量 */
+        static u8_t mask_buf[800];
+        ipgui_edge_wdf_mask(&dsc, 0, mask_buf, 800);
+        for (ipgui_coord_t x = 0; x < 800; x ++) {
+            u8_t mask = mask_buf[x];
+            if (mask > 0) {
+                ipgui_draw_pixel(
+                    surf,
+                    NULL,
+                    x, y,
+                    g_color,
+                    mask,
+                    255,
+                    0
+                );
+            }
+        }
+#endif
         ipgui_edeg_wdf_mask_dsc_next_y(&dsc);
     }
 }

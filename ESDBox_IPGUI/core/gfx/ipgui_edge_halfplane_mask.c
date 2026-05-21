@@ -172,8 +172,8 @@ void test_first_octant_halfplane(ipgui_surf_t * surf)
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
 
     ipgui_edge_param_t edge_param = ipgui_edge_param_init(
-        1 << 6, 0 << 6,
-        1 << 6, 400 << 6
+        1 << 6, 0 << 6, /* 自己定义起点(Q64) */
+        1 << 6, 400 << 6 /* 自己定义终点(Q64) */
     );
 
     ipgui_edge_halfplane_mask_dsc_t dsc;
