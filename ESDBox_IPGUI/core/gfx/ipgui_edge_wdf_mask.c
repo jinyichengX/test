@@ -1,4 +1,5 @@
 #include "ipgui_edge_wdf_mask.h"
+#include "ipgui_memory.h"
 
 /* 这个文件用于计算edge的wdf蒙版 
  * 暂时只支持整数端点edge！！！！！！
@@ -114,7 +115,8 @@ __IPGUI_API__ ipgui_coord_t ipgui_edge_wdf_x_halfspan(
     ipgui_coord_t x_half_span;
     
     ipgui_coord_t half_w2 = width >> 1;
-    if (width & 1) half_w2 += 1;
+    if (width & 1) half_w2 += 1;/* 这里+1是为了补偿 */
+    half_w2 += 1;   /* 这里+1是为了解决边界问题，否则在光栅化平坦线时会有严重的锯齿 */
     half_w2 *= half_w2;
 
     u32_t a2_plus_b2 = param->a * param->a 
@@ -171,6 +173,14 @@ __IPGUI_API__ void ipgui_edeg_wdf_mask_dsc_next_y(
     else if (distance <= half_width) mask = 255;\
     else mask = (64 - (distance - half_width)) << 2;\
 
+#define calc_mask(_dsc, _dist64)\
+    if (_dsc->p->flatten) {\
+        d = ((s64_t)_dist64 * _dsc->p->delta_y + 32768) >> 16;/* 转化成到直线的轴向距离 */\
+    } else {\
+        d = _dist64;\
+    }\
+    correct_d_and_mask(d, _dsc->half_width64);\
+
 extern const u8_t correction_frac[127];
 
 /* 单行（批量）mask生成，不混合只填充 */
@@ -180,6 +190,8 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
     u8_t                      * mask_buf,
     ipgui_coord_t               len /* length of mask buffer */)
 {
+    if (len < 1) return;
+
     ipgui_coord_t x_left, x_right;
     u8_t lfrac64 = 0, rfrac64 = 0;
 
@@ -193,40 +205,80 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
         x_right = dsc->x_idx.inte + dsc->x_half_span;
     }
 
-    /* generate edge wdf mask */
+    ipgui_coord_t ex = sx + len - 1;
+    /* case 1: mask buffer与[x_left, x_right]无交集 */
+    if ((ex < x_left) || (sx > x_right)) {
+        ipgui_memset(mask_buf, 0, len); /* mask all zero */
+        return;
+    }
+
+    /* case 2: mask buffer与[x_left, x_right]有交集 */
+    /* 先裁剪两侧，先裁剪掉x_left左侧，再裁剪掉x_right右侧
+     * 剩下的部分就是[x_left, x_right]的子区间
+     * 再从左向右遍历直到mask为255退出
+     * 再从右向左遍历直到mask为255退出
+     * 中间剩余部分mask全部为255
+     */
+    if (sx < x_left) {
+        ipgui_coord_t left_zero_len = x_left - sx;
+        ipgui_memset(mask_buf, 0, left_zero_len); /* mask left part zero */
+        mask_buf += left_zero_len;
+        len      -= left_zero_len;
+        sx        = x_left;
+    }
+
+    if (ex > x_right) {
+        ipgui_coord_t right_zero_len = ex - x_right;
+        ipgui_memset(mask_buf + (len - right_zero_len), 0, right_zero_len); /* mask right part zero */
+        len -= right_zero_len;
+        ex   = x_right;
+    }
+
+    /* now we only need to focus on the middle part belong to [x_left, x_right]*/
     u8_t mask;
     u32_t dist64, d;
 
-    dist64 = (dsc->x_idx.inte - x_left) << 6;
-    dist64 += lfrac64;
-    while (1) {
-        if (dsc->p->flatten) {
-            d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成到直线的轴向距离 */
-        } else {
-            d = dist64;
+    /* three cases :
+     * case 1: all mask buffer at the left of dsc->x_idx
+     * case 2: all mask buffer at the right of dsc->x_idx
+     * case 3: mask buffer across dsc->x_idx
+     */
+    if (ex <= dsc->x_idx.inte) {
+        /* case 1: all mask buffer at the left of dsc->x_idx */
+        dist64 = ((dsc->x_idx.inte - sx) << 6) + lfrac64;
+        ipgui_coord_t x = sx;
+        for (; x <= ex; x ++) {
+            calc_mask(dsc, dist64);
+            if (mask == 255)
+                break;
+            * mask_buf = mask;
+            mask_buf ++;
+            dist64 -= 64;
         }
-        correct_d_and_mask(d, dsc->half_width64);
-        if (mask == 255) {
-            break;
+        /* fill left（剩余） mask with 255 */
+        ipgui_memset(mask_buf, 255, ex - x + 1);
+    } else if ( ((!dsc->x_idx.frac) && (sx >= dsc->x_idx.inte)) ||
+                 ((dsc->x_idx.frac) && (sx > dsc->x_idx.inte))) {
+        /* case 2: all mask buffer at the right of dsc->x_idx */
+        if (dsc->x_idx.frac)
+            dist64 = ((ex - dsc->x_idx.inte) << 6) - lfrac64;
+        else
+            dist64 = ((ex - dsc->x_idx.inte) << 6);
+        ipgui_coord_t x = ex;
+        u8_t * mask_buf_end = mask_buf + len - 1;
+        for (; x >= sx; x --) {
+            calc_mask(dsc, dist64);
+            if (mask == 255)
+                break;
+            * mask_buf_end = mask;
+            mask_buf_end --;
+            dist64 -= 64;
         }
-        x_left ++;
-        dist64 -= 64;
-    }
-
-    dist64 = (x_right - (dsc->x_idx.inte + 1)) << 6;
-    dist64 += rfrac64;
-    while (1) {
-        if (dsc->p->flatten) {
-            d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成到直线的轴向距离 */
-        } else {
-            d = dist64;
-        }
-        correct_d_and_mask(d, dsc->half_width64);
-        if (mask == 255) {
-            break;
-        }
-        x_right --;
-        dist64 -= 64;
+        /* fill left（剩余） mask with 255 */
+        ipgui_memset(mask_buf, 255, x - sx + 1);
+    } else {
+        /* case 3: mask buffer across dsc->x_idx */
+        
     }
 }
 
@@ -248,12 +300,7 @@ __IPGUI_API__ u8_t ipgui_edge_wdf_mask_point(
     } else {
         dist64 = (IPGUI_ABS(x - dsc->x_idx.inte)) << 6;
     }
-    if (dsc->p->flatten) {
-        d = ((s64_t)dist64 * dsc->p->delta_y + 32768) >> 16;/* 转化成轴向距离 */
-    } else {
-        d = dist64;
-    }
-    correct_d_and_mask(d, dsc->half_width64);
+    calc_mask(dsc, dist64);
     return mask;
 }
 
@@ -263,23 +310,25 @@ __IPGUI_API__ u8_t ipgui_edge_wdf_mask_point(
 void test_first_octant_wdf(ipgui_surf_t * surf)
 {
     ipgui_color_t g_color;
-    IPGUI_COLOR_SET(g_color, 255, 0x2196f3);
+    IPGUI_COLOR_SET(g_color, 255, 0x2196f3/*IPGUI_COLOR_BLUE*//* 蓝色 */);
 
-    static ipgui_coord_t y_step = 101;
+    static ipgui_coord_t y_step = 110;
 
     ipgui_edge_wdf_param_t edge_param = ipgui_edge_wdf_param_init(
         0,   100,   /* 自己定义起点 */
-        200, y_step ++     /* 自己定义终点 */
+        200, y_step     /* 自己定义终点 */
     );
 
     ipgui_edge_wdf_mask_dsc_t dsc;
-    ipgui_gen_edge_wdf_mask_dsc(&dsc, &edge_param, 0, 100);
+    ipgui_gen_edge_wdf_mask_dsc(&dsc, &edge_param, 0, 11);
 
 
     for (ipgui_coord_t y = 0; y < 480; y ++) {
-#if 0 /* 单点 */ /* 这个分支测试完成 */
+#if 1 /* 单点 */ /* 这个分支测试完成 */
         for (ipgui_coord_t x = 0; x < 800; x ++) {
-            u8_t mask = ipgui_edge_wdf_mask_point(&dsc, x);
+            u8_t mask;
+            // mask = ipgui_edge_wdf_mask_point(&dsc, x);
+            ipgui_edge_wdf_mask(&dsc, x, &mask, 1);
             if (mask > 0) {
                 ipgui_draw_pixel(
                     surf,

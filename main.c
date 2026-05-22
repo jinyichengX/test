@@ -507,60 +507,60 @@ ipgui_button_style_t btn_style = {
                 //     &box, 
                 //     &shadow_style);
 
-                // ipgui_draw_image(
-                //     &surf1,
-                //     NULL,
-                //     &img_data,
-                //     &pivot,
-                //     &anchor,
-                //     NULL,
-                //     &img_style
-                // );
+                ipgui_draw_image(
+                    &surf1,
+                    NULL,
+                    &img_data,
+                    &pivot,
+                    &anchor,
+                    NULL,
+                    &img_style
+                );
 
-                // ipgui_draw_image(
-                //     &surf1,
-                //     NULL,
-                //     &img2_data,
-                //     &pivot,
-                //     &anchor,
-                //     NULL,
-                //     &img2_style
-                // );
+                ipgui_draw_image(
+                    &surf1,
+                    NULL,
+                    &img2_data,
+                    &pivot,
+                    &anchor,
+                    NULL,
+                    &img2_style
+                );
 
 
-                // ipgui_draw_arc(
-                //     &surf1, 
-                //     NULL,
-                //     &arc, 
-                //     &arc_style);
+                ipgui_draw_arc(
+                    &surf1, 
+                    NULL,
+                    &arc, 
+                    &arc_style);
 
-                // ipgui_draw_triangle(
-                //     &surf1,
-                //     NULL,
-                //     &tri_p1, &tri_p2, &tri_p3,
-                //     &tri_style);
+                ipgui_draw_triangle(
+                    &surf1,
+                    NULL,
+                    &tri_p1, &tri_p2, &tri_p3,
+                    &tri_style);
 
-                // ipgui_draw_box_background(
-                //     &surf1,
-                //     NULL,
-                //     &box,
-                //     &box_style,
-                //     &box_bg_style);
+                ipgui_draw_box_background(
+                    &surf1,
+                    NULL,
+                    &box,
+                    &box_style,
+                    &box_bg_style);
 
-                // ipgui_draw_box_border(
-                //     &surf1,
-                //     NULL,
-                //     &box,
-                //     &box_style,
-                //     &box_border_style);
+                ipgui_draw_box_border(
+                    &surf1,
+                    NULL,
+                    &box,
+                    &box_style,
+                    &box_border_style);
 
-                // ipgui_draw_builtin_text(
-                //     &surf1,
-                //     NULL,
-                //     &font_style,
-                //     "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
-                //     50,
-                //     50);
+                ipgui_draw_builtin_text(
+                    &surf1,
+                    NULL,
+                    &font_style,
+                    "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
+                    50,
+                    50);
                 test_first_octant_wdf(&surf1);
                 // ipgui_draw_line(
                 //     &surf1,

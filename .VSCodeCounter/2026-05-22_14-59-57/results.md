@@ -1,34 +1,33 @@
 # Summary
 
-Date : 2026-04-17 19:52:34
+Date : 2026-05-22 14:59:57
 
 Directory m:\\test
 
-Total : 439 files,  258013 codes, 159699 comments, 23963 blanks, all 441675 lines
+Total : 455 files,  260470 codes, 159917 comments, 24243 blanks, all 444630 lines
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
 ## Languages
 | language | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| C | 262 | 199,472 | 133,899 | 17,544 | 350,915 |
-| C++ | 161 | 57,673 | 25,754 | 6,245 | 89,672 |
+| C | 269 | 201,816 | 134,099 | 17,755 | 353,670 |
+| C++ | 171 | 57,826 | 25,772 | 6,305 | 89,903 |
 | CMake | 11 | 578 | 0 | 100 | 678 |
-| Makefile | 2 | 194 | 46 | 68 | 308 |
-| HTML | 1 | 57 | 0 | 3 | 60 |
-| PostCSS | 1 | 35 | 0 | 2 | 37 |
+| Makefile | 2 | 196 | 46 | 68 | 310 |
+| Markdown | 1 | 50 | 0 | 14 | 64 |
 | Ini | 1 | 4 | 0 | 1 | 5 |
 
 ## Directories
 | path | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| . | 439 | 258,013 | 159,699 | 23,963 | 441,675 |
-| . (Files) | 5 | 588 | 412 | 129 | 1,129 |
-| ESDBox_IPGUI | 319 | 240,721 | 152,752 | 20,199 | 413,672 |
-| ESDBox_IPGUI (Files) | 4 | 95 | 23 | 35 | 153 |
+| . | 455 | 260,470 | 159,917 | 24,243 | 444,630 |
+| . (Files) | 5 | 605 | 460 | 137 | 1,202 |
+| ESDBox_IPGUI | 335 | 243,161 | 152,922 | 20,471 | 416,554 |
+| ESDBox_IPGUI (Files) | 4 | 102 | 36 | 40 | 178 |
 | ESDBox_IPGUI\\Include | 4 | 233 | 43 | 72 | 348 |
-| ESDBox_IPGUI\\al | 6 | 787 | 119 | 167 | 1,073 |
-| ESDBox_IPGUI\\al\\hal | 4 | 337 | 34 | 73 | 444 |
+| ESDBox_IPGUI\\al | 10 | 804 | 120 | 175 | 1,099 |
+| ESDBox_IPGUI\\al\\hal | 8 | 354 | 35 | 81 | 470 |
 | ESDBox_IPGUI\\al\\vfs | 2 | 450 | 85 | 94 | 629 |
 | ESDBox_IPGUI\\base | 27 | 3,189 | 942 | 722 | 4,853 |
 | ESDBox_IPGUI\\base (Files) | 1 | 58 | 15 | 29 | 102 |
@@ -39,28 +38,29 @@ Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-
 | ESDBox_IPGUI\\base\\src (Files) | 13 | 2,755 | 921 | 549 | 4,225 |
 | ESDBox_IPGUI\\base\\src\\cache | 1 | 7 | 0 | 4 | 11 |
 | ESDBox_IPGUI\\charset | 3 | 20,919 | 120 | 16 | 21,055 |
-| ESDBox_IPGUI\\core | 107 | 12,365 | 4,354 | 2,608 | 19,327 |
-| ESDBox_IPGUI\\core\\composite | 9 | 952 | 130 | 191 | 1,273 |
-| ESDBox_IPGUI\\core\\composite (Files) | 3 | 82 | 16 | 12 | 110 |
+| ESDBox_IPGUI\\core | 119 | 14,781 | 4,510 | 2,867 | 22,158 |
+| ESDBox_IPGUI\\core\\composite | 11 | 2,810 | 188 | 316 | 3,314 |
+| ESDBox_IPGUI\\core\\composite (Files) | 3 | 91 | 3 | 12 | 106 |
 | ESDBox_IPGUI\\core\\composite\\blend_color | 2 | 610 | 101 | 127 | 838 |
 | ESDBox_IPGUI\\core\\composite\\blend_gradient | 2 | 260 | 13 | 50 | 323 |
-| ESDBox_IPGUI\\core\\composite\\blend_image | 2 | 0 | 0 | 2 | 2 |
-| ESDBox_IPGUI\\core\\gfx | 32 | 4,690 | 1,352 | 1,013 | 7,055 |
-| ESDBox_IPGUI\\core\\image | 25 | 2,578 | 439 | 461 | 3,478 |
-| ESDBox_IPGUI\\core\\image (Files) | 2 | 21 | 1 | 8 | 30 |
-| ESDBox_IPGUI\\core\\image\\decoder | 16 | 2,077 | 265 | 358 | 2,700 |
+| ESDBox_IPGUI\\core\\composite\\blend_icon | 2 | 0 | 0 | 2 | 2 |
+| ESDBox_IPGUI\\core\\composite\\blend_image | 2 | 1,849 | 71 | 125 | 2,045 |
+| ESDBox_IPGUI\\core\\gfx | 39 | 5,196 | 1,412 | 1,126 | 7,734 |
+| ESDBox_IPGUI\\core\\image | 24 | 2,576 | 439 | 461 | 3,476 |
+| ESDBox_IPGUI\\core\\image (Files) | 2 | 16 | 0 | 7 | 23 |
+| ESDBox_IPGUI\\core\\image\\decoder | 16 | 2,080 | 266 | 360 | 2,706 |
 | ESDBox_IPGUI\\core\\image\\decoder (Files) | 2 | 76 | 5 | 16 | 97 |
-| ESDBox_IPGUI\\core\\image\\decoder\\bmp | 2 | 431 | 132 | 92 | 655 |
+| ESDBox_IPGUI\\core\\image\\decoder\\bmp | 2 | 434 | 133 | 94 | 661 |
 | ESDBox_IPGUI\\core\\image\\decoder\\gif | 3 | 0 | 0 | 3 | 3 |
 | ESDBox_IPGUI\\core\\image\\decoder\\jpeg | 2 | 789 | 54 | 95 | 938 |
 | ESDBox_IPGUI\\core\\image\\decoder\\png | 4 | 781 | 74 | 149 | 1,004 |
 | ESDBox_IPGUI\\core\\image\\decoder\\qoi | 3 | 0 | 0 | 3 | 3 |
 | ESDBox_IPGUI\\core\\image\\proc | 3 | 443 | 99 | 69 | 611 |
-| ESDBox_IPGUI\\core\\image\\show | 4 | 37 | 74 | 26 | 137 |
-| ESDBox_IPGUI\\core\\misc | 16 | 2,606 | 328 | 406 | 3,340 |
-| ESDBox_IPGUI\\core\\ui | 17 | 865 | 1,655 | 345 | 2,865 |
+| ESDBox_IPGUI\\core\\image\\show | 3 | 37 | 74 | 25 | 136 |
+| ESDBox_IPGUI\\core\\misc | 16 | 2,605 | 328 | 404 | 3,337 |
+| ESDBox_IPGUI\\core\\ui | 21 | 920 | 1,693 | 368 | 2,981 |
 | ESDBox_IPGUI\\core\\ui\\test | 2 | 349 | 135 | 64 | 548 |
-| ESDBox_IPGUI\\core\\ui\\widget_manager | 15 | 516 | 1,520 | 281 | 2,317 |
+| ESDBox_IPGUI\\core\\ui\\widget_manager | 19 | 571 | 1,558 | 304 | 2,433 |
 | ESDBox_IPGUI\\core\\vector_render | 8 | 674 | 450 | 192 | 1,316 |
 | ESDBox_IPGUI\\examples | 11 | 403 | 57 | 45 | 505 |
 | ESDBox_IPGUI\\font | 53 | 174,131 | 125,913 | 12,077 | 312,121 |
