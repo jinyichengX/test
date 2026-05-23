@@ -283,9 +283,10 @@ __IPGUI_STATIC__ void ipgui_draw_ver_line(
 }
 
 __IPGUI_STATIC__ void ipgui_draw_line_impl(
-                ipgui_aabb_t       * draw,
-                ipgui_line_t       * line,
-                ipgui_line_style_t * style)/* style->cap must be IPGUI_LINE_CAP_BUTT */
+    ipgui_surf_t       * surf,
+    ipgui_aabb_t       * draw,
+    ipgui_line_t       * line,
+    ipgui_line_style_t * style)/* style->cap must be IPGUI_LINE_CAP_BUTT */
 {
     /* allocate mask buffer first  */
     ipgui_coord_t draw_w, draw_h, res_h;
@@ -299,32 +300,53 @@ __IPGUI_STATIC__ void ipgui_draw_line_impl(
         return;
     }
 
-    ipgui_edge_wdf_mask_dsc_t mask_dsc;
-    ipgui_edge_wdf_param_t    param;
-
+    /* init edge wdf param */
+    ipgui_edge_wdf_param_t param;
     param = ipgui_edge_wdf_param_init(
         line->start.x,
         line->start.y,
         line->end.x,
         line->end.y);
-    
+
     /* generate mask description */
+    ipgui_edge_wdf_mask_dsc_t mask_dsc;
     ipgui_gen_edge_wdf_mask_dsc(
         &mask_dsc,
         &param,
         draw->start.y,
         style->width);
     
+    ipgui_aabb_t mask_aabb;
+    mask_aabb.start.x = draw->start.x;
+    mask_aabb.end.x   = draw->end.x;
+    ipgui_coord_t y   = draw->start.y;
+    while (draw_h > 0) {
+            ipgui_coord_t current_h = IPGUI_MIN(draw_h, res_h);
+            mask_aabb.start.y = y;
+            mask_aabb.end.y   = y + current_h - 1;
+
+            for (; y <= mask_aabb.end.y; y ++) {
+                    /* fill mask_buf */
+                // ipgui_gen_edge_halfplane_mask_dsc(&em1, e_short_dir, &e1,     y);
+                // ipgui_gen_edge_halfplane_mask_dsc(&em2, e_long_dir,  &e_long, y);
+
+                // u8_t * mask_buf = mask + w * (y - mask_aabb.start.y);
+
+            }
+            ipgui_blend(surf, (ipgui_aabb_t *)0, &mask_aabb, &style->paint, style->opacity, mask, &mask_aabb, style->blend_mode);
+            draw_h -= current_h;
+    }
+
     if (style->cap == IPGUI_LINE_CAP_ROUND) {
         /* draw circle endpoints */
     }
 }
 
 __IPGUI_API__ void ipgui_draw_line(       
-                ipgui_surf_t       * surf,
-                ipgui_aabb_t       * clip,
-                ipgui_line_t       * line, 
-                ipgui_line_style_t * style)
+    ipgui_surf_t       * surf,
+    ipgui_aabb_t       * clip,
+    ipgui_line_t       * line, 
+    ipgui_line_style_t * style)
 {
     if ((!surf) || (!line) || (!style))
         return;
@@ -357,5 +379,5 @@ __IPGUI_API__ void ipgui_draw_line(
     if (0 != ipgui_aabb_overlap(&draw, &self, &draw))
         return;/* not intersect, then just return */
 
-    ipgui_draw_line_impl(&draw, line, style);
+    ipgui_draw_line_impl(surf, &draw, line, style);
 }

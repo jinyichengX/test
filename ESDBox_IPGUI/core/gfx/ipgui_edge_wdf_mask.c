@@ -161,7 +161,7 @@ __IPGUI_API__ void ipgui_gen_edge_wdf_mask_dsc(
     res->p = param;
 }
 
-__IPGUI_API__ void ipgui_edeg_wdf_mask_dsc_next_y(
+__IPGUI_API__ void ipgui_edge_wdf_mask_dsc_next_y(
     ipgui_edge_wdf_mask_dsc_t * dsc)
 {
     ipgui_line_x_step(&dsc->x_idx, dsc->x_step, dsc);
@@ -193,13 +193,12 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
     if (len < 1) return;
 
     ipgui_coord_t x_left, x_right;
-    u8_t lfrac64 = 0, rfrac64 = 0;
+    u8_t lfrac64 = 0;
 
     if (dsc->x_idx.frac) {
         x_left  = dsc->x_idx.inte - dsc->x_half_span;
         x_right = dsc->x_idx.inte + 1 + dsc->x_half_span;
         lfrac64 = ((s64_t)dsc->x_idx.frac << 6) / dsc->p->dy;/* x_idx.frac scale to 0 - 64 */
-        rfrac64 = 64 - lfrac64;
     } else {
         x_left  = dsc->x_idx.inte - dsc->x_half_span;
         x_right = dsc->x_idx.inte + dsc->x_half_span;
@@ -277,8 +276,36 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
         /* fill left（剩余） mask with 255 */
         ipgui_memset(mask_buf, 255, x - sx + 1);
     } else {
+        ipgui_coord_t x;
+        u8_t * mask_buf_end = mask_buf + len - 1;
         /* case 3: mask buffer across dsc->x_idx */
-        
+        /* firstly, from sx to dsc->x_idx.inte */
+        dist64 = ((dsc->x_idx.inte - sx) << 6) + lfrac64;
+        x = sx;
+        for (; x <= dsc->x_idx.inte; x ++) {
+            calc_mask(dsc, dist64);
+            if (mask == 255)
+                break;
+            * mask_buf = mask;
+            mask_buf ++;
+            dist64 -= 64;
+        }
+
+        /* secondly, from ex to dsc->x_idx.inte */
+        dist64 = ((ex - dsc->x_idx.inte) << 6) - lfrac64;
+        x = ex;
+        for (; x > dsc->x_idx.inte; x --) {
+            calc_mask(dsc, dist64);
+            if (mask == 255)
+                break;
+            * mask_buf_end = mask;
+            mask_buf_end --;
+            dist64 -= 64;
+        }
+
+        /* lastly, fill the middle part with 255 */
+        if (mask_buf_end >= mask_buf)
+            ipgui_memset(mask_buf, 255, mask_buf_end - mask_buf + 1);
     }
 }
 
@@ -305,7 +332,7 @@ __IPGUI_API__ u8_t ipgui_edge_wdf_mask_point(
 }
 
 #if 1
-/* 测试，逐点遍历效率很低 */
+/* 测试 */
 #include "ipgui_pattle.h"
 void test_first_octant_wdf(ipgui_surf_t * surf)
 {
@@ -316,7 +343,7 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
 
     ipgui_edge_wdf_param_t edge_param = ipgui_edge_wdf_param_init(
         0,   100,   /* 自己定义起点 */
-        200, y_step     /* 自己定义终点 */
+        200, y_step++     /* 自己定义终点 */
     );
 
     ipgui_edge_wdf_mask_dsc_t dsc;
@@ -324,11 +351,10 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
 
 
     for (ipgui_coord_t y = 0; y < 480; y ++) {
-#if 1 /* 单点 */ /* 这个分支测试完成 */
+#if 0 /* z逐点 */ /* 这个分支测试完成 */
         for (ipgui_coord_t x = 0; x < 800; x ++) {
             u8_t mask;
-            // mask = ipgui_edge_wdf_mask_point(&dsc, x);
-            ipgui_edge_wdf_mask(&dsc, x, &mask, 1);
+            mask = ipgui_edge_wdf_mask_point(&dsc, x);
             if (mask > 0) {
                 ipgui_draw_pixel(
                     surf,
@@ -341,7 +367,7 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
                 );
             }
         }
-#else /* 批量 */ /* 这个分支未测试 */
+#else /* 逐行批量 */
         static u8_t mask_buf[800];
         ipgui_edge_wdf_mask(&dsc, 0, mask_buf, 800);
         for (ipgui_coord_t x = 0; x < 800; x ++) {
@@ -359,7 +385,7 @@ void test_first_octant_wdf(ipgui_surf_t * surf)
             }
         }
 #endif
-        ipgui_edeg_wdf_mask_dsc_next_y(&dsc);
+        ipgui_edge_wdf_mask_dsc_next_y(&dsc);
     }
 }
 #endif
