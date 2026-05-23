@@ -12,10 +12,11 @@ __IPGUI_STATIC__ void ipgui_line_x_at_y(
     ipgui_coord_t          * x,   /* res */
     s32_t                  * frac /* res */)
 {
-    ipgui_coord_t temp, dy;
+    ipgui_coord_t dy;
+    s32_t temp;
 
     dy = y - param->y1;
-    temp = dy * param->dx;
+    temp = (s32_t)dy * param->dx;
     * x = temp / param->dy;
     * frac = temp - ((* x) * param->dy);
     if ((* frac) < 0) {
@@ -145,6 +146,8 @@ __IPGUI_API__ void ipgui_gen_edge_wdf_mask_dsc(
     ipgui_coord_t               start_y,
     ipgui_coord_t               width)
 {
+    if (!res || !param) return;
+
     /* gen x_half_span */
     res->x_half_span = ipgui_edge_wdf_x_halfspan(param, width);
 
@@ -190,7 +193,7 @@ __IPGUI_API__ void ipgui_edge_wdf_mask(
     u8_t                      * mask_buf,
     ipgui_coord_t               len /* length of mask buffer */)
 {
-    if (len < 1) return;
+    if (!dsc || !dsc->p || !mask_buf || len < 1) return;
 
     ipgui_coord_t x_left, x_right;
     u8_t lfrac64 = 0;

@@ -79,6 +79,7 @@ recursive   递归的
 orientation 方位
 lerp(非单词)        线性插值
 fractional  adj. [数]分数的，小数的; 微小的，极小的; 部分的，少量的; 零碎的
+generic     泛型的; 通用的
 
 专业术语：
 blit        位块传送（将缓冲区"blit"到屏幕上）
