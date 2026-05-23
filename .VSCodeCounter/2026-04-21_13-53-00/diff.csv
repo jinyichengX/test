@@ -1,8 +1,0 @@
-"filename", "language", "C", "C++", "comment", "blank", "total"
-"m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_image.c", "C", 37, 0, 6, 7, 50
-"m:\test\ESDBox_IPGUI\core\gfx\ipgui_draw_image.h", "C++", 0, 28, 12, 12, 52
-"m:\test\ESDBox_IPGUI\core\image\decoder\bmp\ipgui_bmp_dec.c", "C", 3, 0, 0, 0, 3
-"m:\test\ESDBox_IPGUI\core\image\show\ipgui_draw_image.c", "C", -11, 0, -5, -3, -19
-"m:\test\ESDBox_IPGUI\core\image\show\ipgui_draw_image.h", "C++", 0, -27, -11, -9, -47
-"m:\test\main.c", "C", 7, 0, 5, -7, 5
-"Total", "-", 36, 1, 7, 0, 44

@@ -8,7 +8,7 @@
 extern premult_blend_func_t premult_blend_table[PIX_FMT_MAX];
 
 /* Wu's draw thin line algorithm */
-__IPGUI_API__ void ipgui_draw_thin_line(
+__IPGUI_API__ void ipgui_draw_line_generic_classic(
         ipgui_surf_t       * surf, 
         ipgui_aabb_t       * clip,
         ipgui_line_t       * line, 
@@ -437,7 +437,7 @@ __IPGUI_STATIC__ void ipgui_draw_skew_line(
     ipgui_mask_buf_free(mask);
 }
 
-__IPGUI_API__ void ipgui_draw_line(       
+__IPGUI_API__ void ipgui_draw_line_generic(       
     ipgui_surf_t       * surf,
     ipgui_aabb_t       * clip,
     ipgui_line_t       * line, 

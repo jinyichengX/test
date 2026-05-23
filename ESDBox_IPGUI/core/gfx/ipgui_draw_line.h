@@ -1,5 +1,5 @@
-#ifndef IPGUI_DRAW_LINE_H
-#define IPGUI_DRAW_LINE_H
+#ifndef ipgui_draw_line_generic_H
+#define ipgui_draw_line_generic_H
 
 #include "ipgui_core.h"
 #include "ipgui_coord.h"
@@ -37,13 +37,13 @@ typedef struct {
     ipgui_blend_mode_t blend_mode;
 }ipgui_line_style_t;
 
-extern __IPGUI_API__ void ipgui_draw_line(       
+extern __IPGUI_API__ void ipgui_draw_line_generic(       
                 ipgui_surf_t       * surf,
                 ipgui_aabb_t       * clip,
                 ipgui_line_t       * line, 
                 ipgui_line_style_t * style);
 
-extern __IPGUI_API__ void ipgui_draw_thin_line(
+extern __IPGUI_API__ void ipgui_draw_line_generic_classic(
         ipgui_surf_t       * surf, 
         ipgui_aabb_t       * clip,
         ipgui_line_t       * line, 

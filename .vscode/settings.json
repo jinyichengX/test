@@ -146,7 +146,7 @@
         "ipgui_stroker.h": "c",
         "ipgui_polygon_raster.h": "c",
         "ipgui_avl.h": "c",
-        "ipgui_draw_line.h": "c",
+        "ipgui_draw_line_generic.h": "c",
         "stm32f4xx_eth.h": "c",
         "sdl_draw.h": "c",
         "ipgui_line_ras.h": "c",

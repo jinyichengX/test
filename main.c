@@ -562,7 +562,7 @@ ipgui_button_style_t btn_style = {
                     50,
                     50);
 
-                ipgui_draw_line(
+                ipgui_draw_line_generic(
                     &surf1,
                     NULL,
                     &line,
