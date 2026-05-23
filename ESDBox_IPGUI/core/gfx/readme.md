@@ -48,7 +48,8 @@ __IPGUI_API__ ipgui_edge_coord_t edge_x_at_y(
 4. 现在的圆弧端点圆的画法是直接在端点处补圆，而不是用edge切除，这样会导致opacity<255时端点颜色加深
 5. ipgui_draw_line.c完成度不高，需要继续写
 6. edge_x_at_y除法优化
-
+7. 直线的圆形端点，需要优化，目前是直接在端点处补圆，会导致当opacity<255时，端点处有半个圆的颜色加深
+8. ipgui_edge_wdf_mask计算x_halfspan是采用逐点步进试探法，可以改为二倍步进+二分缩进法
 
 各类图形支持的paint类型
 1. 细线（thin line）（1px）：只支持渐变和纯色

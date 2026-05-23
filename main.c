@@ -131,14 +131,13 @@ ipgui_color_t g_color;
 ipgui_surf_t surf;
 ipgui_aabb_t clip;
 int cnt11 = 0;
-extern void test_first_octant_wdf(ipgui_surf_t * surf);
-#define RENDER_MODE 3
+
+#define RENDER_MODE 2
 // #define RENDER_MODE 1 /* 单行渲染 */
 // #define RENDER_MODE 2 /* 单行渲染 */
 // #define RENDER_MODE 3 /* 全屏渲染 */
 int main(void)
 {
-
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
     if(ipgui_init() != IPGUI_ERR_OK)
     {
@@ -175,12 +174,13 @@ int main(void)
 
     // ipgui_color_t color[sdl_scr->drv->yreso * sdl_scr->drv->xreso];
     ipgui_line_t line;
-    line.start.x = 0;
-    line.start.y = 0;
-    line.end.x = 100;
-    line.end.y = 100;
+    line.start.x = 100;
+    line.start.y = 300;
+    line.end.x = 400;
+    line.end.y = 149;
     ipgui_line_style_t line_style;
-    line_style.opacity = 255;
+    line_style.cap = IPGUI_LINE_CAP_ROUND;
+    line_style.opacity = 100;
     line_style.blend_mode = 0;
     line_style.width = 10;
     line_style.paint.type = IPGUI_PAINT_GRADIENT;
@@ -561,12 +561,12 @@ ipgui_button_style_t btn_style = {
                     "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
                     50,
                     50);
-                test_first_octant_wdf(&surf1);
-                // ipgui_draw_line(
-                //     &surf1,
-                //     NULL,
-                //     &line,
-                //     &line_style);
+
+                ipgui_draw_line(
+                    &surf1,
+                    NULL,
+                    &line,
+                    &line_style);
                 /* 画图结束 */
 #if RENDER_MODE == 1
                 ipgui_screen_fill_region(sdl_scr, 
@@ -592,6 +592,7 @@ ipgui_button_style_t btn_style = {
 #endif
         sdl_scr->drv->flush(sdl_scr);
 arc.start += 1;
+
 // arc_style.paint.src.grad_src.grad.conic_grad.angle_start ++;
         /* 改变位置 */
         // if(cnt11 ++ < 400) {

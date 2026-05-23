@@ -331,7 +331,7 @@ __IPGUI_API__ u8_t ipgui_edge_wdf_mask_point(
     return mask;
 }
 
-#if 1
+#if 0
 /* 测试 */
 #include "ipgui_pattle.h"
 void test_first_octant_wdf(ipgui_surf_t * surf)

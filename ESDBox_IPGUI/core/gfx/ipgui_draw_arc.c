@@ -82,7 +82,7 @@ _next_row:
     }
 }
 
-static void edge_clip_ring_mask_with_aa(
+void edge_clip_ring_mask_with_aa(
     ipgui_edge_param_t   * edge,
     edge_halfplane_dir_t   edge_dir,
     u8_t                 * mask,
@@ -444,15 +444,6 @@ static void draw_round_cap(
     ipgui_coord_t cap_cx = arc->cx + ((s32_t)r_mid * cos_val + 16384 >> 15);
     ipgui_coord_t cap_cy = arc->cy + ((s32_t)r_mid * sin_val + 16384 >> 15);
 
-    /* 确定端点圆的aabb */
-    ipgui_aabb_t cap_aabb;
-    cap_aabb.start.x = cap_cx - radius;
-    cap_aabb.end.x   = cap_cx + radius - 1;
-    cap_aabb.start.y = cap_cy - radius;
-    cap_aabb.end.y   = cap_cy + radius - 1;
-
-    if (0 != ipgui_aabb_overlap(&cap_aabb, &cap_aabb, clip)) return;
-
     ipgui_arc_t circle;
     circle.cx = cap_cx;
     circle.cy = cap_cy;
@@ -463,10 +454,10 @@ static void draw_round_cap(
     circle.angle = 360;
 
     ipgui_arc_style_t circle_style;
-    circle_style.blend_mode = 0;
+    circle_style.blend_mode = style->blend_mode;
     circle_style.sep_type = IPGUI_ARC_ENDPOINT_TYPE_BUTT;
     circle_style.eep_type = IPGUI_ARC_ENDPOINT_TYPE_BUTT;
     circle_style.opacity  = style->opacity;
     circle_style.paint    = style->paint;
-    ipgui_draw_arc(surf, &cap_aabb, &circle, &circle_style);
+    ipgui_draw_arc(surf, (ipgui_aabb_t *)0, &circle, &circle_style);
 }
