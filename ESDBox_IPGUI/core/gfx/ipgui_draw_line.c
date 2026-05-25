@@ -332,11 +332,42 @@ extern void edge_clip_ring_mask_with_aa(
 
 __IPGUI_STATIC__ void init_cross_edge(
     ipgui_edge_wdf_param_t * param,
-    u8_t                     se/* edge start point : 0, edge end point : 1 */,
+    u8_t                     se,/* 1 : edge start point, 0 : edge end point*/
     ipgui_edge_param_t     * res_param,
     edge_halfplane_dir_t   * res_dir)
 {
+    ipgui_coord_t deltax, deltay;
+    ipgui_scoord_t cross_middle_x, cross_middle_y;
 
+    /* y - y0 = (-dx/dy) * (x - x0) */ 
+    deltax = 256; /* deltax = x - x0 */
+    deltay = -param->dx * deltax / param->dy;
+    if (deltay == 0) {
+        if (param->dx > 0) deltay = -1;
+        else deltay = 1;
+    }
+
+    if (se) {
+        cross_middle_x = param->x1;
+        cross_middle_y = param->y1;
+    } else {
+        cross_middle_x = param->x1 + param->dx;
+        cross_middle_y = param->y1 + param->dy;
+    }
+
+    * res_param = ipgui_edge_param_init(
+        (cross_middle_x + deltax) * 64,
+        (cross_middle_y + deltay) * 64,
+        (cross_middle_x - deltax) * 64,
+        (cross_middle_y - deltay) * 64);
+
+    if (param->dx > 0) { /* dx > 0 */
+        if (se) * res_dir = EDGE_HALFPLANE_DIR_RIGHT;
+        else * res_dir = EDGE_HALFPLANE_DIR_LEFT;
+    } else { /* dx < 0 */
+        if (se) * res_dir = EDGE_HALFPLANE_DIR_LEFT;
+        else * res_dir = EDGE_HALFPLANE_DIR_RIGHT;
+    }
 }
 
 __IPGUI_STATIC__ void ipgui_draw_skew_line(
@@ -394,8 +425,8 @@ __IPGUI_STATIC__ void ipgui_draw_skew_line(
     edge_halfplane_dir_t cross_start_dir;
     ipgui_edge_param_t   cross_end;
     edge_halfplane_dir_t cross_end_dir;
-    init_cross_edge(&param, 0, &cross_start, &cross_start_dir);
-    init_cross_edge(&param, 1, &cross_end,   &cross_end_dir  );
+    init_cross_edge(&param, 1, &cross_start, &cross_start_dir);
+    init_cross_edge(&param, 0, &cross_end,   &cross_end_dir  );
 
     ipgui_aabb_t mask_aabb;
     mask_aabb.start.x = draw.start.x;
@@ -416,20 +447,20 @@ __IPGUI_STATIC__ void ipgui_draw_skew_line(
             }
 
             /* secondly, clip mask buffer with line endpoint cross edge halfspan mask */
-            // edge_clip_ring_mask_with_aa(
-            //     &cross_start,
-            //     cross_start_dir,
-            //     mask,
-            //     &mask_aabb,
-            //     draw_w
-            // );
-            // edge_clip_ring_mask_with_aa(
-            //     &cross_end,
-            //     cross_end_dir,
-            //     mask,
-            //     &mask_aabb,
-            //     draw_w
-            // );
+            edge_clip_ring_mask_with_aa(
+                &cross_start,
+                cross_start_dir,
+                mask,
+                &mask_aabb,
+                draw_w
+            );
+            edge_clip_ring_mask_with_aa(
+                &cross_end,
+                cross_end_dir,
+                mask,
+                &mask_aabb,
+                draw_w
+            );
 
             ipgui_blend(surf, 
                 (ipgui_aabb_t *)0, 

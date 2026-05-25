@@ -175,20 +175,20 @@ int main(void)
     // ipgui_color_t color[sdl_scr->drv->yreso * sdl_scr->drv->xreso];
     ipgui_line_t line;
     line.start.x = 100;
-    line.start.y = 300;
-    line.end.x = 400;
-    line.end.y = 149;
+    line.start.y = 479;
+    line.end.x = 500;
+    line.end.y = 450;
     ipgui_line_style_t line_style;
-    line_style.cap = IPGUI_LINE_CAP_ROUND;
-    line_style.opacity = 100;
+    line_style.cap = IPGUI_LINE_CAP_BUTT;
+    line_style.opacity = 255;
     line_style.blend_mode = 0;
-    line_style.width = 10;
+    line_style.width = 5;
     line_style.paint.type = IPGUI_PAINT_GRADIENT;
 
     line_style.paint.src.color = g_color;
     line_style.paint.src.grad_src.grad_type = IPGUI_GRADIENT_TYPE_LINEAR;
     ipgui_liner_gradient_init_direct(&line_style.paint.src.grad_src.grad.liner_grad, 
-    line.start.x, line.start.y, line.start.x, line.end.y);
+    line.start.x, line.start.y, line.end.x, line.end.y);
     ipgui_gradient_color_stop_t stop00;
     stop00.pos = 0;
     IPGUI_COLOR_SET(stop00.color, 255, IPGUI_COLOR_BLUE);
@@ -595,7 +595,8 @@ ipgui_button_style_t btn_style = {
         sdl_scr->drv->flush(sdl_scr);
 arc.start += 1;
 
-// arc_style.paint.src.grad_src.grad.conic_grad.angle_start ++;
+line.start.y --;
+arc_style.paint.src.grad_src.grad.conic_grad.angle_start ++;
         /* 改变位置 */
         // if(cnt11 ++ < 400) {
         //     box.start.x += 1;
