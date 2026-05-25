@@ -47,13 +47,34 @@ typedef enum {
     IPGUI_IMG_FMT_MAX,
 }ipgui_image_fomat_t;
 
+/* image src是image_data进行定位后的图像数据 */
 typedef struct {
     ipgui_aabb_t      * img_aabb;   /* 图像包围盒，包围盒必须与图像大小一致！ */
-    u8_t              * buf;        /* 图像数据 */
-    u8_t                px_size;    /* 每像素大小（单位：字节），必须大于等于像素格式对应的字节数 */
-    ipgui_image_fomat_t img_pxfmt;  /* 图像像素格式 */
     u32_t               stride;     /* 图像行跨度（单位：字节） */   
+    u8_t              * buf;        /* 图像数据 */
+    ipgui_image_fomat_t img_pxfmt;  /* 图像像素格式 */
+    u8_t                px_size;    /* 每像素大小（单位：字节），必须大于等于像素格式对应的字节数 */
 }ipgui_image_src_t;
+
+typedef struct {
+    /* 图片宽度和高度 */
+    ipgui_coord_t       w, h;
+
+    /* per line stride
+     * 这个参数是用于加速用，一般是每像素大小乘以宽度 + padding
+     * 可以让一个ipgui_img_raw_t指向大图的中间的部分子图
+     * 只要stride依然是大图的宽度，采样器就能正确换行
+     */
+    u32_t              stride;
+
+    /* 像素数据 */
+    u8_t             * pixmap;
+
+    /* 像素格式 */
+    ipgui_image_fomat_t fmt;
+
+    u8_t                px_size;    /* 每像素大小（单位：字节），必须大于等于像素格式对应的字节数 */
+}ipgui_image_data_t;
 
 extern __IPGUI_API__ void ipgui_blend_image(
     ipgui_surf_t      * surf,

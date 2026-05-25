@@ -330,17 +330,42 @@ extern void edge_clip_ring_mask_with_aa(
     ipgui_aabb_t         * mask_aabb,
     ipgui_coord_t          mask_stride);
 
+__IPGUI_STATIC__ void init_cross_edge(
+    ipgui_edge_wdf_param_t * param,
+    u8_t                     se/* edge start point : 0, edge end point : 1 */,
+    ipgui_edge_param_t     * res_param,
+    edge_halfplane_dir_t   * res_dir)
+{
+
+}
+
 __IPGUI_STATIC__ void ipgui_draw_skew_line(
     ipgui_surf_t       * surf,
-    ipgui_aabb_t       * draw,
-    ipgui_line_t       * line,
+    ipgui_aabb_t       * clip,
+    ipgui_line_t       * line, 
     ipgui_line_style_t * style)/* style->cap must be IPGUI_LINE_CAP_BUTT */
 {
+    /* clip surf and get draw aabb */
+    ipgui_aabb_t draw, self;
+    if (clip) {
+        if (0 != ipgui_aabb_overlap(&draw, &surf->surf, clip))
+            return;/* not intersect, then just return */
+    } else {
+        draw = surf->surf;
+    }
+
+    /* calc line region and clip self with draw */
+    ipgui_aabb_generate_with_points(&self, &line->start, 2);
+    ipgui_aabb_expand(&self, (style->width >> 1) + (style->width & 1));
+
+    if (0 != ipgui_aabb_overlap(&draw, &self, &draw))
+        return;/* not intersect, then just return */
+
     /* allocate mask buffer first  */
     ipgui_coord_t draw_w, draw_h, res_h;
 
-    draw_w = ipgui_aabb_width (draw);
-    draw_h = ipgui_aabb_height(draw);
+    draw_w = ipgui_aabb_width (&draw);
+    draw_h = ipgui_aabb_height(&draw);
 
     u8_t * mask = ipgui_mask_buf_acquire(draw_w, draw_h, &res_h);
     if ((!res_h) || (!mask)) {
@@ -361,7 +386,7 @@ __IPGUI_STATIC__ void ipgui_draw_skew_line(
     ipgui_gen_edge_wdf_mask_dsc(
         &mask_dsc,
         &param,
-        draw->start.y,
+        draw.start.y,
         style->width);
     
     /* 生成端点横截线参数，用于裁剪edge wdf mask */
@@ -369,35 +394,42 @@ __IPGUI_STATIC__ void ipgui_draw_skew_line(
     edge_halfplane_dir_t cross_start_dir;
     ipgui_edge_param_t   cross_end;
     edge_halfplane_dir_t cross_end_dir;
-
-
+    init_cross_edge(&param, 0, &cross_start, &cross_start_dir);
+    init_cross_edge(&param, 1, &cross_end,   &cross_end_dir  );
 
     ipgui_aabb_t mask_aabb;
-    mask_aabb.start.x = draw->start.x;
-    mask_aabb.end.x   = draw->end.x;
-    ipgui_coord_t y   = draw->start.y;
+    mask_aabb.start.x = draw.start.x;
+    mask_aabb.end.x   = draw.end.x;
+    ipgui_coord_t y   = draw.start.y;
     u8_t * mask_buf;
     while (draw_h > 0) {
             ipgui_coord_t current_h = IPGUI_MIN(draw_h, res_h);
             mask_aabb.start.y = y;
             mask_aabb.end.y   = y + current_h - 1;
 
+            /* firstly, fill mask buffer with line edge wdf mask */
             mask_buf = mask;
             for (; y <= mask_aabb.end.y; y ++) {
-                /* fill mask_buf */
                 ipgui_edge_wdf_mask(&mask_dsc, mask_aabb.start.x, mask_buf, draw_w);
                 ipgui_edge_wdf_mask_dsc_next_y(&mask_dsc);
                 mask_buf += draw_w;
             }
 
-            /* clip mask buffer with edge halfspan mask */
-            // edge_clip_ring_mask_with_aa(
-            //     &param,
-            //     EDGE_HALFPLANE_DIR_LEFT,
-            //     mask,
-            //     &mask_aabb,
-            //     draw_w
-            // );
+            /* secondly, clip mask buffer with line endpoint cross edge halfspan mask */
+            edge_clip_ring_mask_with_aa(
+                &cross_start,
+                cross_start_dir,
+                mask,
+                &mask_aabb,
+                draw_w
+            );
+            edge_clip_ring_mask_with_aa(
+                &cross_end,
+                cross_end_dir,
+                mask,
+                &mask_aabb,
+                draw_w
+            );
 
             ipgui_blend(surf, 
                 (ipgui_aabb_t *)0, 
@@ -407,6 +439,7 @@ __IPGUI_STATIC__ void ipgui_draw_skew_line(
                 mask,
                 &mask_aabb,
                 style->blend_mode);
+
             draw_h -= current_h;
     }
 
@@ -449,30 +482,10 @@ __IPGUI_API__ void ipgui_draw_line_generic(
     if ((style->opacity < 3) || (style->width < 1))
         return;
 
-    if (line->start.x == line->end.x) {
+    if (line->start.x == line->end.x) 
         ipgui_draw_ver_line(surf, clip, line, style);
-        return;
-    }
-    else if (line->start.y == line->end.y) {
+    else if (line->start.y == line->end.y)
         ipgui_draw_hor_line(surf, clip, line, style);
-        return;
-    }
-
-    /* clip surf and get draw aabb */
-    ipgui_aabb_t draw, self;
-    if (clip) {
-        if (0 != ipgui_aabb_overlap(&draw, &surf->surf, clip))
-            return;/* not intersect, then just return */
-    } else {
-        draw = surf->surf;
-    }
-
-    /* calc line region and clip self with draw */
-    ipgui_aabb_generate_with_points(&self, &line->start, 2);
-    ipgui_aabb_expand(&self, (style->width >> 1) + (style->width & 1));
-
-    if (0 != ipgui_aabb_overlap(&draw, &self, &draw))
-        return;/* not intersect, then just return */
-
-    ipgui_draw_skew_line(surf, &draw, line, style);
+    else
+        ipgui_draw_skew_line(surf, clip, line, style);
 }

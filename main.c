@@ -439,7 +439,7 @@ int main(void)
     shadow_style.offset_x      = 0;
     shadow_style.offset_y      = 0;
     shadow_style.corner_radius = 20;
-    shadow_style.opacity       = 200;
+    shadow_style.opacity       = 255;
     shadow_style.blend_mode    = 0;
 
 ipgui_button_t btn1 = {
@@ -502,10 +502,7 @@ ipgui_button_style_t btn_style = {
                 //     &btn1,
                 //     &btn_style);
 
-                // ipgui_draw_box_shadow(&surf1, 
-                //     NULL, 
-                //     &box, 
-                //     &shadow_style);
+
 
                 ipgui_draw_image(
                     &surf1,
@@ -539,6 +536,11 @@ ipgui_button_style_t btn_style = {
                     NULL,
                     &tri_p1, &tri_p2, &tri_p3,
                     &tri_style);
+
+                // ipgui_draw_box_shadow(&surf1, 
+                //     NULL, 
+                //     &box, 
+                //     &shadow_style);
 
                 ipgui_draw_box_background(
                     &surf1,
