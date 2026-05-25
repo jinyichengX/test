@@ -416,20 +416,20 @@ __IPGUI_STATIC__ void ipgui_draw_skew_line(
             }
 
             /* secondly, clip mask buffer with line endpoint cross edge halfspan mask */
-            edge_clip_ring_mask_with_aa(
-                &cross_start,
-                cross_start_dir,
-                mask,
-                &mask_aabb,
-                draw_w
-            );
-            edge_clip_ring_mask_with_aa(
-                &cross_end,
-                cross_end_dir,
-                mask,
-                &mask_aabb,
-                draw_w
-            );
+            // edge_clip_ring_mask_with_aa(
+            //     &cross_start,
+            //     cross_start_dir,
+            //     mask,
+            //     &mask_aabb,
+            //     draw_w
+            // );
+            // edge_clip_ring_mask_with_aa(
+            //     &cross_end,
+            //     cross_end_dir,
+            //     mask,
+            //     &mask_aabb,
+            //     draw_w
+            // );
 
             ipgui_blend(surf, 
                 (ipgui_aabb_t *)0, 
