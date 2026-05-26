@@ -43,7 +43,7 @@ extern __IPGUI_API__ void ipgui_draw_line_generic(
     ipgui_line_t       * line, 
     ipgui_line_style_t * style);
 
-extern __IPGUI_API__ void ipgui_draw_line_generic_classic(
+extern __IPGUI_API__ void ipgui_draw_line_classic(
     ipgui_surf_t       * surf, 
     ipgui_aabb_t       * clip,
     ipgui_line_t       * line, 

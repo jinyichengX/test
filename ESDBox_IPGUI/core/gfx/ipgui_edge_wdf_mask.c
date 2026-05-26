@@ -5,7 +5,7 @@
  * 暂时只支持整数端点edge！！！！！！
  */
 
-/* 已知y，求直线对应的x坐标（仅对斜线有效） */
+/* 已知y，求直线对应的x坐标（仅对斜线和垂线有效） */
 __IPGUI_STATIC__ void ipgui_line_x_at_y(
     ipgui_edge_wdf_param_t * param,
     ipgui_coord_t            y, 

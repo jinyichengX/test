@@ -132,7 +132,7 @@ ipgui_surf_t surf;
 ipgui_aabb_t clip;
 int cnt11 = 0;
 
-#define RENDER_MODE 2
+#define RENDER_MODE 3
 // #define RENDER_MODE 1 /* 单行渲染 */
 // #define RENDER_MODE 2 /* 单行渲染 */
 // #define RENDER_MODE 3 /* 全屏渲染 */
@@ -537,10 +537,10 @@ ipgui_button_style_t btn_style = {
                     &tri_p1, &tri_p2, &tri_p3,
                     &tri_style);
 
-                // ipgui_draw_box_shadow(&surf1, 
-                //     NULL, 
-                //     &box, 
-                //     &shadow_style);
+                ipgui_draw_box_shadow(&surf1, 
+                    NULL, 
+                    &box, 
+                    &shadow_style);
 
                 ipgui_draw_box_background(
                     &surf1,

@@ -8,7 +8,7 @@
 extern premult_blend_func_t premult_blend_table[PIX_FMT_MAX];
 
 /* Wu's draw thin line algorithm */
-__IPGUI_API__ void ipgui_draw_line_generic_classic(
+__IPGUI_API__ void ipgui_draw_line_classic(
         ipgui_surf_t       * surf, 
         ipgui_aabb_t       * clip,
         ipgui_line_t       * line, 
@@ -434,44 +434,44 @@ __IPGUI_STATIC__ void ipgui_draw_skew_line(
     ipgui_coord_t y   = draw.start.y;
     u8_t * mask_buf;
     while (draw_h > 0) {
-            ipgui_coord_t current_h = IPGUI_MIN(draw_h, res_h);
-            mask_aabb.start.y = y;
-            mask_aabb.end.y   = y + current_h - 1;
+        ipgui_coord_t current_h = IPGUI_MIN(draw_h, res_h);
+        mask_aabb.start.y = y;
+        mask_aabb.end.y   = y + current_h - 1;
 
-            /* firstly, fill mask buffer with line edge wdf mask */
-            mask_buf = mask;
-            for (; y <= mask_aabb.end.y; y ++) {
-                ipgui_edge_wdf_mask(&mask_dsc, mask_aabb.start.x, mask_buf, draw_w);
-                ipgui_edge_wdf_mask_dsc_next_y(&mask_dsc);
-                mask_buf += draw_w;
-            }
+        /* firstly, fill mask buffer with line edge wdf mask */
+        mask_buf = mask;
+        for (; y <= mask_aabb.end.y; y ++) {
+            ipgui_edge_wdf_mask(&mask_dsc, mask_aabb.start.x, mask_buf, draw_w);
+            ipgui_edge_wdf_mask_dsc_next_y(&mask_dsc);
+            mask_buf += draw_w;
+        }
 
-            /* secondly, clip mask buffer with line endpoint cross edge halfspan mask */
-            edge_clip_ring_mask_with_aa(
-                &cross_start,
-                cross_start_dir,
-                mask,
-                &mask_aabb,
-                draw_w
-            );
-            edge_clip_ring_mask_with_aa(
-                &cross_end,
-                cross_end_dir,
-                mask,
-                &mask_aabb,
-                draw_w
-            );
+        /* secondly, clip mask buffer with line endpoint cross edge halfspan mask */
+        edge_clip_ring_mask_with_aa(
+            &cross_start,
+            cross_start_dir,
+            mask,
+            &mask_aabb,
+            draw_w
+        );
+        edge_clip_ring_mask_with_aa(
+            &cross_end,
+            cross_end_dir,
+            mask,
+            &mask_aabb,
+            draw_w
+        );
 
-            ipgui_blend(surf, 
-                (ipgui_aabb_t *)0, 
-                &mask_aabb,
-                &style->paint,
-                style->opacity,
-                mask,
-                &mask_aabb,
-                style->blend_mode);
+        ipgui_blend(surf, 
+            (ipgui_aabb_t *)0, 
+            &mask_aabb,
+            &style->paint,
+            style->opacity,
+            mask,
+            &mask_aabb,
+            style->blend_mode);
 
-            draw_h -= current_h;
+        draw_h -= current_h;
     }
 
     if (style->cap == IPGUI_LINE_CAP_ROUND) {
