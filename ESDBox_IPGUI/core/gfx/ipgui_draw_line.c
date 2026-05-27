@@ -17,9 +17,6 @@ __IPGUI_API__ void ipgui_draw_line_classic(
     if ((!surf) || (!line) || (!style) || (style->opacity < 3))
         return;
 
-    if (style->width > 1)
-        return;
-
     if (style->paint.type == IPGUI_PAINT_IMAGE)
         return;
 
@@ -514,7 +511,7 @@ __IPGUI_API__ void ipgui_draw_line_generic(
         return;
 
     if (line->start.x == line->end.x) 
-        ipgui_draw_ver_line(surf, clip, line, style);
+        ipgui_draw_ver_line(surf, clip, line, style); 
     else if (line->start.y == line->end.y)
         ipgui_draw_hor_line(surf, clip, line, style);
     else

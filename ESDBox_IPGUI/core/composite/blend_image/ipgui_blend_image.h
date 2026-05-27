@@ -47,7 +47,7 @@ typedef enum {
     IPGUI_IMG_FMT_MAX,
 }ipgui_image_fomat_t;
 
-/* image src是image_data进行定位后的图像数据 */
+/* image src是image_data进行定位后的图像数据，可以是一张完整图像的子图 */
 typedef struct {
     ipgui_aabb_t      * img_aabb;   /* 图像包围盒，包围盒必须与图像大小一致！ */
     u32_t               stride;     /* 图像行跨度（单位：字节） */   
@@ -56,6 +56,7 @@ typedef struct {
     u8_t                px_size;    /* 每像素大小（单位：字节），必须大于等于像素格式对应的字节数 */
 }ipgui_image_src_t;
 
+/* image data是一张图像的格式/像素信息，不包含定位信息，可以是一张完整图像的子图 */
 typedef struct {
     /* 图片宽度和高度 */
     ipgui_coord_t       w, h;

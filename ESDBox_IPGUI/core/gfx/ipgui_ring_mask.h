@@ -31,7 +31,7 @@ typedef struct {
     u16_t              refcnt;                  /* 引用计数，未被使用可淘汰 */
 }corner_mask_cache_item_t;
 
-int ipgui_fetch_ring_mask(ipgui_coord_t x, ipgui_coord_t y, 
+extern int ipgui_fetch_ring_mask(ipgui_coord_t x, ipgui_coord_t y, 
     ipgui_coord_t ir, ipgui_coord_t er,
     s8_t step,/* step = 1/-1 */
     u8_t * mask, u16_t len);

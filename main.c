@@ -131,13 +131,53 @@ ipgui_color_t g_color;
 ipgui_surf_t surf;
 ipgui_aabb_t clip;
 int cnt11 = 0;
+#define EGUI_ALPHA_100 255
+#define EGUI_MASK_CIRCLE_AA_HALF_256  192
+static u8_t egui_mask_circle_edge_smoothstep(int32_t signed_dist_256)
+{
+    int32_t coverage;
+    int32_t t;
+    int32_t t_sq;
+    int32_t smooth;
+    int32_t alpha_range_sq = EGUI_ALPHA_100 * EGUI_ALPHA_100;
 
+    if (signed_dist_256 <= -EGUI_MASK_CIRCLE_AA_HALF_256)
+    {
+        return EGUI_ALPHA_100;
+    }
+
+    if (signed_dist_256 >= EGUI_MASK_CIRCLE_AA_HALF_256)
+    {
+        return 0;
+    }
+
+    coverage = EGUI_MASK_CIRCLE_AA_HALF_256 - signed_dist_256;
+    t = (coverage * EGUI_ALPHA_100 + EGUI_MASK_CIRCLE_AA_HALF_256) / (EGUI_MASK_CIRCLE_AA_HALF_256 << 1);
+    t_sq = t * t;
+    smooth = (3 * t_sq * EGUI_ALPHA_100 - 2 * t_sq * t + (alpha_range_sq >> 1)) / alpha_range_sq;
+
+    if (smooth <= 0)
+    {
+        return 0;
+    }
+
+    if (smooth >= EGUI_ALPHA_100)
+    {
+        return EGUI_ALPHA_100;
+    }
+
+    return (u8_t)smooth;
+}
+#define EGUI_FX_DIVX(x1, x2, frac) (int32_t)((((int64_t)(x1) << (frac)) + ((int32_t)(x1) < 0 ? -labs((int32_t)(x2)) : labs((int32_t)(x2))) / 2) / (x2))
 #define RENDER_MODE 3
 // #define RENDER_MODE 1 /* 单行渲染 */
 // #define RENDER_MODE 2 /* 单行渲染 */
 // #define RENDER_MODE 3 /* 全屏渲染 */
 int main(void)
 {
+    int i = EGUI_FX_DIVX(500 << 16, 400 << 16 , 16);
+    printf("i = %d", i);
+    return 0;
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
     if(ipgui_init() != IPGUI_ERR_OK)
     {
@@ -194,7 +234,7 @@ int main(void)
     IPGUI_COLOR_SET(stop00.color, 255, IPGUI_COLOR_BLUE);
     ipgui_gradient_color_stop_t stop01;
     stop01.pos = 255;
-    IPGUI_COLOR_SET(stop01.color, 255, IPGUI_COLOR_RED);
+    IPGUI_COLOR_SET(stop01.color, 0, IPGUI_COLOR_RED);
     ipgui_liner_gradient_add_stop(&line_style.paint.src.grad_src.grad.liner_grad, &stop00);
     ipgui_liner_gradient_add_stop(&line_style.paint.src.grad_src.grad.liner_grad, &stop01);
 
