@@ -77,16 +77,23 @@ typedef struct {
     u8_t                px_size;    /* 每像素大小（单位：字节），必须大于等于像素格式对应的字节数 */
 }ipgui_image_data_t;
 
-extern __IPGUI_API__ void ipgui_blend_image(
+extern __IPGUI_API__ void ipgui_blend_image_v1(
     ipgui_surf_t      * surf,
     ipgui_aabb_t      * clip,
-
     ipgui_image_src_t * img_src,
-
     u8_t              * mask,       /* 蒙版 */
     ipgui_aabb_t      * mask_aabb,  /* 蒙版区域，必须大于等于图像包围盒*/
-
     u8_t                opacity,
+    ipgui_blend_mode_t  blend_mode);
+
+extern __IPGUI_API__ void ipgui_blend_image_v2(
+    ipgui_surf_t      * surf,
+    ipgui_aabb_t      * clip,
+    ipgui_aabb_t      * dest,
+    ipgui_image_src_t * img_src,
+    u8_t                opacity,
+    u8_t              * mask,       /* 蒙版 */
+    ipgui_aabb_t      * mask_aabb,  /* 蒙版区域，必须大于等于dest围盒*/
     ipgui_blend_mode_t  blend_mode);
 
 #endif

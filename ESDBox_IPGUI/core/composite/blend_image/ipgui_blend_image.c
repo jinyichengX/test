@@ -1878,13 +1878,14 @@ static const img_px_blend_func_t img_blend_table[IPGUI_IMG_FMT_MAX][PIX_FMT_MAX]
  * L8：？？？？？
  */
 
-__IPGUI_API__ void ipgui_blend_image(
+/* v1: mask aabb belong to image aaabb */
+__IPGUI_API__ void ipgui_blend_image_v1(
     ipgui_surf_t      * surf,
     ipgui_aabb_t      * clip,
 
     ipgui_image_src_t * img_src,
 
-    u8_t              * mask,       /* 蒙版 */
+    u8_t              * mask,       /* 蒙版，作用于图像 */
     ipgui_aabb_t      * mask_aabb,  /* 蒙版区域，必须大于等于图像包围盒*/
 
     u8_t                opacity,
@@ -1922,6 +1923,105 @@ __IPGUI_API__ void ipgui_blend_image(
     y = blend_aabb.start.y - img_src->img_aabb->start.y;
     img_buf = img_src->buf + y * img_src->stride + x * img_src->px_size;
 
+    ipgui_coord_t x_span, y_span;
+    x_span = ipgui_aabb_width(&blend_aabb);
+    y_span = ipgui_aabb_height(&blend_aabb);
+
+    img_px_blend_func_t blend_px = img_blend_table[img_src->img_pxfmt][surf->pix_fmt];
+
+    s32_t dest_row_pix_off;
+    u32_t img_row_pix_off;
+    if (mask && mask_aabb) {
+        u8_t mask_val, mask_opacity_combined;
+        ipgui_coord_t mask_stride = ipgui_aabb_width(mask_aabb);
+        ipgui_coord_t mask_x0     = blend_aabb.start.x - mask_aabb->start.x;
+        ipgui_coord_t mask_y0     = blend_aabb.start.y - mask_aabb->start.y;
+        u8_t        * mask_row    = mask + mask_y0 * mask_stride + mask_x0;
+
+        for (y = 0; y < y_span; y ++) {
+            dest_row_pix_off = 0;
+            img_row_pix_off  = 0;
+            for (x = 0; x < x_span; x ++) {
+                /* blend pixel by pixel */
+                mask_val = mask_row[x];
+                if (mask_val > 2) {
+                    /* mix mask and opacity */
+                    mask_opacity_combined =
+                        (u8_t)(((u32_t)opacity * mask_val + 127) >> 8);
+                    
+                    blend_px(&img_buf[img_row_pix_off], &dest_cr_buf[dest_row_pix_off], mask_opacity_combined, blend_mode);
+                }
+                dest_row_pix_off += dest_pix_size;
+                img_row_pix_off  += img_src->px_size;
+            }
+            dest_cr_buf += dest_stride;
+            img_buf     += img_src->stride;
+            mask_row    += mask_stride;
+        }
+    } else {
+        for (y = 0; y < y_span; y ++) {
+            dest_row_pix_off = 0;
+            img_row_pix_off  = 0;
+            for (x = 0; x < x_span; x ++) {
+                /* blend pixel by pixel */
+                blend_px(&img_buf[img_row_pix_off], &dest_cr_buf[dest_row_pix_off], opacity, blend_mode);
+                dest_row_pix_off += dest_pix_size;
+                img_row_pix_off  += img_src->px_size;
+            }
+            dest_cr_buf += dest_stride;
+            img_buf     += img_src->stride;
+        }
+    }
+}
+
+/* v2: mask aabb belong to dest aaabb */
+__IPGUI_API__ void ipgui_blend_image_v2(
+    ipgui_surf_t      * surf,
+    ipgui_aabb_t      * clip,
+    ipgui_aabb_t      * dest,
+    ipgui_image_src_t * img_src,
+    u8_t                opacity,
+    u8_t              * mask,       /* 蒙版，作用于dest */
+    ipgui_aabb_t      * mask_aabb,  /* 蒙版区域，必须大于等于dest围盒*/
+    ipgui_blend_mode_t  blend_mode)
+{
+    if ((!surf) ||\
+    (!dest)||\
+    (!img_src) ||\
+    (!img_src->buf) || \
+    (!img_src->img_aabb) ||\
+    (opacity < 3))
+    return;
+
+    ipgui_aabb_t blend_aabb;
+    if (0 != ipgui_aabb_overlap(&blend_aabb, dest, &(surf->surf)))
+        return;
+
+    if (clip) {
+        if (0 != ipgui_aabb_overlap(&blend_aabb, &blend_aabb, clip))
+            return;
+    }
+
+    /* 再和图片的aabb求交 */
+    if (0 != ipgui_aabb_overlap(&blend_aabb, &blend_aabb, img_src->img_aabb))
+        return;
+
+    /* get dest buf, pix size and stride of surf */
+    ipgui_coord_t x, y;
+    s8_t dest_pix_size;
+    s32_t dest_stride;
+    u8_t * dest_cr_buf;
+    x = blend_aabb.start.x - surf->surf.start.x;
+    y = blend_aabb.start.y - surf->surf.start.y;
+    dest_cr_buf   = ipgui_surf_color_get(surf, x, y);
+    dest_pix_size = surf->pix_size;
+    dest_stride   = surf->stride;
+
+    /* get src buf of image */
+    u8_t * img_buf;
+    x = blend_aabb.start.x - img_src->img_aabb->start.x;
+    y = blend_aabb.start.y - img_src->img_aabb->start.y;
+    img_buf = img_src->buf + y * img_src->stride + x * img_src->px_size;
     ipgui_coord_t x_span, y_span;
     x_span = ipgui_aabb_width(&blend_aabb);
     y_span = ipgui_aabb_height(&blend_aabb);

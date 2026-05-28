@@ -69,7 +69,7 @@ __IPGUI_API__ void ipgui_draw_image(
         img_src.stride    = img_data->stride;
         img_src.img_aabb  = &img_aabb;
 
-        ipgui_blend_image(
+        ipgui_blend_image_v1(
             surf,
             clip,
             &img_src,

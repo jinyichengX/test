@@ -175,9 +175,9 @@ static u8_t egui_mask_circle_edge_smoothstep(int32_t signed_dist_256)
 // #define RENDER_MODE 3 /* 全屏渲染 */
 int main(void)
 {
-    int i = EGUI_FX_DIVX(500 << 16, 400 << 16 , 16);
-    printf("i = %d", i);
-    return 0;
+    // int i = EGUI_FX_DIVX(500 << 16, 400 << 16 , 16);
+    // printf("i = %d", i);
+    // return 0;
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
     if(ipgui_init() != IPGUI_ERR_OK)
     {
@@ -222,7 +222,7 @@ int main(void)
     line_style.cap = IPGUI_LINE_CAP_BUTT;
     line_style.opacity = 255;
     line_style.blend_mode = 0;
-    line_style.width = 5;
+    line_style.width = 10;
     line_style.paint.type = IPGUI_PAINT_GRADIENT;
 
     line_style.paint.src.color = g_color;
@@ -234,7 +234,7 @@ int main(void)
     IPGUI_COLOR_SET(stop00.color, 255, IPGUI_COLOR_BLUE);
     ipgui_gradient_color_stop_t stop01;
     stop01.pos = 255;
-    IPGUI_COLOR_SET(stop01.color, 0, IPGUI_COLOR_RED);
+    IPGUI_COLOR_SET(stop01.color, 100, IPGUI_COLOR_RED);
     ipgui_liner_gradient_add_stop(&line_style.paint.src.grad_src.grad.liner_grad, &stop00);
     ipgui_liner_gradient_add_stop(&line_style.paint.src.grad_src.grad.liner_grad, &stop01);
 
@@ -304,6 +304,20 @@ int main(void)
     img2_data.w = img2_dsc.w;
     img2_data.h = img2_dsc.h;
 
+    ipgui_img_dsc_t img3_dsc;
+    if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/lena_c.bmp", &img3_dsc))
+    {
+        printf("Failed to load bitmap image, please run the program at the main.c page\n");
+        return -1;
+    }
+    ipgui_image_data_t img3_data;
+    img3_data.pixmap = img3_dsc.pixmap;
+    img3_data.px_size = img3_dsc.stride / img3_dsc.w;
+    img3_data.fmt = IPGUI_IMG_FMT_BGR888;//可以改成L8或者LA88或者RGB565试试，虽然这么改逻辑上不对，但是有效果
+    img3_data.stride = img3_dsc.stride;
+    img3_data.w = img3_dsc.w;
+    img3_data.h = img3_dsc.h;
+
     ipgui_point_t pivot;
     pivot.x = img_dsc.w / 2;
     pivot.y = img_dsc.h / 2;
@@ -321,7 +335,7 @@ int main(void)
 
     ipgui_box_bg_style_t box_bg_style;
     box_bg_style.blend_mode = 0;
-    box_bg_style.opacity = 200;
+    box_bg_style.opacity = 255;
     box_bg_style.paint.type = IPGUI_PAINT_GRADIENT;
     // box_bg_style.paint.src.image_src = image_src1;
     box_bg_style.paint.src.color = g_color;
@@ -360,9 +374,61 @@ int main(void)
     // ipgui_conic_gradient_add_stop(&box_bg_style.paint.src.grad_src.grad.conic_grad, &stop5);
     // ipgui_conic_gradient_add_stop(&box_bg_style.paint.src.grad_src.grad.conic_grad, &stop6);
 
+
+
+    // ipgui_image_data_t img_data;
+    // img_data.pixmap = img_dsc.pixmap;
+    // img_data.px_size = img_dsc.stride / img_dsc.w;
+    // img_data.fmt = IPGUI_IMG_FMT_BGR888;//可以改成L8或者LA88或者RGB565试试，虽然这么改逻辑上不对，但是有效果
+    // img_data.stride = img_dsc.stride;
+    // img_data.w = img_dsc.w;
+    // img_data.h = img_dsc.h;
+
+    ipgui_aabb_t box1;
+    box1.start.x = 100;
+    box1.start.y = 100;
+    box1.end.x = 299;
+    box1.end.y = 199;
+    
+    ipgui_box_style_t box_style1;
+    box_style1.bottom_padding = 0;
+    box_style1.left_padding = 0;
+    box_style1.top_padding = 0;
+    box_style1.right_padding = 0;
+
+    box_style1.left_bottom_radius = 30;
+    box_style1.left_top_radius = 15;
+    box_style1.right_bottom_radius = 15;
+    box_style1.right_top_radius = 30;
+
+    ipgui_image_src_t img_src;
+    img_src.buf = img3_data.pixmap;
+    img_src.img_pxfmt = IPGUI_IMG_FMT_BGR888;
+    img_src.px_size = img3_data.px_size;
+    img_src.stride = img3_data.stride;
+
+    ipgui_aabb_t img_src_img_aabb;
+    img_src_img_aabb.start.x = box1.start.x;
+    img_src_img_aabb.start.y = box1.start.y;
+    img_src_img_aabb.end.x = img_src_img_aabb.start.x + img3_data.w - 1;
+    img_src_img_aabb.end.y = img_src_img_aabb.start.y + img3_data.h - 1;
+    img_src.img_aabb = &img_src_img_aabb;
+
+    ipgui_box_bg_style_t box_bg_style1;
+    box_bg_style1.blend_mode = 0;
+    box_bg_style1.opacity = 250;
+    box_bg_style1.paint.type = IPGUI_PAINT_IMAGE;
+    box_bg_style1.paint.src.image_src = img_src;
+    ipgui_box_border_style_t box_border_style1;
+    box_border_style1.blend_mode = 0;
+    box_border_style1.width = 2;
+    box_border_style1.opacity = 200;
+    box_border_style1.paint.type = IPGUI_PAINT_COLOR;
+    IPGUI_COLOR_SET(box_border_style1.paint.src.color, 255, IPGUI_COLOR_220);
+
     static ipgui_point_t tri_p1;
     tri_p1.x = 220;
-    tri_p1.y = 100;
+    tri_p1.y = 50;
     static ipgui_point_t tri_p2;
     tri_p2.x = 140;
     tri_p2.y = 420;
@@ -394,7 +460,7 @@ int main(void)
         tri_p1.x, tri_p1.y, 500);
     ipgui_gradient_color_stop_t stop11;
     stop11.pos = 0;
-    IPGUI_COLOR_SET(stop11.color, 255, IPGUI_COLOR_4);
+    IPGUI_COLOR_SET(stop11.color, 255, IPGUI_COLOR_GREEN);
     ipgui_gradient_color_stop_t stop22;
     stop22.pos = 255;
     IPGUI_COLOR_SET(stop22.color, 255, IPGUI_COLOR_288);
@@ -418,9 +484,8 @@ int main(void)
     arc_style.paint.type = IPGUI_PAINT_GRADIENT;
     IPGUI_COLOR_SET(arc_style.paint.src.color, 255, IPGUI_COLOR_424);
 
-        arc_style.paint.src.grad_src.grad_type = IPGUI_GRADIENT_TYPE_CONIC;
-    ipgui_conic_gradient_init(&arc_style.paint.src.grad_src.grad.conic_grad, 
-        arc.cx, arc.cy, 30);
+    arc_style.paint.src.grad_src.grad_type = IPGUI_GRADIENT_TYPE_CONIC;
+    ipgui_conic_gradient_init(&arc_style.paint.src.grad_src.grad.conic_grad, arc.cx, arc.cy, 30);
     ipgui_gradient_color_stop_t stop21;
     stop21.pos = 0;
     IPGUI_COLOR_SET(stop21.color, 255, IPGUI_COLOR_4);
@@ -563,7 +628,15 @@ ipgui_button_style_t btn_style = {
                     NULL,
                     &img2_style
                 );
-
+                // ipgui_draw_image(
+                //     &surf1,
+                //     NULL,
+                //     &img3_data,
+                //     &pivot,
+                //     &anchor,
+                //     NULL,
+                //     &img_style
+                // );
 
                 ipgui_draw_arc(
                     &surf1, 
@@ -609,6 +682,20 @@ ipgui_button_style_t btn_style = {
                     NULL,
                     &line,
                     &line_style);
+
+                ipgui_draw_box_background(
+                    &surf1,
+                    NULL,
+                    &box1,
+                    &box_style1,
+                    &box_bg_style1);
+                
+                ipgui_draw_box_border(
+                    &surf1,
+                    NULL,
+                    &box1,
+                    &box_style1,
+                    &box_border_style1);
                 /* 画图结束 */
 #if RENDER_MODE == 1
                 ipgui_screen_fill_region(sdl_scr, 

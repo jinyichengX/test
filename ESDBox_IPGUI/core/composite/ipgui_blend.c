@@ -35,13 +35,14 @@ void ipgui_blend(
             blend_mode);
         break;
     case IPGUI_PAINT_IMAGE:
-        ipgui_blend_image(
+        ipgui_blend_image_v2(
             surf,
             clip,
+            dest,
             &(paint->src.image_src),
+            opacity,
             mask,
             mask_aabb,
-            opacity,
             blend_mode);
         break;
     default:
