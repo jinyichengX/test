@@ -1875,7 +1875,7 @@ static const img_px_blend_func_t img_blend_table[IPGUI_IMG_FMT_MAX][PIX_FMT_MAX]
 /* 这个接口已经接近完美了，但是像素格式为A8或者I8时怎么处理？ 
  * A8：不会作为图片格式，而是形状（掩码）格式，所以这个接口根本不需要支持A8
  *     用ipgui_blend_color可以胜任，但是不灵活只能是连续的A8数据
- * L8：？？？？？
+ * I8：？？？？？
  */
 
 /* v1: mask aabb belong to image aaabb */
