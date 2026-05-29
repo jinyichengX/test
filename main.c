@@ -387,7 +387,7 @@ int main(void)
     ipgui_aabb_t box1;
     box1.start.x = 100;
     box1.start.y = 100;
-    box1.end.x = 299;
+    box1.end.x = 199;
     box1.end.y = 199;
     
     ipgui_box_style_t box_style1;
@@ -396,10 +396,10 @@ int main(void)
     box_style1.top_padding = 0;
     box_style1.right_padding = 0;
 
-    box_style1.left_bottom_radius = 30;
-    box_style1.left_top_radius = 15;
-    box_style1.right_bottom_radius = 15;
-    box_style1.right_top_radius = 30;
+    box_style1.left_bottom_radius = 50;
+    box_style1.left_top_radius = 50;
+    box_style1.right_bottom_radius = 50;
+    box_style1.right_top_radius = 50;
 
     ipgui_image_src_t img_src;
     img_src.buf = img3_data.pixmap;
@@ -408,7 +408,7 @@ int main(void)
     img_src.stride = img3_data.stride;
 
     ipgui_aabb_t img_src_img_aabb;
-    img_src_img_aabb.start.x = box1.start.x;
+    img_src_img_aabb.start.x = box1.start.x - 50;
     img_src_img_aabb.start.y = box1.start.y;
     img_src_img_aabb.end.x = img_src_img_aabb.start.x + img3_data.w - 1;
     img_src_img_aabb.end.y = img_src_img_aabb.start.y + img3_data.h - 1;

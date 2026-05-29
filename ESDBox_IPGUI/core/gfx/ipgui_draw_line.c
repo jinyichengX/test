@@ -320,7 +320,7 @@ __IPGUI_STATIC__ void ipgui_draw_ver_line(
     }
 }
 
-extern void edge_clip_ring_mask_with_aa(
+extern void edge_clip_mask_with_aa(
     ipgui_edge_param_t   * edge,
     edge_halfplane_dir_t   edge_dir,
     u8_t                 * mask,
@@ -444,14 +444,14 @@ __IPGUI_STATIC__ void ipgui_draw_skew_line(
         }
 
         /* secondly, clip mask buffer with line endpoint cross edge halfspan mask */
-        edge_clip_ring_mask_with_aa(
+        edge_clip_mask_with_aa(
             &cross_start,
             cross_start_dir,
             mask,
             &mask_aabb,
             draw_w
         );
-        edge_clip_ring_mask_with_aa(
+        edge_clip_mask_with_aa(
             &cross_end,
             cross_end_dir,
             mask,

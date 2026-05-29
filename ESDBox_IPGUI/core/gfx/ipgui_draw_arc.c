@@ -82,7 +82,7 @@ _next_row:
     }
 }
 
-void edge_clip_ring_mask_with_aa(
+void edge_clip_mask_with_aa(
     ipgui_edge_param_t   * edge,
     edge_halfplane_dir_t   edge_dir,
     u8_t                 * mask,
@@ -251,13 +251,13 @@ __IPGUI_STATIC__ void draw_arc_corner(
         mask_aabb.end.y   = mask_aabb.start.y + current_h - 1;
 
         if (arc_style->sep_type == IPGUI_ARC_ENDPOINT_TYPE_BUTT) {
-            edge_clip_ring_mask_with_aa(&os_edge_param, os_dir, mbuf, &mask_aabb, w);
+            edge_clip_mask_with_aa(&os_edge_param, os_dir, mbuf, &mask_aabb, w);
         } else {
             edge_clip_ring_mask_no_aa(&os_edge_param, os_dir, mbuf, &mask_aabb, w);
         }
 
         if (arc_style->eep_type == IPGUI_ARC_ENDPOINT_TYPE_BUTT) {
-            edge_clip_ring_mask_with_aa(&oe_edge_param, oe_dir, mbuf, &mask_aabb, w);
+            edge_clip_mask_with_aa(&oe_edge_param, oe_dir, mbuf, &mask_aabb, w);
         } else {
             edge_clip_ring_mask_no_aa(&oe_edge_param, oe_dir, mbuf, &mask_aabb, w);
         }
