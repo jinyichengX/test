@@ -77,6 +77,45 @@ __IPGUI_API__ ipgui_aabb_t ipgui_calc_image_transformed_aabb_rel_to_pivot(
     return img_aabb;
 }
 
+/* get image aabb(absolute coordinate on surf) */
+__IPGUI_API__ ipgui_aabb_t ipgui_locate_image(
+    ipgui_point_t * pivot,    /* 相对于图片的变换点 如果是子图那么就是相对于子图的 */
+    ipgui_point_t * anchor,
+    ipgui_coord_t   img_w,
+    ipgui_coord_t   img_h)
+{
+    ipgui_aabb_t img_aabb;
+    img_aabb.start.x = anchor->x - pivot->x;
+    img_aabb.start.y = anchor->y - pivot->y;
+    img_aabb.end.x   = img_aabb.start.x + img_w - 1;
+    img_aabb.end.y   = img_aabb.start.y + img_h - 1;
+
+    return img_aabb;
+}
+
+/* 求图像变换后的包围盒（相对于pivot） */
+__IPGUI_API__ ipgui_aabb_t ipgui_calc_image_transformed_aabb(
+    ipgui_point_t     * pivot,    /* 相对于图片(0,0)点的变换点 如果是子图那么就是相对于子图的 */
+    ipgui_point_t     * anchor,
+    ipgui_trans_mat_t * trans,
+    ipgui_coord_t       img_w,
+    ipgui_coord_t       img_h)
+{
+    ipgui_aabb_t img_aabb;
+    img_aabb = ipgui_calc_image_transformed_aabb_rel_to_pivot(
+                        pivot,
+                        trans,
+                        img_w,
+                        img_h);
+
+    ipgui_coord_t w, h;
+    w = ipgui_aabb_width (&img_aabb);
+    h = ipgui_aabb_height(&img_aabb);
+
+    /* get image aabb(absolute coordinate on surf) */
+    return ipgui_locate_image(pivot, anchor, w, h);
+}
+
 /* 根据直觉设计画图片的API
  * 指定一个表面surf，然后将图钉钉在图片的某个点pivot 类似于鼠标点住这个点进行拖动，
  * 然后再把图钉钉在surf的某个点anchor（可以在surf之外）类似于鼠标拖动到的点，
@@ -100,10 +139,12 @@ __IPGUI_API__ void ipgui_draw_image(
 
     if (!trans) {
         ipgui_aabb_t img_aabb;
-        img_aabb.start.x = anchor->x - pivot->x;
-        img_aabb.start.y = anchor->y - pivot->y;
-        img_aabb.end.x   = img_aabb.start.x + img_data->w - 1;
-        img_aabb.end.y   = img_aabb.start.y + img_data->h - 1;
+        /* get image aabb(absolute coordinate on surf) */
+        img_aabb = ipgui_locate_image(
+            pivot,
+            anchor,
+            img_data->w,
+            img_data->h);
 
         ipgui_image_src_t img_src;
         img_src.buf       = img_data->pixmap;
@@ -137,10 +178,7 @@ __IPGUI_API__ void ipgui_draw_image(
     img_h = ipgui_aabb_height(&img_aabb);
 
     /* get image aabb(absolute coordinate on surf) */
-    img_aabb.start.x = anchor->x - pivot->x;
-    img_aabb.start.y = anchor->y - pivot->y;
-    img_aabb.end.x   = img_aabb.start.x + img_w - 1;
-    img_aabb.end.y   = img_aabb.start.y + img_h - 1;
+    img_aabb = ipgui_locate_image(pivot, anchor, img_w, img_h);
 
     /* calc the aabb need to be drawn */
     ipgui_aabb_t  draw;
