@@ -8,7 +8,7 @@
 
 IPGUI_HEADER_BEGIN _______________MARKER_______________
 
-typedef int ipgui_scoord_t; //it means sub pixel coordinate, 26.6
+typedef s32_t ipgui_scoord_t; //it means sub pixel coordinate, 26.6
 
 typedef struct {
     ipgui_scoord_t x; /* x coordinate, 26.6 */

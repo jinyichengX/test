@@ -331,7 +331,7 @@ __IPGUI_API__ ipgui_img_dsc_t * ipgui_image_geo_transform(
     y = aabb.start.y;
     x = aabb.start.x;
 
-#if 0
+#if 1
     ipgui_img_geo_trans_mat_t inv;
     ipgui_image_trans_matrix_invert(&trans->mat, &inv); 
     next_pix_incx = inv.a;
