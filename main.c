@@ -331,7 +331,7 @@ int main(void)
     img_style.opacity = 255;
     ipgui_image_draw_style_t img2_style;
     img2_style.blend_mode = 0;
-    img2_style.opacity = 100;
+    img2_style.opacity = 255;
 
     ipgui_box_bg_style_t box_bg_style;
     box_bg_style.blend_mode = 0;
@@ -559,7 +559,7 @@ ipgui_button_style_t btn_style = {
     .text_style = font_style,
 };
 
-
+                static u32_t degree = 0;
     while(1) {
 #if RENDER_MODE == 1
         for (int y = 0; y < sdl_scr->drv->yreso; y ++) {
@@ -609,25 +609,38 @@ ipgui_button_style_t btn_style = {
 
 
 
-                ipgui_draw_image(
-                    &surf1,
-                    NULL,
-                    &img_data,
-                    &pivot,
-                    &anchor,
-                    NULL,
-                    &img_style
-                );
+                // ipgui_draw_image(
+                //     &surf1,
+                //     NULL,
+                //     &img_data,
+                //     &pivot,
+                //     &anchor,
+                //     NULL,
+                //     &img_style
+                // );
 
-                ipgui_draw_image(
-                    &surf1,
+                ipgui_img_geo_trans_t trans;
+
+                ipgui_point_t pivot1;
+                pivot1.x = 0;
+                pivot1.y = 0;
+                ipgui_image_trans_init(&trans);
+                ipgui_image_trans_pivot(&trans, pivot1);
+                // ipgui_image_trans_scale(&trans, 2, 1.2);
+                ipgui_image_trans_rotate_degree(&trans, degree);
+                ipgui_point_t anchor1;
+                anchor1.x = 0;
+                anchor1.y = 0;
+                ipgui_draw_image( //这个函数中279 280行有问题，保留279行注释280行，运行一下试试就知道了
+                    &surf1,       //而且这个函数带变换参数时只支持RGB888格式的图像，需要优化
                     NULL,
                     &img2_data,
-                    &pivot,
-                    &anchor,
-                    NULL,
+                    &trans.pivot,
+                    &anchor1,
+                    (ipgui_trans_mat_t *)&trans.mat,
                     &img2_style
                 );
+
                 // ipgui_draw_image(
                 //     &surf1,
                 //     NULL,
@@ -638,64 +651,64 @@ ipgui_button_style_t btn_style = {
                 //     &img_style
                 // );
 
-                ipgui_draw_arc(
-                    &surf1, 
-                    NULL,
-                    &arc, 
-                    &arc_style);
+                // ipgui_draw_arc(
+                //     &surf1, 
+                //     NULL,
+                //     &arc, 
+                //     &arc_style);
 
-                ipgui_draw_triangle(
-                    &surf1,
-                    NULL,
-                    &tri_p1, &tri_p2, &tri_p3,
-                    &tri_style);
+                // ipgui_draw_triangle(
+                //     &surf1,
+                //     NULL,
+                //     &tri_p1, &tri_p2, &tri_p3,
+                //     &tri_style);
 
-                ipgui_draw_box_shadow(&surf1, 
-                    NULL, 
-                    &box, 
-                    &shadow_style);
+                // ipgui_draw_box_shadow(&surf1, 
+                //     NULL, 
+                //     &box, 
+                //     &shadow_style);
 
-                ipgui_draw_box_background(
-                    &surf1,
-                    NULL,
-                    &box,
-                    &box_style,
-                    &box_bg_style);
+                // ipgui_draw_box_background(
+                //     &surf1,
+                //     NULL,
+                //     &box,
+                //     &box_style,
+                //     &box_bg_style);
 
-                ipgui_draw_box_border(
-                    &surf1,
-                    NULL,
-                    &box,
-                    &box_style,
-                    &box_border_style);
+                // ipgui_draw_box_border(
+                //     &surf1,
+                //     NULL,
+                //     &box,
+                //     &box_style,
+                //     &box_border_style);
 
-                ipgui_draw_builtin_text(
-                    &surf1,
-                    NULL,
-                    &font_style,
-                    "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
-                    50,
-                    50);
+                // ipgui_draw_builtin_text(
+                //     &surf1,
+                //     NULL,
+                //     &font_style,
+                //     "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
+                //     50,
+                //     50);
 
-                ipgui_draw_line_generic(
-                    &surf1,
-                    NULL,
-                    &line,
-                    &line_style);
+                // ipgui_draw_line_generic(
+                //     &surf1,
+                //     NULL,
+                //     &line,
+                //     &line_style);
 
-                ipgui_draw_box_background(
-                    &surf1,
-                    NULL,
-                    &box1,
-                    &box_style1,
-                    &box_bg_style1);
+                // ipgui_draw_box_background(
+                //     &surf1,
+                //     NULL,
+                //     &box1,
+                //     &box_style1,
+                //     &box_bg_style1);
                 
-                ipgui_draw_box_border(
-                    &surf1,
-                    NULL,
-                    &box1,
-                    &box_style1,
-                    &box_border_style1);
+                // ipgui_draw_box_border(
+                //     &surf1,
+                //     NULL,
+                //     &box1,
+                //     &box_style1,
+                //     &box_border_style1);
                 /* 画图结束 */
 #if RENDER_MODE == 1
                 ipgui_screen_fill_region(sdl_scr, 
@@ -720,10 +733,10 @@ ipgui_button_style_t btn_style = {
         
 #endif
         sdl_scr->drv->flush(sdl_scr);
-arc.start += 1;
-
-line.start.y --;
-arc_style.paint.src.grad_src.grad.conic_grad.angle_start ++;
+        arc.start += 1;
+        degree ++;
+        line.start.y --;
+        arc_style.paint.src.grad_src.grad.conic_grad.angle_start ++;
         /* 改变位置 */
         // if(cnt11 ++ < 400) {
         //     box.start.x += 1;

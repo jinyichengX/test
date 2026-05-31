@@ -107,7 +107,7 @@ __IPGUI_API__ void ipgui_image_trans_rotate_degree(ipgui_img_geo_trans_t * trans
     b = trans->mat.b;
     c = trans->mat.c;
     d = trans->mat.d;
-    deg = -deg; /* convert to screen coordinate */
+    // deg = -deg; /* convert to screen coordinate */
     trans->mat.a = ((a * ipgui_cos(deg) - c * ipgui_sin(deg)) + 16384) / 32768;
     trans->mat.b = ((b * ipgui_cos(deg) - d * ipgui_sin(deg)) + 16384) / 32768;
     trans->mat.c = ((a * ipgui_sin(deg) + c * ipgui_cos(deg)) + 16384) / 32768;

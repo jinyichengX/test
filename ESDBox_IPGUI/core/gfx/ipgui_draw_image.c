@@ -61,7 +61,6 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ ipgui_scoord_t fixed_div(ipgui_scoord_t a, ipg
     return (sign > 0) ? q : -q;
 }
 
-
 __IPGUI_STATIC__ void ipgui_image_trans_matrix_invert(
         ipgui_trans_mat_t * mat,
         ipgui_trans_mat_t * res)
@@ -187,7 +186,7 @@ __IPGUI_API__ ipgui_aabb_t ipgui_calc_image_transformed_aabb(
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ u8_t * image_pixmap_get(ipgui_image_data_t * img_data, ipgui_coord_t x/* rel to image's(0,0) */, ipgui_coord_t y)
 {
-    return img_data->pixmap + (img_data->stride * y) + img_data->fmt * x;
+    return img_data->pixmap + (img_data->stride * y) + img_data->px_size * x;
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_biliner_core_4ch(
@@ -201,7 +200,7 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_biliner_core_4ch(
     u32_t w4 = hd * vd;
     
     for (u8_t i = 0; i < 4; i++) {
-        out[i] = (a[i] * w1 + b[i] * w2 + c[i] * w3 + d[i] * w4 + 32768) >> 16;
+        out[i] = ((u32_t)a[i] * w1 + (u32_t)b[i] * w2 + (u32_t)c[i] * w3 + (u32_t)d[i] * w4 + 32768) >> 16;
     }
 }
 
@@ -255,7 +254,7 @@ __IPGUI_API__ void ipgui_draw_image(
             surf,
             clip,
             &img_src,
-            (ipgui_aabb_t *)0,
+            (u8_t *)0,
             (ipgui_aabb_t *)0,
             style->opacity,
             style->blend_mode);
@@ -277,7 +276,8 @@ __IPGUI_API__ void ipgui_draw_image(
     img_h = ipgui_aabb_height(&img_rel_pivot);
 
     /* get image aabb(absolute coordinate on surf) */
-    img_in_surf = ipgui_locate_image(pivot, anchor, img_w, img_h);
+    // img_in_surf = ipgui_locate_image(pivot, anchor, img_w, img_h);
+img_in_surf = img_rel_pivot;
 
     /* calc the aabb need to be drawn */
     ipgui_aabb_t  draw_in_surf;
@@ -316,7 +316,7 @@ __IPGUI_API__ void ipgui_draw_image(
     s32_t alpha, d;/* for edge mask */
     u8_t a, r, g, b;
     u8_t cr[4];
-    u8_t hd, vd;
+    u32_t hd, vd;
     s32_t idx = 0, shift = 8 - IPGUI_FIXED_BITS;
 
     u32_t px_sz  = img_data->px_size; /* per pixel size */
@@ -347,6 +347,17 @@ __IPGUI_API__ void ipgui_draw_image(
 
     xo_start_row = inv.a * x + inv.b * y + ori_dx;
     yo_start_row = inv.c * x + inv.d * y + ori_dy;
+
+    ipgui_aabb_t mask_aabb;
+    mask_aabb.start.x = draw_in_surf.start.x;
+    mask_aabb.end.x   = draw_in_surf.end.x;
+    mask_aabb.start.y = mask_aabb.end.y = draw_in_surf.start.y;
+    ipgui_image_src_t img_src;
+    img_src.px_size = img_data->px_size;
+    img_src.buf = pixmap;
+    img_src.stride = draw_w * img_data->px_size;
+    img_src.img_pxfmt = img_data->fmt;
+    img_src.img_aabb = &mask_aabb;
 
     /* reverse mapping（反向映射）every pixel */
     for (; y <= draw_rel_pivot.end.y; y ++) { /* xy是变换后的图像点相对于变换点的deltax和deltay */
@@ -388,16 +399,12 @@ __IPGUI_API__ void ipgui_draw_image(
                 cr_d = cr_c + px_sz;
 
                 /* dst color */
-                // a = ipgui_biliner_core(cr_a[3], cr_b[3], cr_c[3], cr_d[3], hd, vd);
-                // b = ipgui_biliner_core(cr_a[0], cr_b[0], cr_c[0], cr_d[0], hd, vd);
-                // g = ipgui_biliner_core(cr_a[1], cr_b[1], cr_c[1], cr_d[1], hd, vd);
-                // r = ipgui_biliner_core(cr_a[2], cr_b[2], cr_c[2], cr_d[2], hd, vd);
                 ipgui_biliner_core_4ch(cr_a, cr_b, cr_c, cr_d, hd, vd, cr);
 
                 /* write to pixel buffer */
-                pixmap[idx * px_sz] = cr[2]; /* need to modify code here like set_image_pix(color_t color, coord_t index) */
+                pixmap[idx * px_sz] = cr[0]; /* need to modify code here like set_image_pix(color_t color, coord_t index) */
                 pixmap[idx * px_sz + 1] = cr[1];
-                pixmap[idx * px_sz + 2] = cr[0];
+                pixmap[idx * px_sz + 2] = cr[2];
                 mask_buf[idx ++] = 255;
             } else {                /* generate edge mask */
                 if (xo < 0) { /* left edge */
@@ -484,8 +491,20 @@ _next_pix_inc:
         }
         xo_start_row += next_row_incx;/* inv.b */
         yo_start_row += next_row_incy;/* inv.d */
+        idx = 0;
+    
+        ipgui_blend_image_v1(
+            surf,
+            (ipgui_aabb_t *)0,
+            &img_src,
+            mask_buf,
+            &mask_aabb,
+            style->opacity,
+            style->blend_mode);
+        
+        mask_aabb.start.y ++;
+        mask_aabb.end.y = mask_aabb.start.y;
     }
-
 
     /* free image buffer */
     ipgui_image_buf_free(pixmap);
