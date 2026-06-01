@@ -318,6 +318,20 @@ int main(void)
     img3_data.w = img3_dsc.w;
     img3_data.h = img3_dsc.h;
 
+    ipgui_img_dsc_t img4_dsc;
+    if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/kbm.bmp", &img4_dsc))
+    {
+        printf("Failed to load bitmap image, please run the program at the main.c page\n");
+        return -1;
+    }
+    ipgui_image_data_t img4_data;
+    img4_data.pixmap = img4_dsc.pixmap;
+    img4_data.px_size = img4_dsc.stride / img4_dsc.w;
+    img4_data.fmt = IPGUI_IMG_FMT_BGR888;//可以改成L8或者LA88或者RGB565试试，虽然这么改逻辑上不对，但是有效果
+    img4_data.stride = img4_dsc.stride;
+    img4_data.w = img4_dsc.w;
+    img4_data.h = img4_dsc.h;
+
     ipgui_point_t pivot;
     pivot.x = img_dsc.w / 2;
     pivot.y = img_dsc.h / 2;
@@ -332,7 +346,9 @@ int main(void)
     ipgui_image_draw_style_t img2_style;
     img2_style.blend_mode = 0;
     img2_style.opacity = 255;
-
+    ipgui_image_draw_style_t img4_style;
+    img4_style.blend_mode = 0;
+    img4_style.opacity = 127;
     ipgui_box_bg_style_t box_bg_style;
     box_bg_style.blend_mode = 0;
     box_bg_style.opacity = 255;
@@ -559,7 +575,10 @@ ipgui_button_style_t btn_style = {
     .text_style = font_style,
 };
 
-                static u32_t degree = 0;
+                static u32_t degree = 20;
+                static u32_t degree1 = 0;
+                float sx = 0.5;
+                float sy = 0.5;
     while(1) {
 #if RENDER_MODE == 1
         for (int y = 0; y < sdl_scr->drv->yreso; y ++) {
@@ -609,30 +628,30 @@ ipgui_button_style_t btn_style = {
 
 
 
-                // ipgui_draw_image(
-                //     &surf1,
-                //     NULL,
-                //     &img_data,
-                //     &pivot,
-                //     &anchor,
-                //     NULL,
-                //     &img_style
-                // );
+                ipgui_draw_image(
+                    &surf1,
+                    NULL,
+                    &img_data,
+                    &pivot,
+                    &anchor,
+                    NULL,
+                    &img_style
+                );
 
                 ipgui_img_geo_trans_t trans;
 
                 ipgui_point_t pivot1;
-                pivot1.x = 0;
-                pivot1.y = 0;
+                pivot1.x = 190;
+                pivot1.y = 190;
                 ipgui_image_trans_init(&trans);
                 ipgui_image_trans_pivot(&trans, pivot1);
                 // ipgui_image_trans_scale(&trans, 2, 1.2);
                 ipgui_image_trans_rotate_degree(&trans, degree);
                 ipgui_point_t anchor1;
-                anchor1.x = 0;
-                anchor1.y = 0;
-                ipgui_draw_image( //这个函数中279 280行有问题，保留279行注释280行，运行一下试试就知道了
-                    &surf1,       //而且这个函数带变换参数时只支持RGB888格式的图像，需要优化
+                anchor1.x = 200;
+                anchor1.y = 200;
+                ipgui_draw_image( 
+                    &surf1,       //这个函数带变换参数时只支持RGB888格式的图像，需要优化
                     NULL,
                     &img2_data,
                     &trans.pivot,
@@ -641,74 +660,89 @@ ipgui_button_style_t btn_style = {
                     &img2_style
                 );
 
-                // ipgui_draw_image(
-                //     &surf1,
-                //     NULL,
-                //     &img3_data,
-                //     &pivot,
-                //     &anchor,
-                //     NULL,
-                //     &img_style
-                // );
 
-                // ipgui_draw_arc(
-                //     &surf1, 
-                //     NULL,
-                //     &arc, 
-                //     &arc_style);
+                ipgui_draw_arc(
+                    &surf1, 
+                    NULL,
+                    &arc, 
+                    &arc_style);
 
-                // ipgui_draw_triangle(
-                //     &surf1,
-                //     NULL,
-                //     &tri_p1, &tri_p2, &tri_p3,
-                //     &tri_style);
+                ipgui_draw_triangle(
+                    &surf1,
+                    NULL,
+                    &tri_p1, &tri_p2, &tri_p3,
+                    &tri_style);
 
-                // ipgui_draw_box_shadow(&surf1, 
-                //     NULL, 
-                //     &box, 
-                //     &shadow_style);
+                ipgui_draw_box_shadow(&surf1, 
+                    NULL, 
+                    &box, 
+                    &shadow_style);
 
-                // ipgui_draw_box_background(
-                //     &surf1,
-                //     NULL,
-                //     &box,
-                //     &box_style,
-                //     &box_bg_style);
+                ipgui_draw_box_background(
+                    &surf1,
+                    NULL,
+                    &box,
+                    &box_style,
+                    &box_bg_style);
 
-                // ipgui_draw_box_border(
-                //     &surf1,
-                //     NULL,
-                //     &box,
-                //     &box_style,
-                //     &box_border_style);
+                ipgui_draw_box_border(
+                    &surf1,
+                    NULL,
+                    &box,
+                    &box_style,
+                    &box_border_style);
 
-                // ipgui_draw_builtin_text(
-                //     &surf1,
-                //     NULL,
-                //     &font_style,
-                //     "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
-                //     50,
-                //     50);
+                ipgui_draw_builtin_text(
+                    &surf1,
+                    NULL,
+                    &font_style,
+                    "hello kitty@@@@@ a lazy dog%%5 ^&*())__+;'",
+                    50,
+                    50);
 
-                // ipgui_draw_line_generic(
-                //     &surf1,
-                //     NULL,
-                //     &line,
-                //     &line_style);
+                ipgui_draw_line_generic(
+                    &surf1,
+                    NULL,
+                    &line,
+                    &line_style);
 
-                // ipgui_draw_box_background(
-                //     &surf1,
-                //     NULL,
-                //     &box1,
-                //     &box_style1,
-                //     &box_bg_style1);
+                ipgui_draw_box_background(
+                    &surf1,
+                    NULL,
+                    &box1,
+                    &box_style1,
+                    &box_bg_style1);
                 
-                // ipgui_draw_box_border(
-                //     &surf1,
-                //     NULL,
-                //     &box1,
-                //     &box_style1,
-                //     &box_border_style1);
+                ipgui_draw_box_border(
+                    &surf1,
+                    NULL,
+                    &box1,
+                    &box_style1,
+                    &box_border_style1);
+
+
+                ipgui_img_geo_trans_t trans1;
+
+                ipgui_point_t pivot2;
+                pivot2.x = img4_data.w / 2;
+                pivot2.y = img4_data.h / 2;
+                ipgui_image_trans_init(&trans1);
+                ipgui_image_trans_pivot(&trans1, pivot2);
+                ipgui_image_trans_scale(&trans1, sx, sy);
+                ipgui_image_trans_rotate_degree(&trans1, degree1);
+                ipgui_point_t anchor2;
+                anchor2.x = 400;
+                anchor2.y = 240;
+                ipgui_draw_image(//这个函数带变换参数时只支持RGB888格式的图像，需要优化
+                    &surf1,
+                    NULL,
+                    &img4_data,
+                    &trans1.pivot,
+                    &anchor2,
+                    (ipgui_trans_mat_t *)&trans1.mat,
+                    &img4_style
+                );
+
                 /* 画图结束 */
 #if RENDER_MODE == 1
                 ipgui_screen_fill_region(sdl_scr, 
@@ -734,41 +768,51 @@ ipgui_button_style_t btn_style = {
 #endif
         sdl_scr->drv->flush(sdl_scr);
         arc.start += 1;
-        degree ++;
+        degree += 2;
+        degree1 -= 1;
         line.start.y --;
         arc_style.paint.src.grad_src.grad.conic_grad.angle_start ++;
         /* 改变位置 */
-        // if(cnt11 ++ < 400) {
-        //     box.start.x += 1;
-        //     box.start.y += 1;
-        //     box.end.x += 1;
-        //     box.end.y += 1;
+        if(cnt11 ++ < 400) {
+            sx += 0.007;
+                        sy += 0.007;
+            if(img4_style.opacity < 255)
+                img4_style.opacity ++;
 
-        //     line.start.x += 1;
-        //     line.start.y += 1;
-        //     line.end.x += 1;
-        //     line.end.y += 1;
-        //     clip.end.x ++;
-        //     clip.end.y ++;
+            // box.start.x += 1;
+            // box.start.y += 1;
+            // box.end.x += 1;
+            // box.end.y += 1;
+
+            // line.start.x += 1;
+            // line.start.y += 1;
+            // line.end.x += 1;
+            // line.end.y += 1;
+            // clip.end.x ++;
+            // clip.end.y ++;
 
             
-        //     // box_style.left_bottom_radius ++;
-        //     // box_style.left_top_radius ++;
-        //     // box_style.right_bottom_radius ++;
-        //     // box_style.right_top_radius ++;
-        // }
-        // else if(cnt11 ++ < 800) {
-        //     box.start.x -= 2;
-        //     box.start.y -= 2;
-        //     box.end.x -= 2;
-        //     box.end.y -= 2;
-        //     line.start.x -= 2;
-        //     line.start.y -= 2;
-        //     line.end.x -= 2;
-        //     line.end.y -= 2;
-        // } else {
-        //     cnt11 = 0;
-        // }
+            // box_style.left_bottom_radius ++;
+            // box_style.left_top_radius ++;
+            // box_style.right_bottom_radius ++;
+            // box_style.right_top_radius ++;
+        }
+        else if(cnt11 ++ < 800) {
+            if(img4_style.opacity > 50)
+                img4_style.opacity -= 2;
+            sx -= 0.014;
+            sy -= 0.014;
+            // box.start.x -= 2;
+            // box.start.y -= 2;
+            // box.end.x -= 2;
+            // box.end.y -= 2;
+            // line.start.x -= 2;
+            // line.start.y -= 2;
+            // line.end.x -= 2;
+            // line.end.y -= 2;
+        } else {
+            cnt11 = 0;
+        }
 
         /* 心跳 */
         ipgui_event_loop(sdl_scr);

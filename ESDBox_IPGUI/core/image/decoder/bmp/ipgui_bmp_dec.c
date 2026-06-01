@@ -523,7 +523,7 @@ int test_bmp(const s8_t * path, ipgui_img_dsc_t * image)
     // static u8_t buffer[1024*1024*6];
     static u8_t mask_buffer[1024*1024];
 
-    void * buffer = malloc(1024*1024);
+    void * buffer = malloc(3*1024*1024);
 
     ipgui_memset(mask_buffer, 255, 1024*1024);
     struct bmp_inf inf;

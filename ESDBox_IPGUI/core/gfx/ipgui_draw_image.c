@@ -92,7 +92,6 @@ __IPGUI_STATIC__ void ipgui_image_trans_matrix_invert(
     res->d = temp.d;
 }
 
-
 /* 扩展为整数包围盒 */
 __IPGUI_STATIC__ void ipgui_aabb_expand_integer(ipgui_saabb_t * in, ipgui_aabb_t * out)
 {
@@ -276,8 +275,10 @@ __IPGUI_API__ void ipgui_draw_image(
     img_h = ipgui_aabb_height(&img_rel_pivot);
 
     /* get image aabb(absolute coordinate on surf) */
-    // img_in_surf = ipgui_locate_image(pivot, anchor, img_w, img_h);
-img_in_surf = img_rel_pivot;
+    ipgui_point_t transformed_img_rel_pivot;
+    transformed_img_rel_pivot.x = -img_rel_pivot.start.x;
+    transformed_img_rel_pivot.y = -img_rel_pivot.start.y;
+    img_in_surf = ipgui_locate_image(&transformed_img_rel_pivot, anchor, img_w, img_h);
 
     /* calc the aabb need to be drawn */
     ipgui_aabb_t  draw_in_surf;
