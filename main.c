@@ -673,10 +673,10 @@ ipgui_button_style_t btn_style = {
                     &tri_p1, &tri_p2, &tri_p3,
                     &tri_style);
 
-                ipgui_draw_box_shadow(&surf1, 
-                    NULL, 
-                    &box, 
-                    &shadow_style);
+                // ipgui_draw_box_shadow(&surf1, 
+                //     NULL, 
+                //     &box, 
+                //     &shadow_style);
 
                 ipgui_draw_box_background(
                     &surf1,
