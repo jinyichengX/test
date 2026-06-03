@@ -164,25 +164,22 @@ __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(
     return IPGUI_ERR_NOK;
 }
 
-// int main(void) {
-//     // 1. 硬件初始化
-//     bsp_init();
-//     ipgui_init();
+// int thread1(void) {
 
-//     // 2. 初始化输入分发器
+//     // 1. 初始化输入分发器
 //     ipgui_input_dispatcher_t dispatcher;
 //     ipgui_input_dispatcher_init(&dispatcher);
 
-//     // 3. 注册输入源和屏幕
+//     // 2. 注册输入源和屏幕
 //     s32_t touch_id = ipgui_dispatcher_register_input_src(&dispatcher, &touch_src);
 //     s32_t key_id = ipgui_dispatcher_register_input_src(&dispatcher, &key_src);
 //     s32_t main_scr_id = ipgui_dispatcher_register_screen(&dispatcher, &main_screen);
 
-//     // 4. 绑定映射
+//     // 3. 绑定映射
 //     ipgui_bind_input_src_with_screen(&dispatcher, touch_id, main_scr_id);
 //     ipgui_bind_input_src_with_screen(&dispatcher, key_id, main_scr_id);
 
-//     // 5. 主循环（唯一的线程）
+//     // 4. 主循环
 //     while (1) {
 //         // 第一步：轮询所有输入设备，生成事件入队
 //         ipgui_input_poll_devices(&dispatcher);
@@ -194,6 +191,6 @@ __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(
 //         ipgui_render();
         
 //         // 第四步：空闲延时（可选，省电）
-//         ipgui_delay_ms(10);
+//         thread_delay(10);
 //     }
 // }
