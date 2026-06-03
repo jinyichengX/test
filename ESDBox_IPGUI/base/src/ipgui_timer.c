@@ -29,10 +29,6 @@
 #include "ipgui_time.h"
 #include <math.h>
 
-#if TIMER_SUB_TO_EVENT
-ipgui_input_dev_t * ktimer_dev = NULL;
-#endif
-
 static ipgui_twhl_mngr_t * kmng1 = NULL;
 
 #define IPGUI_MACRO_POWER(x,n) __IPGUI_MACRO_START \
@@ -344,12 +340,7 @@ __IPGUI_API__ ipgui_err_t ipgui_timer_loop(ipgui_twhl_mngr_t * pstMngr, ipgui_ti
             pstTimer = list_entry(pstLinkBuck->next, ipg_tmr_t, stLink);
             if (pstTimer->pfCallback && !nWhlIdx)
             {
-#if TIMER_SUB_TO_EVENT
-                /* send to event bus */ 
-                ipgui_input_event(ktimer_dev, IPGUI_EVT_TYPE_MISC, (unsigned int)pstTimer->pfCallback, (unsigned int)pstTimer->pvPrvdata);
-#else
                 pstTimer->pfCallback( pstTimer, pstTimer->pvPrvdata );
-#endif
                 ipgui_timer_reload(pstTimer, pstMngr);
             }
             else {
@@ -392,51 +383,3 @@ __IPGUI_API__ void ipgui_loop_def(ipgui_tick_t unPassTick)
         ipgui_dbg_warning("timer manager is not valid!\r\n");
     }
 }
-
-/* register timer device and timer handlers */
-#if TIMER_SUB_TO_EVENT
-static void ipgui_ktimer_dev_event(ipgui_input_handle_t * handle, unsigned int type, unsigned int code, unsigned int value)
-{
-    ipgui_input_handler_t * handler = handle->handler;
-
-    void * pvPrvdata = (void *)value;
-    pfCallback_t pfCallback = (pfCallback_t)code;
-
-    /* execute callback */
-    pfCallback( (ipg_tmr_t *)0, pvPrvdata );
-}
-
-static struct input_device_id ktimer_dev_id =
-{   
-    .driver_info = 1,
-}; 
-
-static ipgui_input_handler_t ktimer_dev_handler = {
-    .priv_data = (void *)0,
-    .event = ipgui_ktimer_dev_event,
-    .events = NULL,
-    .filter = NULL,
-    .match = NULL,
-    .id_table = &ktimer_dev_id,
-};
-
-__IPGUI_API__ __IPGUI_INIT__  ipgui_err_t ipgui_ktimer_init(void)
-{
-    ipgui_input_register_handler(&ktimer_dev_handler);
-
-    ktimer_dev = ipgui_input_allocate_device("DEV_KTIMER");
-
-    if (ktimer_dev == NULL) {
-        return IPGUI_ERR_NOMEM;
-    }
-
-    ipgui_input_set_capability( &ktimer_dev, IPGUI_EVT_TYPE_MISC, 0x01 );
-
-    ipgui_input_register_device(&ktimer_dev);
-
-    ipgui_timer_moudle_init(void);
-    ktimer_dev_handler.priv_data = (void *)kmng1;
-    return IPGUI_ERR_OK;
-}
-
-#endif

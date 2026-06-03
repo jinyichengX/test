@@ -30,10 +30,6 @@ IPGUI_HEADER_BEGIN  _______________MARKER_______________
 #endif
 #endif
 
-
-/* if timer a part of the event */
-#define TIMER_SUB_TO_EVENT          0
-
 /* define the number of ticks per second */
 #ifndef IPGUI_TICK_PER_SECOND
 #define IPGUI_TICK_PER_SECOND       1000U

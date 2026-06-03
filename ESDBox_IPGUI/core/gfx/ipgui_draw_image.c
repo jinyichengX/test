@@ -307,8 +307,8 @@ __IPGUI_API__ void ipgui_draw_image(
     
     /* get aabb relative to pivot */
     ipgui_aabb_t draw_rel_pivot;
-    draw_rel_pivot.start.x = img_rel_pivot.start.x + (draw_in_surf.start.x - img_in_surf.start.x);
-    draw_rel_pivot.start.y = img_rel_pivot.start.y + (draw_in_surf.start.y - img_in_surf.start.y);
+    draw_rel_pivot.start.x = img_rel_pivot.start.x  + (draw_in_surf.start.x - img_in_surf.start.x);
+    draw_rel_pivot.start.y = img_rel_pivot.start.y  + (draw_in_surf.start.y - img_in_surf.start.y);
     draw_rel_pivot.end.x   = draw_rel_pivot.start.x + draw_w - 1;
     draw_rel_pivot.end.y   = draw_rel_pivot.start.y + draw_h - 1;
 
@@ -329,8 +329,8 @@ __IPGUI_API__ void ipgui_draw_image(
     ipgui_coord_t x, y;
     ipgui_scoord_t xo, yo; /* the transformed xy and orig's xy */
 
-    ipgui_scoord_t border_x     = (img_data->w  - 1) * IPGUI_FIXED_PRECI;
-    ipgui_scoord_t border_y     = (img_data->h  - 1) * IPGUI_FIXED_PRECI;
+    ipgui_scoord_t border_x     = (img_data->w - 1) * IPGUI_FIXED_PRECI;
+    ipgui_scoord_t border_y     = (img_data->h - 1) * IPGUI_FIXED_PRECI;
     ipgui_scoord_t max_border_x = border_x + IPGUI_FIXED_PRECI;
     ipgui_scoord_t max_border_y = border_y + IPGUI_FIXED_PRECI;
 
@@ -354,15 +354,15 @@ __IPGUI_API__ void ipgui_draw_image(
     mask_aabb.end.x   = draw_in_surf.end.x;
     mask_aabb.start.y = mask_aabb.end.y = draw_in_surf.start.y;
     ipgui_image_src_t img_src;
-    img_src.px_size = img_data->px_size;
-    img_src.buf = pixmap;
-    img_src.stride = draw_w * img_data->px_size;
+    img_src.px_size   = img_data->px_size;
+    img_src.buf       = pixmap;
+    img_src.stride    = draw_w * img_data->px_size;
     img_src.img_pxfmt = img_data->fmt;
-    img_src.img_aabb = &mask_aabb;
+    img_src.img_aabb  = &mask_aabb;
 
     /* reverse mapping（反向映射）every pixel */
     for (; y <= draw_rel_pivot.end.y; y ++) { /* xy是变换后的图像点相对于变换点的deltax和deltay */
-        x = draw_rel_pivot.start.x;
+        x  = draw_rel_pivot.start.x;
         xo = xo_start_row;
         yo = yo_start_row;
         for (; x <= draw_rel_pivot.end.x; x ++) {
