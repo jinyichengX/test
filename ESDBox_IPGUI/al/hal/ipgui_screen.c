@@ -99,3 +99,8 @@ __IPGUI_API__ void ipgui_screen_fill_region(ipgui_scr_t * scr,
         scr->drv->fill_region(scr, x1, y1, x2, y2, pix_buf, stride);
     }
 }
+
+__IPGUI_API__ void ipgui_screen_handle_widget_event(ipgui_scr_t * scr, ipgui_widget_evt_t * evt)
+{
+
+}

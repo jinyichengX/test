@@ -46,6 +46,7 @@
 #include "ipgui_draw_builtin_font.h"
 #include "ipgui_gradient_color.h"
 #include "ipgui_image_geometry_transform.h"
+#include "ipgui_input_dispatcher.h"
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -175,7 +176,22 @@ static u8_t egui_mask_circle_edge_smoothstep(int32_t signed_dist_256)
 // #define RENDER_MODE 3 /* 全屏渲染 */
 int main(void)
 {
-    // int i = EGUI_FX_DIVX(500 << 16, 400 << 16 , 16);
+    ipgui_input_dispatcher_t dispatcher;
+    ipgui_input_dispatcher_init(&dispatcher);
+
+    ipgui_input_src_t touch_src;
+    ipgui_input_src_t key_src;
+    ipgui_scr_t main_screen;
+    
+    // 2. 注册输入源和屏幕
+    s32_t touch_id = ipgui_dispatcher_register_input_src(&dispatcher, &touch_src);
+    s32_t key_id = ipgui_dispatcher_register_input_src(&dispatcher, &key_src);
+    s32_t main_scr_id = ipgui_dispatcher_register_screen(&dispatcher, &main_screen);
+
+    // 3. 绑定映射
+    ipgui_bind_input_src_with_screen(&dispatcher, touch_id, main_scr_id);
+    ipgui_bind_input_src_with_screen(&dispatcher, key_id, main_scr_id);
+    int i = EGUI_FX_DIVX(500 << 16, 400 << 16 , 16);
     // printf("i = %d", i);
     // return 0;
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);

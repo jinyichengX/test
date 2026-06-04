@@ -1,5 +1,11 @@
 #include "ipgui_input_dispatcher.h"
 #include "ipgui_memory.h"
+#include "ipgui_debug.h"
+
+static void ipgui_default_event_converter(
+    void * param,
+    ipgui_input_src_evt_t * raw_evt,
+    ipgui_widget_evt_t * widget_evt);
 
 /* find lowest bit set(1 ~ 32) */
 __IPGUI_STATIC__ __IPGUI_INLINE__ u32_t generic_ffs(u32_t v)
@@ -66,43 +72,28 @@ __IPGUI_STATIC__ ipgui_scr_id_t ipgui_alloc_id_for_screen(
 
 __IPGUI_API__ void ipgui_input_dispatcher_init(ipgui_input_dispatcher_t * dispatcher)
 {
+    ipgui_memset(dispatcher, 0, sizeof(ipgui_input_dispatcher_t));
+
     /* init input src manager */
-    u32_t i;
-    for (i = 0; i < INPUT_SRC_MAX; i ++) {
-        ipgui_memset(&dispatcher->input_src_node_arr[i], 0, sizeof(ipgui_input_src_node_t));
-    }
     dispatcher->input_src_bmp_iter_max = IPGUI_ARRAY_LEN(dispatcher->input_src_bmp);
-
-    for (i = 0; i < dispatcher->input_src_bmp_iter_max; i ++) {
-        dispatcher->input_src_bmp[i] = ~0U;
-    }
-
     dispatcher->input_src_bmp_last_mask = (~0U >> (32 - (INPUT_SRC_MAX - ((INPUT_SRC_MAX >> 5) << 5))));
 
     /* init screen manager */
-    for (i = 0; i < SCREEN_MAX; i ++) {
-        ipgui_memset(&dispatcher->scr_node_arr[i], 0, sizeof(ipgui_scr_node_t));
-    }
     dispatcher->scr_bmp_iter_max = IPGUI_ARRAY_LEN(dispatcher->scr_bmp);
-
-    for (i = 0; i < dispatcher->scr_bmp_iter_max; i ++) {
-        dispatcher->scr_bmp[i] = ~0U;
-    }
-
     dispatcher->scr_bmp_last_mask = (~0U >> (32 - (SCREEN_MAX - ((SCREEN_MAX >> 5) << 5))));
 
-    /* init input event queue */
+    /* init input source event queue */
     ipgui_norm_queue_init(
         &dispatcher->evt_queue,
         dispatcher->input_evt_pool,
         IPGUI_ARRAY_LEN(dispatcher->input_evt_pool),
-        sizeof(ipgui_input_evt_t));
+        sizeof(ipgui_input_src_evt_t));
     
-    /* init map array */
-    for (i = 0; i < INPUT_SRC_MAX * SCREEN_MAX; i ++) {
-        ipgui_memset(&dispatcher->map_arr[i], 0, sizeof(map_node_t));
-    }
+    list_head_init(&(dispatcher->input_src_list));
+    list_head_init(&(dispatcher->screen_list));
 
+    /* set default event convert function */
+    dispatcher->convert_event_cb = ipgui_default_event_converter;
 }
 
 __IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_register_input_src(
@@ -142,12 +133,31 @@ __IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_register_screen(
     return id;
 }
 
+__IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_unregister_input_src(
+    ipgui_input_dispatcher_t * dispatcher,
+    ipgui_input_src_id_t input_src_id)
+{
+
+}
+
+__IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_unregister_screen(
+    ipgui_input_dispatcher_t * dispatcher,
+    ipgui_scr_id_t screen_id)
+{
+
+}
+
 __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(
     ipgui_input_dispatcher_t * dispatcher,
     ipgui_input_src_id_t input_src_id,
     ipgui_scr_id_t screen_id)
 {
-    /* check if the map already exists */
+    if (input_src_id < 0 || input_src_id >= INPUT_SRC_MAX)
+        return IPGUI_ERR_INVALID_ID;
+    if (screen_id < 0 || screen_id >= SCREEN_MAX)
+        return IPGUI_ERR_INVALID_ID;
+
+    /* 检查这两者的映射表是否已经存在 */
     
 
     for (s32_t i = 0; i < INPUT_SRC_MAX * SCREEN_MAX; i ++) {
@@ -157,6 +167,7 @@ __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(
             dispatcher->map_arr[i].used = 1;
             list_head_init(&dispatcher->map_arr[i].node);
             list_add_tail (&dispatcher->map_arr[i].node, &dispatcher->input_src_node_arr[input_src_id].map_list);
+            dispatcher->map_arr[i].conv_state_idx = i;
             return IPGUI_ERR_OK;
         }
     }
@@ -164,6 +175,104 @@ __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(
     return IPGUI_ERR_NOK;
 }
 
+/* 分发所有事件，更新UI状态 */
+__IPGUI_API__ void ipgui_dispatch_input_event(
+    ipgui_input_dispatcher_t * dispatcher)
+{
+    if (!dispatcher) return;
+
+    ipgui_input_src_evt_t ev;
+    ipgui_widget_evt_t widget_evt;
+    u32_t idx;
+    struct list_head * pos, * tmp;
+    map_node_t * map_node;
+    ipgui_scr_node_t * scr_node;
+    ipgui_input_src_node_t * input_src_node;
+    while (IPGUI_ERR_OK == ipgui_norm_queue_fetch(&dispatcher->evt_queue, &ev))
+    {
+        /* check input source id */
+        if (ev.input_src_id < 0 || ev.input_src_id >= INPUT_SRC_MAX) {
+            continue;
+        }
+
+        input_src_node = &(dispatcher->input_src_node_arr[ev.input_src_id]);
+        /* input source event to UI event */
+        ipgui_memset(&widget_evt, 0, sizeof(widget_evt));
+        if (input_src_node->input_src.convert_event_cb)
+        { /* step1 : use user's convert callback function */    
+            input_src_node->input_src.convert_event_cb(
+                    input_src_node->input_src.priv_data,
+                    &ev,
+                    &widget_evt);
+        } else
+        { /* step 2 : use default convert function */
+            dispatcher->convert_event_cb(
+                (void *)dispatcher,
+                &ev,
+                &widget_evt);
+        }
+
+        list_for_each_safe(pos, tmp, &input_src_node->map_list)
+        {
+            map_node = list_entry(pos, map_node_t, node);
+            scr_node = &(dispatcher->scr_node_arr[map_node->scr_id]);
+
+            /* handle UI event */
+            ipgui_screen_handle_widget_event(&scr_node->scr, &widget_evt);
+        }
+    }
+}
+
+__IPGUI_STATIC__ void ipgui_default_event_converter(
+    void * param,
+    ipgui_input_src_evt_t * raw_evt,
+    ipgui_widget_evt_t * widget_evt)
+{
+    ipgui_input_dispatcher_t * dispatcher = (ipgui_input_dispatcher_t *)param;
+
+    /* get the input source */
+    ipgui_input_src_t * input_src = &dispatcher->input_src_node_arr[raw_evt->input_src_id].input_src;
+
+    /* get screen */
+    ipgui_scr_t * screen;
+
+    /* 获取当前输入源的状态 */
+    converter_state_t * cur_state = &dispatcher->converter_states[raw_evt->input_src_id];
+
+        switch (raw_evt->input_src_evt)
+        {
+            /* pointer pressed */
+            case IPGUI_INPUT_SRC_EVENT_POINTER_PRESS:
+            {
+                ipgui_coord_t x = raw_evt->evt_info.pointer_pos.x;
+                ipgui_coord_t y = raw_evt->evt_info.pointer_pos.y;
+
+                /* hit test */
+                // ipgui_widget_t * target = ipgui_widget_get_topest_at(&screen->root, x, y);
+                // if (!target) {
+                //     // ipgui_memset(state, 0, sizeof(converter_state_t));
+                //     return;
+                // }
+
+                return;
+            }
+
+            /* pointer released */
+            case IPGUI_INPUT_SRC_EVENT_POINTER_RELEASE: 
+            {
+
+                return;
+            }
+
+            case IPGUI_INPUT_SRC_EVENT_KEY_DOWN: 
+            case IPGUI_INPUT_SRC_EVENT_KEY_UP: 
+                return;
+            default:
+                return;
+        }
+}
+
+//测试代码，通过
 // int thread1(void) {
 
 //     // 1. 初始化输入分发器
@@ -185,7 +294,7 @@ __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(
 //         ipgui_input_poll_devices(&dispatcher);
         
 //         // 第二步：分发所有事件，更新UI状态
-//         ipgui_input_dispatch(&dispatcher);
+//         ipgui_dispatch_input_event(&dispatcher);
         
 //         // 第三步：重绘脏区
 //         ipgui_render();

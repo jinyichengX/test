@@ -61,6 +61,22 @@ IPGUI_HEADER_BEGIN  _______________MARKER_______________
 #define CORNER_CACHE_ITEM_MAX_NUM 10
 #endif
 
+/* 输入相关 */
+#define INPUT_SRC_MAX 2
+#if INPUT_SRC_MAX < 1
+#error "INPUT_SRC_MAX must be greater than 0"
+#endif
+
+#define SCREEN_MAX 2
+#if SCREEN_MAX < 1
+#error "SCREEN_MAX must be greater than 0"
+#endif
+
+#define EVENT_POOL_SIZE 5
+#if EVENT_POOL_SIZE < 1
+#error "EVENT_POOL_SIZE must be greater than 0"
+#endif
+
 IPGUI_HEADER_END    _______________MARKER_______________
 
 

@@ -55,6 +55,12 @@ typedef enum
     IPGUI_ERR_PNG_COLOR,        /* 无效的颜色类型 */
     IPGUI_ERR_PNG_INFLATE,      /* 解压失败 */
     IPGUI_ERR_PNG_RANGE,    /* 坐标越界 */
+
+
+    /* 输入相关 */
+    IPGUI_ERR_READ_INPUT_SRC_EVT_OK,
+    IPGUI_ERR_READ_INPUT_SRC_EVT_ERR,
+    IPGUI_ERR_INVALID_ID,
 }ipgui_err_t;
 
 #if defined(IPGUI_BASETYPE_64BIT)

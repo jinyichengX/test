@@ -89,6 +89,7 @@ csrc_dir += $(makefile_dir)/ESDBox_IPGUI/base/src\
 			$(makefile_dir)/ESDBox_IPGUI/widget/src\
 			$(makefile_dir)/ESDBox_IPGUI/al/vfs\
 			$(makefile_dir)/ESDBox_IPGUI/al/hal\
+			$(makefile_dir)/ESDBox_IPGUI/al/hal/input\
 			$(makefile_dir)/ESDBox_IPGUI/port/sdl\
 			$(makefile_dir)/ESDBox_IPGUI/core/misc\
 			$(makefile_dir)/ESDBox_IPGUI/charset\
@@ -113,6 +114,7 @@ include_dir += $(makefile_dir)/ESDBox_IPGUI/base/inc\
 			$(makefile_dir)/ESDBox_IPGUI/Include\
 			$(makefile_dir)/ESDBox_IPGUI/al/vfs\
 			$(makefile_dir)/ESDBox_IPGUI/al/hal\
+			$(makefile_dir)/ESDBox_IPGUI/al/hal/input\
 			$(makefile_dir)/ESDBox_IPGUI\
 			$(makefile_dir)/ESDBox_IPGUI/port/sdl/Include/SDL2\
 			$(makefile_dir)/ESDBox_IPGUI/port/sdl\
