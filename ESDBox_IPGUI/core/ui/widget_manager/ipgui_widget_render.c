@@ -7,23 +7,23 @@
  * it is in the widghet's coordinate system 
  */
 
- /*从根控件（屏幕控件）开始重绘脏矩形，那么只需要从根控件以Z序遍历下去就能把整个脏区完全绘制出来了*/
-__IPGUI_API__ void ipgui_widget_render(ipgui_widget_t * widget, ipgui_aabb_t * area)
-{
-    if(ipgui_aabb_empty(area)) return;
+//  /*从根控件（屏幕控件）开始重绘脏矩形，那么只需要从根控件以Z序遍历下去就能把整个脏区完全绘制出来了*/
+// __IPGUI_API__ void ipgui_widget_render(ipgui_widget_t * widget, ipgui_aabb_t * area)
+// {
+//     if(ipgui_aabb_empty(area)) return;
 
 
-}
+// }
 
-/* 向上传递脏矩形时，遍历父控件并偏移相对于父控件的相对位置直到根控件，
- * 最后得到相对于根控件的坐标，再将这个坐标标记为脏区域
- */
+// /* 向上传递脏矩形时，遍历父控件并偏移相对于父控件的相对位置直到根控件，
+//  * 最后得到相对于根控件的坐标，再将这个坐标标记为脏区域
+//  */
 
-/* the dr(dirty rectangle) is the rel area to widget's parent */
-__IPGUI_API__ void ipgui_mark_dirty(ipgui_aabb_t * dr, ipgui_widget_t * widget)
-{
+// /* the dr(dirty rectangle) is the rel area to widget's parent */
+// __IPGUI_API__ void ipgui_mark_dirty(ipgui_aabb_t * dr, ipgui_widget_t * widget)
+// {
     
-}
+// }
 
 /* clip aabb for segment render */
 __IPGUI_STATIC__ int ipgui_clip_aabb_with_buffer(

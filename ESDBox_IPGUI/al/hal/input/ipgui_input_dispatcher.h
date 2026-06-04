@@ -11,11 +11,11 @@
 
 typedef struct {
     // 指针设备状态
-    ipgui_widget_t* grabbed;     // 当前抓取的控件（按下后锁定，直到释放）
-    ipgui_coord_t last_x;               // 上次按下的全局X坐标
-    ipgui_coord_t last_y;               // 上次按下的全局Y坐标
-    u32_t press_start_time;             // 按下开始时间戳
-    bool long_press_triggered;          // 长按是否已经触发
+    ipgui_input_evt_type_t last_state;
+    ipgui_widget_t* grabbed;     /* 当前抓取的控件（按下后锁定，直到释放） */
+    ipgui_coord_t last_pressed_x;               /* 上次按下的全局X坐标 */
+    ipgui_coord_t last_pressed_y;               /* 上次按下的全局Y坐标 */
+    
 
     // 按键设备状态
     u32_t key_press_start_time;         // 按键按下开始时间戳

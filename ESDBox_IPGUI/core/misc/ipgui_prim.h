@@ -1,8 +1,6 @@
 #ifndef IPGUI_PRIM_H
 #define IPGUI_PRIM_H
 
-#include "ipgui_screen.h"
-
 #include "ipgui_coord.h"
 #include "ipgui_color.h"
 

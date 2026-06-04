@@ -190,26 +190,3 @@ __IPGUI_API__ char ipgui_curve3_is_sufficently_flat(ipgui_curve3_t * curve)
     if (uy < vy) uy = vy;
     return (ux + uy <= tolerance); /* tolerance is 16*tol^2 tol可以取0.25或0.5 */
 }
-
-volatile int cnt = 0;
-/* flatten the curve3, it is a test function */
-__IPGUI_API__ void ipgui_curve3_flatten(ipgui_curve3_t * curve, ipgui_scr_t * scr)
-{
-    // ipgui_color_t color;
-    // ipgui_color32_set_v(color, 0x2d0c13);
-    if (!ipgui_curve3_is_sufficently_flat(curve)) {
-        cnt ++;
-        ipgui_curve3_t first, second;
-        ipgui_split_curve3(curve, &first, &second);
-        ipgui_curve3_flatten(&first, scr);
-        ipgui_curve3_flatten(&second, scr);
-    } else {
-        // /* output the sufficiently flat curve */
-        // scr->drv->put_pixel(scr, curve->x0/64, curve->y0/64, color);
-        // scr->drv->put_pixel(scr, curve->x1/64, curve->y1/64, color);
-        // scr->drv->put_pixel(scr, curve->x2/64, curve->y2/64, color);
-        // scr->drv->put_pixel(scr, curve->x3/64, curve->y3/64, color);
-        // scr->drv->flush(scr);
-    }
-    ipgui_printk("%d\n", cnt);
-}

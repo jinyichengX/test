@@ -20,5 +20,4 @@ typedef struct {
 __IPGUI_API__ void ipgui_generate_quad_circle_control(ipgui_scoord_t radius,
                                             ipgui_svector_t * v0, ipgui_svector_t * v1,
                                             ipgui_svector_t *v2, ipgui_svector_t * v3);
-__IPGUI_API__ void ipgui_curve3_flatten(ipgui_curve3_t * curve, ipgui_scr_t * scr);
 #endif

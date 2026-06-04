@@ -23,7 +23,7 @@ typedef enum
 // }ipgui_path_t;
 
 typedef struct {
-    ipgui_node_t link;
+    // ipgui_node_t link;
     unsigned int num_ops;
     unsigned int size_ops;
     unsigned int num_points;

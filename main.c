@@ -22,7 +22,6 @@
 #include "ipgui_darray.h"
 #include "ipgui_debug.h"
 #include "ipgui_image.h"
-#include "ipgui_input.h"
 #include "ipgui_ring_mask.h"
 #include "ipgui_blend_color.h"
 #include "ipgui_blend_gradient_color.h"
@@ -54,56 +53,6 @@
 
 int test_bmp(const s8_t * path, ipgui_img_dsc_t * image);
 
-/* ipgui_button.h */
-typedef enum {
-    IPGUI_STATE_NORMAL,
-    IPGUI_STATE_PRESSED,
-    IPGUI_STATE_HOVER,
-    IPGUI_STATE_DISABLED
-} ipgui_control_state_t;
-
-typedef struct {
-    ipgui_box_bg_style_t     bg;
-    ipgui_box_border_style_t border;
-    ipgui_font_style_t       text_style;
-    ipgui_box_style_t        box_shape; /* 包含 padding 和 radius */
-} ipgui_button_style_t;
-
-typedef struct {
-    ipgui_aabb_t          area;
-    const s8_t          * text;
-    ipgui_control_state_t state;
-} ipgui_button_t;
-
-/* ipgui_button.c */
-void ipgui_draw_button(
-    ipgui_surf_t         * surf,
-    ipgui_aabb_t         * clip,
-    ipgui_button_t       * btn,
-    ipgui_button_style_t * style)
-{
-    if (!surf || !btn || !style) return;
-
-    /* 1. 绘制背景 (内部已处理 AABB 裁剪) */
-    ipgui_draw_box_background(surf, clip, &btn->area, &style->box_shape, &style->bg);
-
-    /* 2. 绘制边框 */
-    ipgui_draw_box_border(surf, clip, &btn->area, &style->box_shape, &style->border);
-
-    /* 3. 绘制文字 (居中计算) */
-    if (btn->text && style->text_style.font) {
-        ipgui_coord_t txt_w = ipgui_builtin_text_width(style->text_style.font, btn->text);
-        ipgui_coord_t txt_h = style->text_style.font->line_height;
-        
-        /* 计算居中坐标 */
-        ipgui_coord_t box_w = ipgui_aabb_width(&btn->area);
-        ipgui_coord_t box_h = ipgui_aabb_height(&btn->area);
-        ipgui_coord_t tx = btn->area.start.x + ((box_w - txt_w) >> 1);
-        ipgui_coord_t ty = btn->area.start.y + ((box_h - txt_h) >> 1);
-
-        ipgui_draw_builtin_text(surf, clip, &style->text_style, btn->text, tx, ty);
-    }
-}
 void clear_fucking_screen(ipgui_scr_t * scr)
 {   
     int x = 0;
@@ -121,17 +70,14 @@ void clear_fucking_screen(ipgui_scr_t * scr)
 }
 
 clock_t start, end;
-int sdl_mouse_read(struct ipgui_input_drv_t * dev, ipgui_input_data_t * data);
-ipgui_input_drv_t drv = {
-    .priv_data = "sdl_mouse",
-    .type = IPGUI_INPUT_TYPE_PID,
-    .read = sdl_mouse_read,
-};
+
+
 ipgui_scr_t * sdl_scr;
 ipgui_color_t g_color;
 ipgui_surf_t surf;
 ipgui_aabb_t clip;
 int cnt11 = 0;
+
 #define EGUI_ALPHA_100 255
 #define EGUI_MASK_CIRCLE_AA_HALF_256  192
 static u8_t egui_mask_circle_edge_smoothstep(int32_t signed_dist_256)
@@ -169,7 +115,7 @@ static u8_t egui_mask_circle_edge_smoothstep(int32_t signed_dist_256)
 
     return (u8_t)smooth;
 }
-#define EGUI_FX_DIVX(x1, x2, frac) (int32_t)((((int64_t)(x1) << (frac)) + ((int32_t)(x1) < 0 ? -labs((int32_t)(x2)) : labs((int32_t)(x2))) / 2) / (x2))
+
 #define RENDER_MODE 3
 // #define RENDER_MODE 1 /* 单行渲染 */
 // #define RENDER_MODE 2 /* 单行渲染 */
@@ -191,9 +137,7 @@ int main(void)
     // 3. 绑定映射
     ipgui_bind_input_src_with_screen(&dispatcher, touch_id, main_scr_id);
     ipgui_bind_input_src_with_screen(&dispatcher, key_id, main_scr_id);
-    int i = EGUI_FX_DIVX(500 << 16, 400 << 16 , 16);
-    // printf("i = %d", i);
-    // return 0;
+
     IPGUI_COLOR_SET(g_color, 255, IPGUI_COLOR_RED);
     if(ipgui_init() != IPGUI_ERR_OK)
     {
@@ -202,12 +146,7 @@ int main(void)
     }
 
     /* GUI */
-    ipgui_input_dev_t * sdl_mouse = ipgui_sdl_mouse_create_init();
-    ipgui_input_dev_t * sdl_keyboard = ipgui_sdl_create_keyboard_init();
     sdl_scr = ipgui_sdl_screen_create();
-    ipgui_screen_register_input_device(sdl_scr, sdl_mouse);
-    ipgui_screen_register_input_device(sdl_scr, sdl_keyboard);
-    ipgui_input_device_register(&drv, sdl_scr, 10);
     clear_fucking_screen(sdl_scr);
 
 
@@ -579,22 +518,11 @@ int main(void)
     shadow_style.opacity       = 255;
     shadow_style.blend_mode    = 0;
 
-ipgui_button_t btn1 = {
-.area = {.start.x = 100, .start.y = 100, .end.x = 200, .end.y = 160},
-.state = IPGUI_STATE_NORMAL,
-.text = "click"
-};
-ipgui_button_style_t btn_style = {
-    .bg = box_bg_style,
-    .border = box_border_style,
-    .box_shape = box_style,
-    .text_style = font_style,
-};
-
-                static u32_t degree = 20;
-                static u32_t degree1 = 0;
-                float sx = 0.5;
-                float sy = 0.5;
+    static u32_t degree = 20;
+    static u32_t degree1 = 0;
+    float sx = 0.5;
+    float sy = 0.5;
+    
     while(1) {
 #if RENDER_MODE == 1
         for (int y = 0; y < sdl_scr->drv->yreso; y ++) {
@@ -636,13 +564,6 @@ ipgui_button_style_t btn_style = {
                 surf1.surf.end.y   = sdl_scr->drv->yreso- 1;
 #endif
                 /* 画图开始 */
-                // ipgui_draw_button(  
-                //     &surf1, 
-                //     NULL,
-                //     &btn1,
-                //     &btn_style);
-
-
 
                 ipgui_draw_image(
                     &surf1,
@@ -689,10 +610,10 @@ ipgui_button_style_t btn_style = {
                     &tri_p1, &tri_p2, &tri_p3,
                     &tri_style);
 
-                // ipgui_draw_box_shadow(&surf1, 
-                //     NULL, 
-                //     &box, 
-                //     &shadow_style);
+                ipgui_draw_box_shadow(&surf1, 
+                    NULL, 
+                    &box, 
+                    &shadow_style);
 
                 ipgui_draw_box_background(
                     &surf1,
@@ -831,7 +752,6 @@ ipgui_button_style_t btn_style = {
         }
 
         /* 心跳 */
-        ipgui_event_loop(sdl_scr);
         ipgui_loop_def(2);
         Sleep(2);
     }

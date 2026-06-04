@@ -27,233 +27,6 @@
 #include "ipgui_defs.h"
 #include "ipgui_debug.h"
 #include "ipgui_screen.h"
-extern struct list_head ipgui_scr_list;
-
-#define ERR_Q_NONE      0
-#define ERR_Q_FULL      1
-#define ERR_Q_EMPTY     2
-
-typedef struct widget_pq_ctx{
-    void ** mem;
-    void ** start;
-    void ** end;
-    void ** in;
-    void ** out;
-    int size;
-    int entries;
-}widget_pq_t;
-
-/* set widget visible or invisible */
-__IPGUI_API__ void ipgui_widget_set_visible(ipgui_widget_t * widget, int visible)
-{
-    if (!widget) return;
-    if (!!visible) {
-        widget->flags &= ~IPGUI_WIDGET_FLAG_INVISIBLE;
-    } else {
-        widget->flags |= IPGUI_WIDGET_FLAG_INVISIBLE;
-    }
-}
-
-__IPGUI_API__ ipgui_widget_t * ipgui_widget_get_parent(ipgui_widget_t * widget)
-{
-    return widget->parent;
-}
-
-__IPGUI_API__ ipgui_widget_t * ipgui_widget_get_root(ipgui_widget_t * widget)
-{
-    ipgui_widget_t * iter = widget;
-    while (iter->parent)
-        iter = iter->parent;
-    return iter;
-}
-
-__IPGUI_API__ ipgui_scr_t * ipgui_widget_get_screen(ipgui_widget_t * widget)
-{
-    ipgui_scr_t * scr;
-    ipgui_widget_t * root;
-    struct list_head * iter;
-
-    root = ipgui_widget_get_root(widget);
-    list_for_each(iter, &ipgui_scr_list) {
-        scr = list_entry(iter, ipgui_scr_t, node);
-        for (int idx = 0; idx < scr->screens_cnt; idx ++) 
-        {
-            if (scr->screens[idx] == root)
-                return scr;
-        }
-    }
-    return (ipgui_scr_t *)0;
-}
-
-/* widget tree management start here */
-__IPGUI_API__ ipgui_err_t ipgui_widget_set_parent(ipgui_scr_t * scr,
-    ipgui_widget_t * widget, ipgui_widget_t * parent)
-{
-    ipgui_widget_t * p_temp = parent;
-
-    if (!widget)
-        return IPGUI_ERR_PARAM;
-
-    /* detach from orignal parent */
-    ipgui_widget_detach_from_layer(widget);
-
-    /* if no parent, set it as root screen */
-    if (!parent) {
-        void ** p;
-        p = (void **)ipgui_mem_realloc(ipgui_smem, scr->screens, 
-            (scr->screens_cnt + 1) * sizeof(ipgui_widget_t *));
-        if (!p) return IPGUI_ERR_NOK;
-        scr->screens = p;
-        scr->screens[scr->screens_cnt ++] = widget;
-        widget->parent = (ipgui_widget_t *)0;
-        return IPGUI_ERR_OK;
-    } else if (parent->child_num >= IPGUI_WIDGET_PER_LEVEL_CAPACITY) {
-        return IPGUI_ERR_CHILDREN_LIMIT_EXCEEDED;
-    }
-
-    widget->parent = parent;
-
-    if (!parent->childs) {
-        widget->prev = widget;
-        widget->next = widget;
-        parent->childs = widget;
-    } else {
-        widget->next = parent->childs;
-        widget->prev = parent->childs->prev;
-        parent->childs->prev->next = widget;
-        parent->childs->prev = widget;
-    }
-    parent->child_num ++;
-    return IPGUI_ERR_OK;
-}
-
-/* if widget parent of another,if return 1 */
-/* 只要child是parent树下的子控件就成立 */
-__IPGUI_API__ int ipgui_widget_is_parent_of(ipgui_widget_t * parent, ipgui_widget_t * child)
-{
-    ipgui_widget_t * iter;
-    iter = child ? child->parent : (ipgui_widget_t *)0;
-
-    while (iter)
-    {
-        if (iter == parent)
-            return 1;
-        iter = iter->parent;
-    }
-    return 0;
-}
-
-/* if child is parent的子控件，返回1 */
-__IPGUI_API__ int ipgui_widget_is_child_of(ipgui_widget_t * child, ipgui_widget_t * parent)
-{
-    return ipgui_widget_is_parent_of(parent, child);
-}
-
-__IPGUI_API__ void ipgui_widget_detach_from_layer(ipgui_widget_t * widget)
-{
-    if (widget->parent) { /* not a screen widget */
-        widget->prev->next = widget->next;
-        widget->next->prev = widget->prev;
-
-        if (widget->next == widget) {
-            widget->parent->childs = (ipgui_widget_t *)0;
-        }
-        else if (widget->parent->childs == widget) {
-            widget->parent->childs = widget->next;
-        }
-
-        widget->parent->child_num --;
-        widget->parent = (ipgui_widget_t *)0;
-    } else { /* maybe it is a screen widget */
-        ipgui_scr_t * scr = ipgui_widget_get_screen(widget);
-        if (!scr) return;
-        for (int idx = 0; idx < scr->screens_cnt; idx ++) {
-            if (scr->screens[idx] == widget) {
-                for (int i = 0; i < scr->screens_cnt; i ++) {
-                    if (i < idx) continue;
-                    scr->screens[i] = scr->screens[i + 1];
-                }
-                scr->screens = ipgui_mem_realloc(ipgui_smem, scr->screens, 
-                    (scr->screens_cnt - 1) * sizeof(ipgui_widget_t *));
-                scr->screens_cnt --;
-                if (scr->cur_screen == widget)
-                    scr->cur_screen = (ipgui_widget_t *)0;
-                return;
-            }
-        }
-        ipgui_dbg_error("error: invalid screen widget, widget name: %s!\n", widget->name);
-    }
-}
-
-__IPGUI_API__ void ipgui_widget_set_toplayer(ipgui_widget_t * widget)
-{
-    ipgui_widget_t * parent = widget->parent;
-    if (parent)
-    {
-        if (parent->childs->prev == widget)
-            return;
-        ipgui_widget_detach_from_layer(widget);
-        
-        widget->parent = parent;
-        if (!parent->childs) {
-            widget->prev = widget;
-            widget->next = widget;
-            parent->childs = widget;
-        } else {
-            widget->next = parent->childs;
-            widget->prev = parent->childs->prev;
-            parent->childs->prev->next = widget;
-            parent->childs->prev = widget;
-        }
-        parent->child_num ++;
-    } else {
-        ipgui_dbg_warning("ipgui_widget_set_toplayer: widget is a screen widget!\n");
-    }
-}
-
-__IPGUI_API__ void ipgui_widget_set_bottomlayer(ipgui_widget_t * widget)
-{
-    ipgui_widget_t * parent = widget->parent;
-    if (parent)
-    {
-        if (parent->childs == widget)
-            return;
-        ipgui_widget_detach_from_layer(widget);
-
-        widget->parent = parent;
-        if (!parent->childs) {
-            widget->prev = widget;
-            widget->next = widget;
-        } else {
-            widget->next = parent->childs;
-            widget->prev = parent->childs->prev;
-            widget->prev->next = widget;
-            widget->next->prev = widget;
-        }
-        parent->childs = widget;
-        parent->child_num ++;
-    } else {
-        ipgui_dbg_warning("ipgui_widget_set_bottomlayer: widget is a screen widget!\n");
-    }
-}
-
-/* set widget upon another */
-__IPGUI_API__ void ipgui_widget_set_layer_upon(ipgui_widget_t * widget, ipgui_widget_t * upto)
-{
-    if (widget->parent != upto->parent)
-        return;
-    widget->prev->next = widget;
-    widget->prev = upto;
-}   
-
-/* set widget under another */
-__IPGUI_API__ void ipgui_widget_set_layer_under(ipgui_widget_t * widget, ipgui_widget_t * under)
-{
-    if (widget->parent != under->parent)
-        return;
-    widget->prev->next = widget;
-    widget->prev = under;
-}
 
 /* set widget's relative position to parent */
 __IPGUI_API__ void ipgui_widget_set_rel_pos(ipgui_widget_t * widget, ipgui_coord_t xpos, ipgui_coord_t ypos)
@@ -262,14 +35,11 @@ __IPGUI_API__ void ipgui_widget_set_rel_pos(ipgui_widget_t * widget, ipgui_coord
     widget->rect.start.y = ypos;
 }
 
-__IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_scr_t * scr, ipgui_widget_t * parent)
+__IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent)
 {
-    if (!scr)
-        return (ipgui_widget_t *)0;
-
-    if (parent) {
-        if( scr != ipgui_widget_get_screen(parent))
-            return (ipgui_widget_t *)0;
+    if (!parent) {
+        // if( scr != ipgui_widget_get_screen(parent))
+        //     return (ipgui_widget_t *)0;
     }
     
     ipgui_widget_t * widget = (ipgui_widget_t *)ipgui_mem_alloc(ipgui_smem, sizeof(ipgui_widget_t));
@@ -277,16 +47,16 @@ __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_scr_t * scr, ipgui_widg
     if (widget)
     {
         ipgui_memset(widget, 0, sizeof(ipgui_widget_t));
-        if(ipgui_widget_set_parent(scr, widget, parent)!= IPGUI_ERR_OK){
-            ipgui_mem_free(ipgui_smem, widget);
-            return (ipgui_widget_t *)0;
-        }
+        // if(ipgui_widget_set_parent(scr, widget, parent)!= IPGUI_ERR_OK){
+        //     ipgui_mem_free(ipgui_smem, widget);
+        //     return (ipgui_widget_t *)0;
+        // }
         /* default widget size and position */
         if (!parent) {
             widget->rect.start.x = 0;
             widget->rect.start.y = 0;
-            widget->rect.end.x = scr->drv->xreso - 1;
-            widget->rect.end.y = scr->drv->yreso - 1;
+            // widget->rect.end.x = scr->drv->xreso - 1;
+            // widget->rect.end.y = scr->drv->yreso - 1;
         } else {
             widget->rect.start.x = 0;
             widget->rect.start.y = 0;
@@ -318,134 +88,6 @@ __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_scr_t * scr, ipgui_widg
     return widget;
 }
 
-__IPGUI_STATIC__ void ipgui_widget_destroy_one(ipgui_widget_t * widget)
-{
-#define other_del_operations_impl(widget)
-    if (widget)
-    {
-        ipgui_widget_detach_from_layer(widget);
-        ipgui_darray_deinit(&widget->dirty_region);
-        ipgui_mem_free(ipgui_smem, widget);
-    }
-    /* other operations need to add */
-
-    other_del_operations_impl(widget);
-}
-
-/* destroy parent and all widgets under parent */
-__IPGUI_API__ void ipgui_widget_destroy(ipgui_widget_t * parent)
-{
-
-}
-
-/* queue for widget traverse, reference : https://gitee.com/yorkjia/cQueue */
-__IPGUI_STATIC__ widget_pq_t * ipgui_create_widget_pq(unsigned int capacity)
-{
-    widget_pq_t * pq = (widget_pq_t *)0;
-
-    pq = (widget_pq_t *)ipgui_mem_alloc(ipgui_smem, sizeof(widget_pq_t));
-    if (pq != (widget_pq_t *)0)
-    {
-        pq->mem = (void **)ipgui_mem_alloc(ipgui_smem, capacity * sizeof(void *));
-        if (pq->mem == (void **)0) {
-            ipgui_mem_free(ipgui_smem, pq);
-            pq = (widget_pq_t *)0;
-            return pq;
-        }
-        pq->start      = pq->mem;
-        pq->end        = &pq->mem[capacity];
-        pq->in         = pq->mem;
-        pq->out        = pq->mem;
-        pq->size       = capacity;
-        pq->entries    = 0;
-    }
-    return pq;
-}
-
-__IPGUI_STATIC__ void ipgui_destroy_widget_pq(widget_pq_t * pq)
-{
-	ipgui_mem_free(ipgui_smem, pq->mem);
-    ipgui_mem_free(ipgui_smem, pq);
-}
-
-__IPGUI_STATIC__ void ipgui_widget_pq_flush(widget_pq_t * pq)
-{
-    pq->in = pq->start;
-    pq->out = pq->start;
-    pq->entries = 0;
-}
-
-__IPGUI_STATIC__ void * ipgui_widget_depq(widget_pq_t * pq, char * perr)
-{
-    void * widget = (void *)0;
-    if (pq->entries > 0) {
-    	widget = *pq->out ++;
-        pq->entries --;
-        if(pq->out == pq->end){
-            pq->out = pq->start;
-        }
-        * perr = ERR_Q_NONE;
-    } else {
-        * perr = ERR_Q_EMPTY;
-    }
-    return widget;
-}
-
-__IPGUI_STATIC__ int ipgui_widget_enpq(widget_pq_t * pq, void * widget)
-{
-    if (pq->entries >= pq->size) {
-        return ERR_Q_FULL;
-    }
-    *pq->in ++ = widget;
-	pq->entries ++;
-    if (pq->in == pq->end) {
-        pq->in = pq->start;
-    }
-    return ERR_Q_NONE;
-}
-
-/* traverse widget tree bfs */
-__IPGUI_API__ void ipgui_widget_traverse_bfs(ipgui_widget_t * root, wid_ops_t ops)
-{
-    char err;
-    ipgui_widget_t * current, * child, * head;
-    widget_pq_t * pq = ipgui_create_widget_pq(IPGUI_WIDGET_PER_LEVEL_CAPACITY * 2 + 1);
-    if (!pq)
-        return;
-
-    ipgui_widget_enpq(pq, (void *)root);
-    while (pq->entries > 0) {
-        current = (ipgui_widget_t *)ipgui_widget_depq(pq, &err);
-        if (err == ERR_Q_EMPTY) {
-            break;
-        }
-        ipgui_dbg_info("name = %s\r\n", current->name);
-        if (ops)
-            ops(current, current->args);
-        for (child = current->childs, head = (ipgui_widget_t *)0; \
-            (child != (ipgui_widget_t *)0) && (child != head); child = child->next)
-        {
-            if (ipgui_widget_enpq(pq, child) == ERR_Q_FULL) {
-                ipgui_dbg_info("widget queue is full\r\n");
-                break;
-            }
-            if (!head)
-                head = child;
-        }
-    }
-    ipgui_destroy_widget_pq(pq);
-}
-
-__IPGUI_API__ void ipgui_screen_print_all(ipgui_scr_t * scr)
-{
-    for(int i = 0; i < scr->screens_cnt; i ++)
-    {
-        ipgui_printk("screen widget is %s\r\n", scr->screens[i]->name);
-        ipgui_printk("the root screen tree is :\r\n");
-        ipgui_widget_traverse_bfs(scr->screens[i], NULL);
-    }
-    if(scr->cur_screen) ipgui_printk("current screen is %s", scr->cur_screen->name);
-}
 
 /* traverse widget tree dfs */
 __IPGUI_API__ void ipgui_widget_foreach_dfs(ipgui_widget_t * root, wid_ops_t ops, void * args)
@@ -516,6 +158,16 @@ __IPGUI_STATIC__ void ipgui_aabb_move_rel(ipgui_aabb_t * aabb, ipgui_coord_t rel
     aabb->start.y += rel_y;
     aabb->end.x   += rel_x;
     aabb->end.y   += rel_y;
+}
+
+ipgui_widget_t * ipgui_widget_get_parent(ipgui_widget_t * widget)
+{
+    return widget->parent;
+}
+
+ipgui_widget_t * ipgui_widget_get_root(ipgui_widget_t * widget)
+{
+    //return widget->parent;
 }
 
 /* generate absolute active region of widget in screen(任意控件相对于屏幕的位置) */
@@ -659,38 +311,33 @@ __IPGUI_API__ ipgui_point_t ipgui_widget_global2_visible_local_offset(
     return ret;
 }
 
-/* sync all active position of widget tree */
-__IPGUI_API__ void ipgui_widget_sync_abs_act_recursive(ipgui_widget_t * root)
-{
-    ipgui_widget_traverse_bfs(root, ipgui_widget_sync_act_aabb);
-}
 
 /* point on which widget on the topest layer */
 __IPGUI_API__ ipgui_widget_t * ipgui_widget_topest_on(ipgui_widget_t * root, ipgui_point_t * p)
 {
-    ipgui_aabb_t visible;
-    ipgui_widget_t * found, * iter;
+    // ipgui_aabb_t visible;
+    // ipgui_widget_t * found, * iter;
 
-    if (ipgui_widget_is_flag_set(root, IPGUI_WIDGET_FLAG_INVISIBLE))
-        return (ipgui_widget_t *)0;
-    if (ipgui_widget_gen_visible_aabb_global(root, &visible, 0)) {
-        return (ipgui_widget_t *)0;
-    }
-    if (ipgui_point_in_rect(p, &visible)) {
-        if (root->child_num == 0)
-            return root;
-        int child_num;
-        for (child_num = 0, iter = root->childs->prev;\
-                child_num < root->child_num; \
-                iter = iter->prev, child_num ++)
-        {
-            found = ipgui_widget_topest_on(iter, p);
-            if (found)
-                return found;
-        }
-    } else return (ipgui_widget_t *)0;
+    // if (ipgui_widget_is_flag_set(root, IPGUI_WIDGET_FLAG_INVISIBLE))
+    //     return (ipgui_widget_t *)0;
+    // if (ipgui_widget_gen_visible_aabb_global(root, &visible, 0)) {
+    //     return (ipgui_widget_t *)0;
+    // }
+    // if (ipgui_point_in_rect(p, &visible)) {
+    //     if (root->child_num == 0)
+    //         return root;
+    //     int child_num;
+    //     for (child_num = 0, iter = root->childs->prev;\
+    //             child_num < root->child_num; \
+    //             iter = iter->prev, child_num ++)
+    //     {
+    //         found = ipgui_widget_topest_on(iter, p);
+    //         if (found)
+    //             return found;
+    //     }
+    // } else return (ipgui_widget_t *)0;
 
-    return root;
+    // return root;
 }
 // // 正确的绘制调度
 // void ipgui_widget_draw_recursive(ipgui_widget_t* widget, ipgui_tile_t * parent_tile) {

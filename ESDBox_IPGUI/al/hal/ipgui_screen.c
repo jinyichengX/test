@@ -24,24 +24,7 @@
 
 #include "ipgui_screen.h"
 #include "ipgui_memory.h"
-#include "ipgui_handler.h"
 #include "ipgui_debug.h"
-#include "ipgui_prim.h"
-#include "ipgui_timer.h"
-
-LIST_HEAD(ipgui_scr_list);
-
-
-__IPGUI_API__ ipgui_err_t ipgui_screen_register_input_device(ipgui_scr_t * scr, ipgui_input_dev_t * dev)
-{
-    dev->scr_owner = (void *)scr;
-    return ipgui_input_register_device(dev, &scr->inputs, &scr->handler);
-}
-
-__IPGUI_API__ ipgui_err_t ipgui_screen_register_input_handler(ipgui_scr_t * scr, ipgui_input_handler_t * handler)
-{
-    return ipgui_input_register_handler(handler, &scr->inputs, &scr->handler);
-}
 
 __IPGUI_API__ int ipgui_screen_register(ipgui_scr_drv_t * drv)
 {
@@ -51,27 +34,6 @@ __IPGUI_API__ int ipgui_screen_register(ipgui_scr_drv_t * drv)
     ipgui_memset((void *)scr, 0, sizeof(ipgui_scr_t));
     scr->drv = drv;
     ipgui_darray_init(&scr->dirty_regions, sizeof(ipgui_aabb_t));
-    list_head_init(&scr->input_dev);
-
-    ipgui_input_handler_t * def_handler;
-    def_handler = (ipgui_input_handler_t *)ipgui_mem_alloc(ipgui_smem, sizeof(ipgui_input_handler_t));
-    if( def_handler == (ipgui_input_handler_t *)0 )
-        return IPGUI_ERR_NOMEM;
-    list_head_init(&def_handler->node);
-    list_head_init(&def_handler->handle_list);
-    def_handler->id_table = &event_dispatcher_id_table;
-    def_handler->events = ipgui_input_event_handler;
-    def_handler->filter = ipgui_input_event_filter;
-    def_handler->match = NULL;
-    def_handler->event = NULL;
-    def_handler->priv_data = (void *)0;
-
-    list_head_init(&scr->inputs);
-    list_head_init(&scr->handler);
-    ipgui_screen_register_input_handler(scr, def_handler);
-    ipgui_memset((void *)&scr->post, 0, sizeof(ipgui_post_event_t));
-
-    list_add_tail(&scr->node, &ipgui_scr_list);
 
     return scr;
 }

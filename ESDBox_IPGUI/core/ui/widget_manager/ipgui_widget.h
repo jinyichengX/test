@@ -3,7 +3,6 @@
 
 #include "ipgui_utils.h"
 #include "ipgui_types.h"
-#include "ipgui_event.h"
 #include "ipgui_prim.h"
 #include "ipgui_darray.h"
 
@@ -120,18 +119,13 @@ __IPGUI_STATIC__ int ipgui_widget_is_flag_set(ipgui_widget_t * widget, int flag)
     return widget->flags & flag;
 }
 
-extern __IPGUI_API__ ipgui_scr_t * ipgui_widget_get_screen(ipgui_widget_t * widget);
-extern __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_scr_t * scr, ipgui_widget_t * parent);
-extern __IPGUI_API__ ipgui_err_t ipgui_widget_set_parent(ipgui_scr_t * scr,ipgui_widget_t * widget, ipgui_widget_t * parent);
 extern __IPGUI_API__ void ipgui_widget_set_visible(ipgui_widget_t * widget, int visible);
 extern __IPGUI_API__ int ipgui_widget_is_parent_of(ipgui_widget_t * parent, ipgui_widget_t * child);
 extern __IPGUI_API__ void ipgui_widget_detach_from_layer(ipgui_widget_t *);
 extern __IPGUI_API__ void ipgui_widget_set_toplayer(ipgui_widget_t *);
 extern __IPGUI_API__ void ipgui_widget_set_bottomlayer(ipgui_widget_t *);
 extern __IPGUI_API__ void ipgui_widget_traverse_bfs(ipgui_widget_t * root, wid_ops_t ops);
-extern __IPGUI_API__ void ipgui_screen_print_all(ipgui_scr_t * scr);
-extern __IPGUI_API__ int ipgui_widget_sync_act_aabb(ipgui_widget_t * widget, void * args);
-extern __IPGUI_API__ void ipgui_widget_sync_abs_act_recursive(ipgui_widget_t * root);
+
 extern __IPGUI_API__ int ipgui_widget_gen_visible_aabb_global(ipgui_widget_t * widget, ipgui_aabb_t * res, int flag);
 extern __IPGUI_API__ int ipgui_widget_gen_visible_aabb_local(ipgui_widget_t * widget, ipgui_aabb_t * res);
 extern __IPGUI_API__ int ipgui_widget_gen_act_aabb_local(ipgui_widget_t * widget, ipgui_aabb_t * res);

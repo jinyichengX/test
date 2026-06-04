@@ -2,6 +2,9 @@
 #define IPGUI_WIDGET_GEOMETRY_H
 
 #include "ipgui_prim.h"
+#include "ipgui_widget.h"
+#include "ipgui_utils.h"
+#include "ipgui_widget_tree.h"
 
 /* if need gesture to change widget's size, need this struct */
 typedef struct {

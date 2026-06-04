@@ -5,7 +5,6 @@
 #include "ipgui_color.h"
 #include "ipgui_coord.h"
 #include "ipgui_defs.h"
-#include "ipgui_event.h"
 #include "ipgui_darray.h"
 #include "ipgui_timer.h"
 #include "ipgui_prim.h"
@@ -58,27 +57,13 @@ typedef struct ipgui_scr_ctx {
 
     */
 
-    
+
 
     /* 下面这些参数全删了，没用！ */
-    ipg_tmr_t *         refresh; /* input device read timer */
-    ipgui_node_t        node;
-
-    ipgui_list_t        inputs;
-    ipgui_list_t        handler;
-    ipgui_post_event_t  post;
-    ipgui_list_t        input_dev;
-    ipgui_widget_t **   screens;             /* all screens */
-    unsigned char       screens_cnt;         /* screen count */
-    ipgui_widget_t *    cur_screen;          /* current active screen */
     ipgui_darray_t      dirty_regions;       /* dirty region manager */
 
 }ipgui_scr_t;
 
-
-extern __IPGUI_API__ ipgui_err_t ipgui_screen_register_input_device(ipgui_scr_t * scr, ipgui_input_dev_t * dev);
-
-extern __IPGUI_API__ ipgui_err_t ipgui_screen_register_input_handler(ipgui_scr_t * scr, ipgui_input_handler_t * handler);
 extern __IPGUI_API__ void ipgui_screen_putpixel(ipgui_scr_t * scr, ipgui_coord_t x, ipgui_coord_t y, unsigned char * pix);
 extern __IPGUI_API__ void ipgui_screen_fill_region(ipgui_scr_t * scr, 
         ipgui_coord_t x1, ipgui_coord_t y1, ipgui_coord_t x2, ipgui_coord_t y2, 
