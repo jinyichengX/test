@@ -2,17 +2,12 @@
 #define IPGUI_SCREEN_H
 
 #include "ipgui_utils.h"
-#include "ipgui_color.h"
 #include "ipgui_coord.h"
-#include "ipgui_defs.h"
-#include "ipgui_darray.h"
-#include "ipgui_timer.h"
 #include "ipgui_prim.h"
 #include "ipgui_lcd_pix_fmt.h"
 #include "ipgui_widget_evt.h"
 #include "ipgui_widget_tree.h"
-
-IPGUI_HEADER_BEGIN _______________MARKER_______________
+#include "ipgui_dirty_rect.h"
 
 typedef struct ipgui_scr_ctx ipgui_scr_t;
 
@@ -30,7 +25,6 @@ typedef struct{
     void (* flush)(ipgui_scr_t * scr);
 }ipgui_scr_drv_t;
 
-typedef struct ipgui_widget_ctx ipgui_widget_t;
 typedef struct ipgui_scr_ctx {
     void *              pri_data;
     const char *        name;
@@ -56,12 +50,7 @@ typedef struct ipgui_scr_ctx {
         +------------+     +------------+
 
     */
-
-
-
-    /* 下面这些参数全删了，没用！ */
-    ipgui_darray_t      dirty_regions;       /* dirty region manager */
-
+    ipgui_dirty_rect_mgr_t dirty;
 }ipgui_scr_t;
 
 extern __IPGUI_API__ void ipgui_screen_putpixel(ipgui_scr_t * scr, ipgui_coord_t x, ipgui_coord_t y, unsigned char * pix);
@@ -70,5 +59,5 @@ extern __IPGUI_API__ void ipgui_screen_fill_region(ipgui_scr_t * scr,
         unsigned char * pix_buf, int stride);
 extern __IPGUI_API__ void ipgui_screen_flush(ipgui_scr_t * scr);
 extern __IPGUI_API__ void ipgui_screen_handle_widget_event(ipgui_scr_t * scr, ipgui_widget_evt_t * evt);
-IPGUI_HEADER_END   _______________MARKER_______________
+
 #endif

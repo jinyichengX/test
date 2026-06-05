@@ -163,7 +163,8 @@
         "ipgui_blur.h": "c",
         "stdlib.h": "c",
         "ipgui_gradient.h": "c",
-        "ipgui_font_ras.h": "c"
+        "ipgui_font_ras.h": "c",
+        "ipgui_input_dispatcher.h": "c"
     },
     "C_Cpp.default.compilerPath": "E:/mingw64/bin/gcc.exe"
 }
