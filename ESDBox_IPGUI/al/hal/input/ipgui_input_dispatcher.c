@@ -74,12 +74,19 @@ __IPGUI_API__ void ipgui_input_dispatcher_init(ipgui_input_dispatcher_t * dispat
 {
     ipgui_memset(dispatcher, 0, sizeof(ipgui_input_dispatcher_t));
 
+    s32_t i;
     /* init input src manager */
     dispatcher->input_src_bmp_iter_max = IPGUI_ARRAY_LEN(dispatcher->input_src_bmp);
+    for (i = 0; i < dispatcher->input_src_bmp_iter_max; i ++) {
+        dispatcher->input_src_bmp[i] = ~0U;
+    }
     dispatcher->input_src_bmp_last_mask = (~0U >> (32 - (INPUT_SRC_MAX - ((INPUT_SRC_MAX >> 5) << 5))));
 
     /* init screen manager */
     dispatcher->scr_bmp_iter_max = IPGUI_ARRAY_LEN(dispatcher->scr_bmp);
+    for (i = 0; i < dispatcher->scr_bmp_iter_max; i ++) {
+        dispatcher->scr_bmp[i] = ~0U;
+    }
     dispatcher->scr_bmp_last_mask = (~0U >> (32 - (SCREEN_MAX - ((SCREEN_MAX >> 5) << 5))));
 
     /* init input source event queue */

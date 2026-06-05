@@ -1,6 +1,8 @@
 #ifndef IPGUI_UTILS_H
 #define IPGUI_UTILS_H
 
+#include "ipgui_types.h"
+
 #define _INTERNEL_
 #define __IPGUI_TEST__
 #define __IPGUI_INIT__
@@ -128,10 +130,10 @@ enum ipgui_aligend_size
 #define IPGUI_ALIGN(x, b)                   (((size_t)(x) + ((size_t)(b) - 1)) & ~((size_t)(b) - 1))
 
 /// align u32
-#define IPGUI_ALIGN_U32(x, b)               (((uint32_t)(x) + ((uint32_t)(b) - 1)) & ~((uint32_t)(b) - 1))
+#define IPGUI_ALIGN_U32(x)               (((u32_t)(x) + (u32_t)3U) & ~((u32_t)3U))
 
 /// align u64
-#define IPGUI_ALIGN_U64(x, b)               (((uint64_t)(x) + ((uint64_t)(b) - 1)) & ~((uint64_t)(b) - 1))
+#define IPGUI_ALIGN_U64(x, b)               (((u64_t)(x) + ((u64_t)(b) - 1)) & ~((u64_t)(b) - 1))
 
 /// align by pow2
 #define IPGUI_ALIGN_POW2(x)                 (((x) > 1)? (IPGUI_IS_POW2(x)? (x) : ((size_t)1 << (32 - tb_bits_cl0_u32_be((tb_uint32_t)(x))))) : 1)

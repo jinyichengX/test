@@ -32,7 +32,7 @@ typedef struct {
 /* dirty rect manager */
 typedef struct {
     ipgui_dirty_rect_t pool[IPGUI_DIRTY_RECT_POOL];
-    int                pool_num;
+    s32_t                pool_num;
 } ipgui_dirty_rect_mgr_t;
 
 __IPGUI_API__ void ipgui_dirty_rect_mgr_init(ipgui_dirty_rect_mgr_t * mgr);
@@ -40,8 +40,8 @@ __IPGUI_API__ void ipgui_dirty_rect_mgr_reset(ipgui_dirty_rect_mgr_t * mgr);
 __IPGUI_API__ void ipgui_dirty_rect_add(ipgui_dirty_rect_mgr_t * mgr, ipgui_dirty_rect_t * dr);
 __IPGUI_API__ void ipgui_dirty_rect_add_xywh(ipgui_dirty_rect_mgr_t * mgr, ipgui_coord_t x, ipgui_coord_t y, ipgui_coord_t w, ipgui_coord_t h);
 __IPGUI_API__ void ipgui_dirty_rect_flush(ipgui_dirty_rect_mgr_t * mgr);
-__IPGUI_API__ ipgui_dirty_rect_t * ipgui_dirty_rect_get(ipgui_dirty_rect_mgr_t * mgr, int index);
-__IPGUI_API__ int ipgui_dirty_rect_is_dirty(ipgui_dirty_rect_mgr_t * mgr, ipgui_dirty_rect_t * dr);
+__IPGUI_API__ ipgui_dirty_rect_t * ipgui_dirty_rect_get(ipgui_dirty_rect_mgr_t * mgr, s32_t index);
+__IPGUI_API__ s32_t ipgui_dirty_rect_is_dirty(ipgui_dirty_rect_mgr_t * mgr, ipgui_dirty_rect_t * dr);
 
 #ifdef __cplusplus
 }

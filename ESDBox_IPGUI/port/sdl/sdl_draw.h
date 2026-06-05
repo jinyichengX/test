@@ -4,7 +4,7 @@
 #include "ipgui_utils.h"
 #include "ipgui_screen.h"
 #include <SDL.h>
-IPGUI_HEADER_BEGIN _______________MARKER_______________
+
 struct sdl_private_t {
     SDL_Window * window;
     SDL_Surface * surface;
@@ -12,9 +12,12 @@ struct sdl_private_t {
     unsigned int * framebuffer;
 };
 
-extern ipgui_scr_t ipgui_scr1;
-extern ipgui_scr_t * ipgui_sdl_screen_create(void);
-
-IPGUI_HEADER_END   _______________MARKER_______________
+extern struct sdl_private_t g_sdl_private;
+extern void sdl_put_pixel(ipgui_scr_t * scr, ipgui_coord_t x, ipgui_coord_t y, unsigned char * pix);
+extern void sdl_fill_region(ipgui_scr_t * scr, 
+        ipgui_coord_t x1, ipgui_coord_t y1, ipgui_coord_t x2, ipgui_coord_t y2, 
+        unsigned char * pix_buf, int stride);
+extern void sdl_flush(ipgui_scr_t * scr);
+int ipgui_sdl_screen_init(ipgui_scr_t * scr);
 
 #endif

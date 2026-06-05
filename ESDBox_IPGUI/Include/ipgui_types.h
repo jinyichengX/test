@@ -61,6 +61,7 @@ typedef enum
     IPGUI_ERR_READ_INPUT_SRC_EVT_OK,
     IPGUI_ERR_READ_INPUT_SRC_EVT_ERR,
     IPGUI_ERR_INVALID_ID,
+
 }ipgui_err_t;
 
 #if defined(IPGUI_BASETYPE_64BIT)
@@ -76,6 +77,7 @@ typedef int s32_t;
 typedef short s16_t;
 typedef char s8_t;
 typedef long long s64_t;
+typedef unsigned long long u64_t;
 typedef unsigned long long uintptr_t;//uintptr_t 的大小必须适配当前系统的指针宽度
 
 #endif

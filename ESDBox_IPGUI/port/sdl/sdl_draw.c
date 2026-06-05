@@ -25,38 +25,8 @@
 #include "sdl_draw.h"
 #include "ipgui_color.h"
 
-int ipgui_sdl_screen_init(ipgui_scr_t * scr);
-static void sdl_flush(ipgui_scr_t * scr);
-void sdl_put_pixel(ipgui_scr_t * scr, ipgui_coord_t x, ipgui_coord_t y, unsigned char * pix);
-void sdl_fill_region(ipgui_scr_t * scr, 
-        ipgui_coord_t x1, ipgui_coord_t y1, ipgui_coord_t x2, ipgui_coord_t y2, 
-        unsigned char * pix_buf, int stride);
-// void sdl_exit(ipgui_scr_t * scr);
-
 
 struct sdl_private_t g_sdl_private;
-
-ipgui_scr_drv_t sdl_drv = {
-    .xreso = 800,
-    .yreso = 480,
-
-    .pri_data = &g_sdl_private,
-    .put_pixel = sdl_put_pixel,
-    .fill_region = sdl_fill_region,
-    // .close = sdl_exit,
-    .flush = sdl_flush,
-};
-
-__IPGUI_API__ int ipgui_screen_register(ipgui_scr_drv_t * drv);
-ipgui_scr_t * ipgui_sdl_screen_create(void)
-{
-    ipgui_scr_t * scr = ipgui_screen_register(&sdl_drv);
-    if( scr ){
-        ipgui_sdl_screen_init(scr);
-    }
-    scr->name = "sdl_screen";
-    return scr;
-}
 
 int ipgui_sdl_screen_init(ipgui_scr_t * scr)
 {
@@ -81,7 +51,7 @@ int ipgui_sdl_screen_init(ipgui_scr_t * scr)
     return 0;
 }
 
-static void sdl_flush(ipgui_scr_t * scr)
+void sdl_flush(ipgui_scr_t * scr)
 {
     struct sdl_private_t * priv = (struct sdl_private_t *)scr->drv->pri_data;
     SDL_RenderPresent(priv->renderer);

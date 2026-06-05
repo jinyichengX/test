@@ -1,11 +1,7 @@
 #ifndef IPGUI_CORE_H
 #define IPGUI_CORE_H
 
-#include "ipgui_utils.h"
-#include "ipgui_types.h"
-#include "ipgui_coord.h"
 #include "ipgui_lcd_pix_fmt.h"
-#include "ipgui_color.h"
 #include "ipgui_prim.h"
 
 extern __IPGUI_API__ ipgui_err_t ipgui_init(void);
@@ -38,18 +34,12 @@ typedef struct {
 
 /* 离屏缓冲/帧缓冲，只含大小和像素信息，不含位置信息 */
 typedef struct {
-    /* the width and height of screen offline buffer 
-     */
-    ipgui_coord_t   width, height;
+    /* the pixels number */
+    ipgui_coord_t   num_pixs;
 
     /* point to the first pixel in the surf aabb */
     u8_t          * color;
 
-    /* surf aabb每行所占用的内存字节数，
-     * ipgui_surf_t作为帧缓冲时，stride's value = (x2-x1+1)*每个像素的字节数，
-     * 作为离屏缓冲时可以大于stride's value
-     */
-    u32_t           stride;
 
     ipgui_pix_fmt_t pix_fmt;
 

@@ -19,11 +19,11 @@ __IPGUI_STATIC__ void dirty_rect_normalize(ipgui_dirty_rect_t * r)
 }
 
 /* get dirty rect area */
-__IPGUI_STATIC__ int dirty_rect_area(ipgui_dirty_rect_t * r)
+__IPGUI_STATIC__ s32_t dirty_rect_area(ipgui_dirty_rect_t * r)
 {
     ipgui_dirty_rect_t temp = * r;
     dirty_rect_normalize(&temp);
-    return (int)(temp.x2 - temp.x1 + 1) *
+    return (s32_t)(temp.x2 - temp.x1 + 1) *
            (temp.y2 - temp.y1 + 1);
 }
 
@@ -46,7 +46,7 @@ __IPGUI_STATIC__ ipgui_dirty_rect_t dirty_rect_merge(
 }
 
 /* b是否被a完全包含 */
-__IPGUI_STATIC__ int dirty_rect_contains(
+__IPGUI_STATIC__ s32_t dirty_rect_contains(
     ipgui_dirty_rect_t * a,
     ipgui_dirty_rect_t * b)
 {
@@ -59,7 +59,7 @@ __IPGUI_STATIC__ int dirty_rect_contains(
  * if result > 0, the area of merged rect is more than the area of a and b
  * if result = 0, the area of merged rect is equal to the area of a and b
  */
-__IPGUI_STATIC__ int dirty_rect_merge_cost(
+__IPGUI_STATIC__ s32_t dirty_rect_merge_cost(
     ipgui_dirty_rect_t * a,
     ipgui_dirty_rect_t * b)
 {
@@ -70,7 +70,7 @@ __IPGUI_STATIC__ int dirty_rect_merge_cost(
 /* remove dirty rect(the idx) from array */
 __IPGUI_STATIC__ void arr_remove(
     ipgui_dirty_rect_t * arr, 
-    int * num, int idx)
+    s32_t * num, s32_t idx)
 {
     (* num) --;
     if (idx != * num) {
@@ -85,14 +85,14 @@ __IPGUI_STATIC__ void arr_remove(
  * 步骤3：找出最小的合并代价的那对进行合并
  */
 __IPGUI_STATIC__ void arr_merge_best_pair(
-    ipgui_dirty_rect_t * arr, int * num, ipgui_dirty_rect_t * new_dr)
+    ipgui_dirty_rect_t * arr, s32_t * num, ipgui_dirty_rect_t * new_dr)
 {
-    int best_i = 0, best_j = 1;
-    int best_cost = 0x7fffffff;
-    int cost;
+    s32_t best_i = 0, best_j = 1;
+    s32_t best_cost = 0x7fffffff;
+    s32_t cost;
 
-    for (int i = 0; i < * num; i ++) {
-        for (int j = i + 1; j < * num; j ++) {
+    for (s32_t i = 0; i < * num; i ++) {
+        for (s32_t j = i + 1; j < * num; j ++) {
             cost = dirty_rect_merge_cost(&arr[i], &arr[j]);
             if (cost < best_cost) {
                 best_cost = cost;
@@ -102,9 +102,9 @@ __IPGUI_STATIC__ void arr_merge_best_pair(
         }
     }
 
-    int old_best_cost = best_cost;
-    int old_best_i = best_i;
-    for (int i = 0; i < * num; i ++) {
+    s32_t old_best_cost = best_cost;
+    s32_t old_best_i = best_i;
+    for (s32_t i = 0; i < * num; i ++) {
         cost = dirty_rect_merge_cost(&arr[i], new_dr);
         if (cost < best_cost) {
             best_cost = cost;
@@ -135,7 +135,7 @@ __IPGUI_STATIC__ void pool_add(
     /* check if dr is contained by any rect in pool 
      * if so, discard the dr and return
      */
-    int i = 0;
+    s32_t i = 0;
     for (; i < mgr->pool_num; i ++) {
         if (dirty_rect_contains(&mgr->pool[i], &dr)) {
             return;
@@ -203,19 +203,19 @@ __IPGUI_API__ void ipgui_dirty_rect_flush(ipgui_dirty_rect_mgr_t * mgr)
     ipgui_dirty_rect_t * pool = mgr->pool;
 
     /* we have found a better merge */
-    int improved = 1;
-    int best_i, best_j;
-    int best_cost;
+    s32_t improved = 1;
+    s32_t best_i, best_j;
+    s32_t best_cost;
     while (improved && mgr->pool_num > 1) {
         improved = 0;
 
         best_i = best_j = -1;
-        best_cost = (int)IPGUI_MERGE_COST_THRESHOLD;
+        best_cost = (s32_t)IPGUI_MERGE_COST_THRESHOLD;
 
-        for (int i = 0; i < mgr->pool_num; i ++) {
-            for (int j = i + 1; j < mgr->pool_num; j ++) {
-                int cost = dirty_rect_merge_cost(&pool[i], &pool[j]);
-                if (cost <= (int)IPGUI_MERGE_COST_THRESHOLD &&
+        for (s32_t i = 0; i < mgr->pool_num; i ++) {
+            for (s32_t j = i + 1; j < mgr->pool_num; j ++) {
+                s32_t cost = dirty_rect_merge_cost(&pool[i], &pool[j]);
+                if (cost <= (s32_t)IPGUI_MERGE_COST_THRESHOLD &&
                     cost <= best_cost) {
                     best_cost = cost;
                     best_i = i;
@@ -234,16 +234,16 @@ __IPGUI_API__ void ipgui_dirty_rect_flush(ipgui_dirty_rect_mgr_t * mgr)
 }
 
 __IPGUI_API__ ipgui_dirty_rect_t * ipgui_dirty_rect_get(
-    ipgui_dirty_rect_mgr_t * mgr, int index)
+    ipgui_dirty_rect_mgr_t * mgr, s32_t index)
 {
     if (index < 0 || index >= mgr->pool_num) return (ipgui_dirty_rect_t *)0;
     return &mgr->pool[index];
 }
 
-__IPGUI_API__ int ipgui_dirty_rect_is_dirty(ipgui_dirty_rect_mgr_t * mgr,
+__IPGUI_API__ s32_t ipgui_dirty_rect_is_dirty(ipgui_dirty_rect_mgr_t * mgr,
                             ipgui_dirty_rect_t * dr)
 {
-    for (int i = 0; i < mgr->pool_num; i++) {
+    for (s32_t i = 0; i < mgr->pool_num; i++) {
         if (!(mgr->pool[i].x2 < dr->x1 ||
               dr->x2 < mgr->pool[i].x1 ||
               mgr->pool[i].y2 < dr->y1 ||

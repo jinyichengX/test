@@ -1,7 +1,7 @@
 #ifndef IPGUI_LCD_PIX_FMT_H
 #define IPGUI_LCD_PIX_FMT_H
 
-/* 像素格式（内存顺序） */
+/* 屏幕像素格式 */
 typedef enum {
 
     /* 16-bit */

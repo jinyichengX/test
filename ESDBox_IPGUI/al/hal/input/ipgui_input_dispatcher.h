@@ -8,6 +8,7 @@
 #include "ipgui_utils.h"
 #include "ipgui_list.h"
 #include "ipgui_conf.h"
+#include "ipgui_widget.h"
 
 typedef struct {
     // 指针设备状态
