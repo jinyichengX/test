@@ -24,5 +24,7 @@ typedef struct ipgui_widget
     void (*event_handler)(struct ipgui_widget * widget, ipgui_widget_evt_t * evt);
 }ipgui_widget_t;
 
+extern __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent);
+
 #endif
 

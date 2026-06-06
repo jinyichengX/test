@@ -2,22 +2,106 @@
 #include "ipgui_memory.h"
 #include "ipgui_defs.h"
 
+#include "ipgui_screen.h"
+
+/* create widget */
 __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent)
 {
-    if (!parent) {
-        // if( scr != ipgui_widget_get_screen(parent))
-        //     return (ipgui_widget_t *)0;
+    ipgui_widget_t * widget = (ipgui_widget_t *)
+        ipgui_mem_alloc_def(sizeof(ipgui_widget_t));
+
+    if (!widget) return (ipgui_widget_t *)0;
+
+    /* init widget position and size */
+    widget->x = 0;
+    widget->y = 0;
+    widget->w = 0;
+    widget->h = 0;
+
+    /* init widget tree link node */
+    ipgui_widget_link_init(&widget->link);
+    /* add to parent's child list */
+    if (parent) {
+        ipgui_widget_link_set_parent(&widget->link, &parent->link);
+        // ipgui_widget_mark_dirty();
+    } else {   
+        /* it is a detached widget, leave it */;
     }
     
-    ipgui_widget_t * widget = (ipgui_widget_t *)ipgui_mem_alloc_def(sizeof(ipgui_widget_t));
+    /* init event handler and render callback */
+    widget->event_handler = 0;
+    widget->render        = 0;
 
-    if (widget)
-    {
-
-    }
-    
     return widget;
 }
 
+/**
+ * @brief 计算控件在屏幕中的绝对像素坐标(AABB包围盒)
+ * @param widget 目标控件句柄
+ * @param r 输出参数：存储控件的屏幕绝对坐标包围盒
+ *          -> start: 控件左上角绝对坐标
+ *          -> end  : 控件右下角绝对坐标
+ */
+__IPGUI_API__ void ipgui_widget_abs_pos(ipgui_widget_t * widget, ipgui_aabb_t * r)
+{
+    if (!widget) return;
 
+    /* if it is detached from tree, return */
+    if(IPGUI_YES == ipgui_widget_link_is_detached(&widget->link))
+        return;
+
+    /* 初始化累加变量，先填入当前控件的相对坐标与大小 */
+    ipgui_coord_t abs_x = widget->x;
+    ipgui_coord_t abs_y = widget->y;
+
+    /* 沿着树向上追溯，累加所有父控件的坐标偏移 */
+    struct widget_link_t * _link = &widget->link;
+    ipgui_widget_t * parent;
+    while (_link->parent) {
+        parent = ipgui_container_of(_link->parent, ipgui_widget_t, link);
+        
+        abs_x += parent->x;
+        abs_y += parent->y;
+        
+        _link = _link->parent;
+    }
+
+    r->start.x = abs_x;
+    r->start.y = abs_y;
+    r->end.x   = abs_x + widget->w - 1;
+    r->end.y   = abs_y + widget->h - 1;
+}
+
+__IPGUI_API__ void ipgui_widget_mark_dirty(ipgui_widget_t * widget)
+{
+    if (!widget) return;
+
+    /* if it is detached from tree, return */
+    if(IPGUI_YES == ipgui_widget_link_is_detached(&widget->link))
+        return;
+
+    /* 获取控件所在的树的根节点tree->link 
+     * 再由根节点找到对应的屏幕
+     */
+    struct widget_link_t * _root;
+    ipgui_scr_t * scr;
+    _root = ipgui_widget_link_get_root(&widget->link);
+    scr   = ipgui_container_of(_root, ipgui_scr_t, tree.root);
+
+    /* 计算控件的绝对坐标 */
+    ipgui_aabb_t dr;
+    ipgui_widget_abs_pos(widget, &dr);
+
+    /* clip with screen's resolution */
+    ipgui_aabb_t scr_aabb;
+    scr_aabb.start.x = 0;
+    scr_aabb.start.y = 0;
+    scr_aabb.end.x = scr->drv->xreso - 1;
+    scr_aabb.end.y = scr->drv->yreso - 1;
+
+    if(0 != ipgui_aabb_overlap(&dr, &dr, &scr_aabb))
+        return;
+    
+    ipgui_dirty_rect_add(&scr->dirty, (ipgui_dirty_rect_t *)&dr);
+}
 

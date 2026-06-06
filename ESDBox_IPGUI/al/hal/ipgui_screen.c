@@ -9,18 +9,16 @@ __IPGUI_API__ ipgui_err_t ipgui_screen_init(ipgui_scr_t * scr, ipgui_scr_drv_t *
     ipgui_memset((void *)scr, 0, sizeof(ipgui_scr_t));
     scr->drv = drv;
 
-    /* 初始化脏矩形管理器
-     * 标记全屏为脏区域
-     */
+    /* 初始化脏矩形管理器 */
     ipgui_dirty_rect_mgr_init(&scr->dirty);
-    ipgui_dirty_rect_add_xywh(&scr->dirty, 
-        0, 
-        0, 
-        scr->drv->xreso, 
-        scr->drv->yreso);
+    // ipgui_dirty_rect_add_xywh(&scr->dirty, 
+    //     0, 
+    //     0, 
+    //     scr->drv->xreso, 
+    //     scr->drv->yreso);
 
     /* 初始化控件树 */
-    ipgui_widget_tree_init(&scr->root);
+    ipgui_widget_tree_init(&scr->tree);
 
     return IPGUI_ERR_OK;
 }
@@ -76,12 +74,37 @@ __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
     return IPGUI_ERR_OK;
 }
 
+/* 将脏矩形用pfb切片，也就是一个pfb最多能渲染脏矩形的几行 */
+__IPGUI_STATIC__ __IPGUI_INLINE__ ipgui_coord_t ipgui_slice_dirty_rect_with_pfb(
+    ipgui_dirty_rect_t * dirty, 
+    ipgui_pfb_t * pfb)
+{
+    return pfb->num_pixs / (dirty->x2 - dirty->x1 + 1);
+}
+
 /* render dirty rect of screen */
 __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect(
     ipgui_scr_t * scr,
     ipgui_dirty_rect_t * dirty)
 {
+    ipgui_pfb_t * pfb = &scr->pfb;
+    ipgui_aabb_t _dirty = {
+        .start = {.x = dirty->x1, .y = dirty->y1}, 
+        .end   = {.x = dirty->x2, .y = dirty->y2}
+    };
 
+    /* slice the dirty rect with pfb
+     * and get slice's (1)width (2)height (3)stride
+     */
+    ipgui_coord_t slice_w, slice_h;
+    u32_t slice_stride;
+    slice_w = dirty->x2 - dirty->x1 + 1; /* 切片宽度 */
+    slice_h = ipgui_slice_dirty_rect_with_pfb(dirty, pfb); /* 切片的高度 */
+    slice_stride = slice_w * pfb->pix_size; /* 切片的单行跨度 */
+    
+    for (; ;) {
+        
+    }
 }
 
 /* render screen */
@@ -90,7 +113,7 @@ __IPGUI_API__ void ipgui_screen_render(ipgui_scr_t * scr)
     /* check if the screen have dirty region */
     if (scr->dirty.pool_num == 0) return;
 
-    /* 最优合并 */
+    /* 渲染前最优合并一次 */
     ipgui_dirty_rect_flush(&scr->dirty);
 
     s32_t idx = 0;

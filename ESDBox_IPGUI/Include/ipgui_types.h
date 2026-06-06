@@ -64,6 +64,11 @@ typedef enum
 
 }ipgui_err_t;
 
+typedef enum {
+    IPGUI_YES,
+    IPGUI_NO
+}ipgui_yes_no_t;
+
 #if defined(IPGUI_BASETYPE_64BIT)
 typedef unsigned int ipgui_tick_t;
 #else

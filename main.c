@@ -59,6 +59,8 @@ int main(void)
         printf("ipgui_init_err"); return 0;
     }
 
+    // ipgui_widget_create();
+
     while(1)
     {
         ipgui_dispatch_input_event(&dispatcher);

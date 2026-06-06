@@ -24,6 +24,22 @@
 static struct widget_link_t * detached_monitor = (struct widget_link_t *)0;
 #endif
 
+/* 一个节点是不是处于游离态，如果父节点也是处于游离态那么这个节点也处于游离态 */
+__IPGUI_API__ ipgui_yes_no_t ipgui_widget_link_is_detached(struct widget_link_t * link)
+{
+    if (link->parent == (struct widget_link_t *)0) return IPGUI_NO;
+    if (link->parent == link) return IPGUI_YES;
+    struct widget_link_t * parent = link->parent;
+
+    while (parent) {
+        if (parent->parent == parent)
+            return IPGUI_YES;
+        parent = parent->parent;
+    }
+
+    return IPGUI_NO;
+}
+
 /* init widget link */
 __IPGUI_API__ void ipgui_widget_link_init(struct widget_link_t * link)
 {
@@ -46,17 +62,17 @@ __IPGUI_API__ void ipgui_widget_tree_init(struct widget_tree_t * tree)
 }
 
 /* if link is a root link */
-__IPGUI_API__ int ipgui_widget_link_is_root(struct widget_link_t * link)
+__IPGUI_API__ ipgui_yes_no_t ipgui_widget_link_is_root(struct widget_link_t * link)
 {
-    if (!link->parent) return 0;
-    else return 1;
+    if (!link->parent) return IPGUI_YES;
+    else return IPGUI_NO;
 }
 
 /* get the link root */
 __IPGUI_API__ struct widget_link_t * 
 ipgui_widget_link_get_root(struct widget_link_t * link)
 {
-    if (0 == ipgui_widget_link_is_root(link))
+    if (IPGUI_YES == ipgui_widget_link_is_root(link))
         return link;
     struct widget_link_t * parent;
     parent = link->parent;
@@ -69,7 +85,7 @@ ipgui_widget_link_get_root(struct widget_link_t * link)
 /* detach the link from it's tree */
 __IPGUI_API__ void ipgui_widget_link_detach(struct widget_link_t * link)
 {
-    if (0 == ipgui_widget_link_is_root(link))
+    if (IPGUI_YES == ipgui_widget_link_is_root(link))
         return;
     
     if (link->parent == link) return;
@@ -93,7 +109,7 @@ __IPGUI_API__ void ipgui_widget_link_set_parent(
     struct widget_link_t * link,
     struct widget_link_t * parent)
 {
-    if (0 == ipgui_widget_link_is_root(link))
+    if (IPGUI_YES == ipgui_widget_link_is_root(link))
         return;
 
     if (link->parent == parent)
@@ -172,7 +188,7 @@ __IPGUI_API__ int ipgui_widget_link_set_first(struct widget_link_t * link)
 }
 
 /* if the parent is a parent of the child */
-__IPGUI_API__ int ipgui_widget_link_is_parent_of(
+__IPGUI_API__ ipgui_yes_no_t ipgui_widget_link_is_parent_of(
     struct widget_link_t * parent,
     struct widget_link_t * child)
 {
@@ -181,14 +197,14 @@ __IPGUI_API__ int ipgui_widget_link_is_parent_of(
 
     while (iter) {
         if (iter == parent)
-            return 0;
+            return IPGUI_YES;
         iter = iter->parent;
     }
-    return 1;
+    return IPGUI_NO;
 }
 
 /* if the child is a child of the parent */
-__IPGUI_API__ int ipgui_widget_link_is_child_of(
+__IPGUI_API__ ipgui_yes_no_t ipgui_widget_link_is_child_of(
     struct widget_link_t * child,
     struct widget_link_t * parent)
 {
@@ -200,8 +216,8 @@ __IPGUI_API__ void ipgui_widget_link_insert_prev(
     struct widget_link_t * link,
     struct widget_link_t * next)
 {
-    if ((0 == ipgui_widget_link_is_root(link)) \
-        || (0 == ipgui_widget_link_is_root(next)))
+    if ((IPGUI_YES == ipgui_widget_link_is_root(link)) \
+        || (IPGUI_YES == ipgui_widget_link_is_root(next)))
         return;
     
     struct widget_link_t * parent = next->parent;
@@ -229,8 +245,8 @@ __IPGUI_API__ void ipgui_widget_link_insert_next(
     struct widget_link_t * link,
     struct widget_link_t * prev)
 {
-    if ((0 == ipgui_widget_link_is_root(link)) \
-        || (0 == ipgui_widget_link_is_root(prev)))
+    if ((IPGUI_YES == ipgui_widget_link_is_root(link)) \
+        || (IPGUI_YES == ipgui_widget_link_is_root(prev)))
         return;
 
     struct widget_link_t * parent = prev->parent;
@@ -252,7 +268,7 @@ __IPGUI_API__ void ipgui_widget_link_insert_next(
 __IPGUI_API__ void ipgui_widget_link_move_before(
     struct widget_link_t * link)
 {
-    if (0 == ipgui_widget_link_is_root(link))
+    if (IPGUI_YES == ipgui_widget_link_is_root(link))
         return;
     if (link->parent == link)
         return;
@@ -265,7 +281,7 @@ __IPGUI_API__ void ipgui_widget_link_move_before(
 __IPGUI_API__ void ipgui_widget_link_move_after(
     struct widget_link_t * link)
 {
-    if (0 == ipgui_widget_link_is_root(link))
+    if (IPGUI_YES == ipgui_widget_link_is_root(link))
         return;
     if (link->parent == link)
         return;

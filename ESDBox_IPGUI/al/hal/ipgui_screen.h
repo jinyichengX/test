@@ -43,7 +43,7 @@ typedef struct ipgui_scr_ctx{
     ipgui_scr_drv_t      * drv;
 
     /* Widget tree root */
-    struct widget_tree_t   root;
+    struct widget_tree_t   tree;
 
     /* Dirty rect manager */
     ipgui_dirty_rect_mgr_t dirty;

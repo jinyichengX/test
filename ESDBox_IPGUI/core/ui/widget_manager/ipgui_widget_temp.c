@@ -6,10 +6,6 @@ void ipgui_widget_part_mark_dirty(void)
 
 }
 
-void ipgui_widget_mark_dirty(void)
-{
-
-}
 
 void ipgui_widget_rel_move(ipgui_coord_t x, ipgui_coord_t y)
 {
