@@ -36,7 +36,7 @@ __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent)
 }
 
 /**
- * @brief 计算控件在屏幕中的绝对像素坐标(AABB包围盒)
+ * @brief 计算控件在屏幕中的绝对像素坐标(AABB包围盒)，且不考虑被父控件裁剪
  * @param widget 目标控件句柄
  * @param r 输出参数：存储控件的屏幕绝对坐标包围盒
  *          -> start: 控件左上角绝对坐标
