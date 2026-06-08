@@ -86,7 +86,9 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect(
         .end   = {.x = dirty->x2, .y = dirty->y2}
     };
 
-    /* 将脏矩形区域切分成多个小块进行渲染 */
+    /* 将脏矩形区域切分成多个小块进行渲染
+     * 直到全部遍历完为止
+     */
     ipgui_rect_slice_ctx slice_ctx;
     ipgui_rect_slice_ctx_init(&slice_ctx, &_dirty, pfb->num_pixs);
     
