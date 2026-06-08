@@ -87,7 +87,21 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect_slice(
     h = ipgui_aabb_height(dirty);
     ipgui_memset(pfb->color, 0, w * h * pfb->pix_size);
 
-    
+    // if (!root)
+    //     return;
+    // struct widget_link_t ** child = &root->first_child;
+    // if (ops)
+    //     ops(root, args);
+    // while (*child) {
+    //     if ((*child)->first_child) {
+    //         ipgui_widget_link_foreach_dfs(*child, ops, args);
+    //     } else if (ops) {
+    //         ops(*child, args);
+    //     }
+    //     child = &((*child)->sib_next);
+    //     if (*child == root->first_child)
+    //         break;
+    // }
 }
 
 /* render dirty rect of screen */
