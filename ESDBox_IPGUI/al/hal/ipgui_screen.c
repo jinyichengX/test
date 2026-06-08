@@ -1,4 +1,5 @@
 #include "ipgui_screen.h"
+#include "ipgui_rect_slice.h"
 #include "ipgui_memory.h"
 #include "ipgui_debug.h"
 
@@ -74,14 +75,6 @@ __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
     return IPGUI_ERR_OK;
 }
 
-/* 将脏矩形用pfb切片，也就是一个pfb最多能渲染脏矩形的几行 */
-__IPGUI_STATIC__ __IPGUI_INLINE__ ipgui_coord_t ipgui_slice_dirty_rect_with_pfb(
-    ipgui_dirty_rect_t * dirty, 
-    ipgui_pfb_t * pfb)
-{
-    return pfb->num_pixs / (dirty->x2 - dirty->x1 + 1);
-}
-
 /* render dirty rect of screen */
 __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect(
     ipgui_scr_t * scr,
@@ -93,17 +86,13 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect(
         .end   = {.x = dirty->x2, .y = dirty->y2}
     };
 
-    /* slice the dirty rect with pfb
-     * and get slice's (1)width (2)height (3)stride
-     */
-    ipgui_coord_t slice_w, slice_h;
-    u32_t slice_stride;
-    slice_w = dirty->x2 - dirty->x1 + 1; /* 切片宽度 */
-    slice_h = ipgui_slice_dirty_rect_with_pfb(dirty, pfb); /* 切片的高度 */
-    slice_stride = slice_w * pfb->pix_size; /* 切片的单行跨度 */
+    /* 将脏矩形区域切分成多个小块进行渲染 */
+    ipgui_rect_slice_ctx slice_ctx;
+    ipgui_rect_slice_ctx_init(&slice_ctx, &_dirty, pfb->num_pixs);
     
-    for (; ;) {
-        
+    ipgui_aabb_t slice_rect;
+    while (ipgui_get_rect_slice(&slice_ctx, &slice_rect)) {
+        // ipgui_draw_dirty(pfb, &slice_rect);
     }
 }
 

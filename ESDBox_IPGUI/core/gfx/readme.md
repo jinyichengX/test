@@ -51,15 +51,6 @@ __IPGUI_API__ ipgui_edge_coord_t edge_x_at_y(
 7. 直线的圆形端点，需要优化，目前是直接在端点处补圆，会导致当opacity<255时，端点处有半个圆的颜色加深
 8. ipgui_edge_wdf_mask计算x_halfspan是采用逐点步进试探法，可以改为二倍步进+二分缩进法
 
-各类图形支持的paint类型
-1. 细线（thin line）（1px）：只支持渐变和纯色
-2. 粗线：支持纯色和渐变
-2. 圆角矩形： 
-   边框：支持纯色/渐变/图片
-   背景：支持纯色/渐变/图片
-3.
-
-
 edge_halfplane_mask和edge_wdf_mask的区别：
 edge_halfplane_mask是用于生成一个edge的半平面的mask
 edge_wdf_mask是用于生成一个edge的距离场(width distance-field)的mask，但是只用于整数端点线段！！！

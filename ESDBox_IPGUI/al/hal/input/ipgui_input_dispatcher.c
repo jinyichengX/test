@@ -270,7 +270,7 @@ __IPGUI_STATIC__ void ipgui_default_event_converter(
             if(cur_state->last_state == IPGUI_INPUT_SRC_EVENT_POINTER_PRESS) {
                 target = cur_state->grabbed;
             } else {
-                target = ipgui_widget_get_topest_at(&screen->root, x, y);
+                target = ipgui_widget_get_topest_at(&screen->tree.root, x, y);
                 if (!target) {
                     ipgui_dbg_error("hit test failed\r\n");
                     return;
