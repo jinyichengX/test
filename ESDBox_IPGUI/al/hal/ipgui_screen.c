@@ -75,6 +75,21 @@ __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
     return IPGUI_ERR_OK;
 }
 
+/* render dirty rect slice of screen */
+__IPGUI_STATIC__ void ipgui_screen_render_dirty_rect_slice(
+    ipgui_scr_t * scr,
+    ipgui_pfb_t * pfb,/* here pfb size is as same as dirty size */
+    ipgui_aabb_t * dirty)
+{
+    /* clear pfb */
+    ipgui_coord_t w, h;
+    w = ipgui_aabb_width(dirty);
+    h = ipgui_aabb_height(dirty);
+    ipgui_memset(pfb->color, 0, w * h * pfb->pix_size);
+
+    
+}
+
 /* render dirty rect of screen */
 __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect(
     ipgui_scr_t * scr,
@@ -94,7 +109,7 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect(
     
     ipgui_aabb_t slice_rect;
     while (ipgui_get_rect_slice(&slice_ctx, &slice_rect)) {
-        // ipgui_draw_dirty(pfb, &slice_rect);
+        // ipgui_screen_render_dirty_rect_slice(pfb, &slice_rect);
     }
 }
 
