@@ -1,5 +1,5 @@
 # ESDBox_IPGUI 下的构建输出目录
-ESDBox_IPGUI/build/
+ESDBox_IPGUI/build/*
 
 # 仓库根目录的构建输出
 build/
@@ -8,10 +8,10 @@ build/
 ESDBox_IPGUI/测试提示词/
 
 # ESDBox_IPGUI 下的写书提示词目录
-ESDBox_IPGUI/写书提示词/
+ESDBox_IPGUI/写书提示词/*
 
 # ESDBox_IPGUI 下的文档目录
-ESDBox_IPGUI/doc/
+ESDBox_IPGUI/doc/*
 
 # ESDBox_IPGUI 下的书稿目录
-ESDBox_IPGUI/book/
+ESDBox_IPGUI/book/*
