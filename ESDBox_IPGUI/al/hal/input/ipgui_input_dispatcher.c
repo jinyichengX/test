@@ -147,7 +147,7 @@ __IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_unregister_input_src(
 
 }
 
-__IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_unregister_screen(
+__IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_unregister_screen(
     ipgui_input_dispatcher_t * dispatcher,
     ipgui_scr_id_t screen_id)
 {

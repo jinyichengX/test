@@ -81,9 +81,9 @@ ipgui_screen_render() — 驱动脏矩形渲染循环
 | 文件 | 职责 |
 |------|------|
 | `ipgui_draw_pixel.c/h` | 单像素绘制 |
-| `ipgui_draw_line.c/h` | Wu 反走样线段 |
+| `ipgui_draw_line.c/h` | 线段绘制 |
 | `ipgui_draw_polygon.c/h` | 多边形光栅化 |
-| `ipgui_draw_arc.c/h` | 圆弧/扇形绘制 |
+| `ipgui_draw_arc.c/h` | 弧/圆/扇形/圆环绘制 |
 | `ipgui_draw_triangle.c/h` | 三角形绘制 |
 | `ipgui_draw_box_background.c/h` | 圆角矩形背景 |
 | `ipgui_draw_box_border.c/h` | 圆角矩形边框 |
@@ -316,17 +316,199 @@ ipgui_draw_pixel(surf, clip, x, y, color, mask, opacity, blend_mode)
 
 #### 2.5.2 线段绘制 (`ipgui_draw_line`)
 
-采用 **Wu 反走样算法** 实现细线绘制，支持纯色和渐变 paint。
+`ipgui_draw_line.c` 提供两套公开 API 和三套底层渲染路径，覆盖细线（1px Wu 反走样）到任意宽度的线段绘制，支持线帽（平头/圆头）和完整的渐变着色（纯色 / 线性 / 径向 / 锥形）。
 
-**算法核心**:
+##### 2.5.2.1 公开 API
+
+| API | 用途 | 适用场景 |
+|-----|------|---------|
+| `ipgui_draw_line_classic()` | Wu 反走样细线算法，仅绘制 1px 宽线条 | 细线、网格线、图表轴线 |
+| `ipgui_draw_line_generic()` | 通用宽线绘制，支持任意线宽和线帽 | UI 线段、进度条、分隔线、描边 |
+
+##### 2.5.2.2 数据结构
+
+**线段描述 `ipgui_line_t`**：
+
+```c
+typedef struct {
+    ipgui_point_t start;  // 线段起点
+    ipgui_point_t end;    // 线段终点
+} ipgui_line_t;
 ```
-flatten 判定: |dx| > |dy| → 以 x 为主轴遍历
-非 flatten: 以 y 为主轴遍历
-每个像素:
-  cover = 255 - |err| * 255 / 主轴长度
-  alpha = cover * opacity / 256
-  使用 premultiplied alpha 混合
+
+**线段样式 `ipgui_line_style_t`**：
+
+```c
+typedef struct {
+    ipgui_coord_t        width;       // 线宽（>= 1）
+    ipgui_line_cap_t     cap;         // 线帽类型：BUTT 平头 / ROUND 圆头
+    ipgui_paint_t        paint;       // 着色来源（纯色或渐变）
+    u8_t                 opacity;     // 整体不透明度
+    ipgui_blend_mode_t   blend_mode;  // 混合模式
+} ipgui_line_style_t;
 ```
+
+**线帽类型**：
+
+| 类型 | 值 | 视觉效果 |
+|------|---|---------|
+| `IPGUI_LINE_CAP_BUTT` | 0 | 平头端点，线条在端点处截断 |
+| `IPGUI_LINE_CAP_ROUND` | 1 | 圆头端点，端点处绘制半圆帽 |
+
+**渐变方向枚举**（在头文件中定义，供未来扩展）：
+
+```c
+typedef enum {
+    IPGUI_LINE_GRADIENT_FOLLIOW = 0,  // 沿线条方向渐变（起点→终点）
+    IPGUI_LINE_GRADIENT_HOR,          // 线内水平渐变
+    IPGUI_LINE_GRADIENT_VER,          // 线内垂直渐变
+} ipgui_line_gradient_dir_t;
+```
+
+##### 2.5.2.3 渲染路径详解
+
+`ipgui_draw_line_generic()` 作为总调度器，根据线段方向将绘制请求分派到三条内部路径之一：
+
+```
+ipgui_draw_line_generic(surf, clip, line, style)
+    |
+    ├── line->start.x == line->end.x ?
+    |       → ipgui_draw_ver_line()     [垂直宽线]
+    |
+    ├── line->start.y == line->end.y ?
+    |       → ipgui_draw_hor_line()     [水平宽线]
+    |
+    └── 否则:
+            → ipgui_draw_skew_line()    [斜线·宽线]
+```
+
+**（1）Wu 反走样细线 —— `ipgui_draw_line_classic()`**
+
+经典的 Wu 反走样算法，仅绘制 1px 宽度的线条。核心思想是在主轴上每个像素位置同时绘制两个像素（主像素 + 相邻像素），用透明度来模拟亚像素覆盖。
+
+```
+算法核心:
+  flatten 判定: |dx| > |dy| → 以 x 为主轴遍历
+  non-flatten:  以 y 为主轴遍历
+
+  对主轴上的每个整数坐标:
+    cover  = 255 - |err| * 255 / 主轴长度   (0~255)
+    alpha  = cover * opacity / 256
+    premult = color × alpha
+    
+    主像素(x, y):          以 opacity 混合 premult
+    相邻像素(x, y+step):   以 complement opacity 混合 premult
+    err += 副轴增量
+```
+
+特点：
+- 默认覆盖 Wu 反走样的标准行为 —— 两像素共享 opacity 的双线绘制
+- 支持所有 paint 类型（纯色、线性/径向/锥形渐变）
+- 不支持 IMAGE paint 类型
+- 无 clip 时用 surf 自身围盒做裁剪
+
+**（2）水平 / 垂直线 —— `ipgui_draw_hor_line()` / `ipgui_draw_ver_line()`**
+
+水平线和垂直线共享相同的绘制策略：
+1. 用 `ipgui_blend()` 批量填充线条矩形主体
+2. 若 `cap == IPGUI_LINE_CAP_ROUND`，在两端点各绘制一个圆形（`ipgui_draw_arc` 实心半圆），圆半径为 `width/2`
+
+```
+水平线主体计算:
+  self.start.x = min(start.x, end.x)
+  self.end.x   = max(start.x, end.x)
+  self.start.y = start.y - width/2
+  self.end.y   = self.start.y + width - 1
+
+垂直线主体计算:
+  self.start.y = min(start.y, end.y)
+  self.end.y   = max(start.y, end.y)
+  self.start.x = start.x - width/2
+  self.end.x   = self.start.x + width - 1
+```
+
+然后通过 `ipgui_aabb_overlap` 进行两层裁剪（clip → self），最后调用 `ipgui_blend()` 完成矩形填充。整个主体仅需一次 blend 调用，效率极高。
+
+圆头线帽实现：
+```c
+ipgui_arc_t circle;
+circle.cx = line->start.x;  // 起点圆心
+circle.cy = line->start.y;
+circle.er = style->width >> 1;  // 半径 = 线宽 / 2
+circle.ir = 0;
+circle.start = 0;
+circle.angle = 360;
+circle.dir   = IPGUI_ARC_DRAW_DIR_CCW;
+// 同样的 circle_style 用于两端点
+ipgui_draw_arc(surf, NULL, &circle, &circle_style);
+```
+
+**（3）斜线·宽线 —— `ipgui_draw_skew_line()`**
+
+宽斜线（非水平非垂直的线段）采用 **edge WDF mask + 端点裁剪** 的方式。这是最复杂的渲染路径。
+
+流程：
+1. **计算线段围盒** — 由两个端点生成 AABB，按 `width/2` 向外扩展
+2. **分配 mask 缓冲区** — 调用 `ipgui_mask_buf_acquire()` 获取逐行 buffer
+3. **生成 WDF 宽边遮罩** — 用线段端点初始化 `ipgui_edge_wdf_param_t`，调用 `ipgui_gen_edge_wdf_mask_dsc()` 生成遮罩描述符，然后逐行调用 `ipgui_edge_wdf_mask()` 填充 mask
+4. **端点裁剪** — 调用 `init_cross_edge()` 生成两端点的横截线参数（垂直于线段方向），再用 `edge_clip_mask_with_aa()` 对 mask 做带反走样的半平面裁剪，切出干净的端点
+5. **blend 渲染** — 将裁剪后的 mask 传给 `ipgui_blend()` 按行渲染
+6. **圆头线帽** — 若 `cap == IPGUI_LINE_CAP_ROUND`，复用同水平/垂直线的方式在两端绘制圆形
+7. **释放 mask buffer** — `ipgui_mask_buf_free()`
+
+`init_cross_edge()` 端点横截线生成原理：
+
+横截线经过端点，方向垂直于线段。
+
+```
+已知线段方向向量为 (dx, dy)，则横截线方向为 (-dy, dx)
+取 deltax = 256（一个合适的整数距离）
+计算 deltay = -dx * deltax / dy
+得到横截线上的两点 (x0+deltax, y0+deltay) 和 (x0-deltax, y0-deltay)
+```
+
+这样生成的横截线用于 `edge_clip_mask_with_aa()` 裁剪 WDF mask，形成规整的平头端点。关键在于 dx 的符号决定了 "保留左侧 / 保留右侧" 的裁剪方向。
+
+##### 2.5.2.4 参数有效性检查
+
+所有公开 API 在入口处执行统一的参数校验：
+
+```
+ipgui_draw_line_generic():
+  拒绝条件: surf == NULL || line == NULL || style == NULL
+  拒绝条件: opacity < 3（透明度太低不可见）
+  拒绝条件: width < 1
+
+ipgui_draw_line_classic():
+  拒绝条件: surf == NULL || line == NULL || style == NULL
+  拒绝条件: opacity < 3
+  拒绝条件: paint.type == IPGUI_PAINT_IMAGE（不支持图像纹理）
+  clip 有效时: 线段与 clip 无交集则直接返回
+```
+
+##### 2.5.2.5 性能特点
+
+| 路径 | 优缺点 |
+|------|--------|
+| Wu 反走样（classic） | 仅 1px 宽，逐像素计算，适合细线；每个主轴坐标画 2 个带透明度像素 |
+| 水平/垂直线（hor/ver） | 极快 — 整个主体仅一次 `ipgui_blend()` 调用；圆头线帽需额外汇制两个圆 |
+| 斜线·宽线（skew） | 需要 mask 缓冲区、逐行 WDF 计算 + 端点裁剪；性能开销较高但能绘制任意宽度的反走样斜线 |
+
+##### 2.5.2.6 功能对比总结
+
+| 特性 | `ipgui_draw_line_classic()` | `ipgui_draw_line_generic()` |
+|------|----------------------------|----------------------------|
+| 线宽 | 固定 1px | 任意 `width >= 1` |
+| 线帽 BUTT | — | 支持 |
+| 线帽 ROUND | — | 支持（绘制半圆端点） |
+| 纯色着色 | 支持 | 支持 |
+| 线性渐变 | 支持 | 支持 |
+| 径向渐变 | 支持 | 支持 |
+| 锥形渐变 | 支持 | 支持 |
+| 图像着色 | 不支持 | 不支持 |
+| 渲染方式 | 逐像素 Wu 算法 | hor:blend / ver:blend / skew:WDF mask |
+| 裁剪 | AABB clip + surf 裁剪 | AABB clip + surf 裁剪 |
+| 圆角端点 | 不支持 | 复用 `ipgui_draw_arc()` 画圆
 
 #### 2.5.3 多边形光栅化 (`ipgui_draw_polygon`)
 
@@ -364,15 +546,75 @@ typedef struct {
 - 使用 AVL 树对边桶和扫描线 cell 排序，O(log n) 插入
 - x_full_step 预计算完整步长，x_step_ycor 用于子像素精度步进
 
-#### 2.5.4 圆弧绘制 (`ipgui_draw_arc`)
+#### 2.5.4 弧 / 圆 / 扇形 / 圆环绘制 (`ipgui_draw_arc`)
+
+`ipgui_draw_arc` 是一个统一的圆形几何图元绘制接口，通过调节 `ir`（内圆半径）和 `angle`（绘制角度）两个核心参数，可以覆盖四种不同的几何形状：
+
+| ir | angle | 绘制结果 |
+|----|-------|---------|
+| =0 | < 360 | **扇形**（pie / sector）：从圆心出发的扇形区域 |
+| =0 | =360 | **实心圆**（filled circle） |
+| >0 | < 360 | **圆弧**（arc）：内外径之间的弧形条带 |
+| >0 | =360 | **圆环**（ring / doughnut） |
 
 基于环形遮罩 (`ipgui_ring_mask`) + 边沿遮罩 (`ipgui_edge_halfplane_mask`) 的组合。
 
 **核心思路**: 
-1. 先从 ring mask 缓存获取圆环遮罩数据
+1. 先从 ring mask 缓存获取圆环遮罩数据（外径 `er`、内径 `ir`）
 2. 用两条半平面边（起始角边、终止角边）对圆环遮罩做裁剪
-3. 如果绘制扇形，再加上圆心的剪裁
+3. 如果绘制扇形（`ir=0`），再加上圆心方向的剪裁（半平面过圆心补全扇形边界）
 4. 将最终 mask 数据传给 `ipgui_blend()` 完成渲染
+
+**四种形状示例**：
+
+```c
+/* 1. 实心圆: 圆心 (50,50), 半径 30 */
+ipgui_arc_t circle = {
+    .cx = 50, .cy = 50, .er = 30, .ir = 0,
+    .start = 0, .angle = 360, .dir = IPGUI_ARC_DRAW_DIR_CCW
+};
+
+/* 2. 圆环: 外径 30, 内径 25, 实心圆边框效果 */
+ipgui_arc_t ring = {
+    .cx = 100, .cy = 100, .er = 30, .ir = 25,
+    .start = 0, .angle = 360, .dir = IPGUI_ARC_DRAW_DIR_CCW
+};
+
+/* 3. 扇形（饼形）: 圆心 (150,60), 半径 40, 从 30° 逆时针画 120° */
+ipgui_arc_t sector = {
+    .cx = 150, .cy = 60, .er = 40, .ir = 0,
+    .start = 30, .angle = 120, .dir = IPGUI_ARC_DRAW_DIR_CCW
+};
+
+/* 4. 圆弧: 圆心 (200,60), 外径 25, 内径 15, 从 30° 顺时针画 270° */
+ipgui_arc_t arc_strip = {
+    .cx = 200, .cy = 60, .er = 25, .ir = 15,
+    .start = 30, .angle = 270, .dir = IPGUI_ARC_DRAW_DIR_CW
+};
+
+/* 共用样式 */
+ipgui_arc_style_t style = {
+    .paint       = { .type = IPGUI_PAINT_COLOR, .color = {255,0,0,255} },
+    .opacity     = 255,
+    .sep_type    = IPGUI_ARC_ENDPOINT_TYPE_BUTT,
+    .eep_type    = IPGUI_ARC_ENDPOINT_TYPE_BUTT,
+    .blend_mode  = IPGUI_BLEND_NORMAL
+};
+```
+
+**关键参数说明**：
+
+| 参数 | 作用 | 各形状设置值 |
+|------|------|-------------|
+| `arc->ir` | 内圆半径 | 0 = 实心圆/扇形; >0 = 圆弧/圆环 |
+| `arc->er` | 外圆半径 | 圆的半径 / 外径 |
+| `arc->angle` | 绘制角度 (°) | 360 = 全圆/全环; <360 = 弧/扇形 |
+| `arc->start` | 起始角度 (°) | 仅对弧/扇形有意义 |
+| `arc->dir` | 绘制方向 | CW / CCW（全圆/全环时任意） |
+| `style->sep_type` | 起始端点类型 | ROUND = 端部半圆帽, BUTT = 平头 |
+| `style->eep_type` | 结束端点类型 | 同上 |
+
+**角度归一化机制**：函数内部将 `angle > 359` 统一归为 `360`，并通过 `while (start_angle < 0) start_angle += 360; while (start_angle >= 360) start_angle -= 360` 将起始角归一化到 `[0, 360)`。随后通过四象限分块（每 90° 一块）逐象限调用 `draw_quarter()` 绘制，自动覆盖全圆。
 
 ---
 
@@ -429,7 +671,130 @@ typedef struct {
 
 #### 2.6.4 Box 阴影绘制 (`ipgui_draw_box_shadow`)
 
-通过 `ipgui_mask_gradient` 生成柔化遮罩，对偏移后的矩形使用渐变透明度填充。
+提供与 CSS `box-shadow` 视觉效果高度一致的矩形阴影渲染能力，同时支持外阴影（outset）、内阴影（inset）两种模式。
+
+**一、算法原理概览**
+
+传统 2D 高斯卷积方案需要为每个像素执行 `blur²` 次采样，计算量 O(W·H·b²)，在嵌入式环境下不可接受。本模块采用全新的 **SDF（有符号距离场）+ 1D 多项式映射** 算法，将 2D 卷积降维为 1D 查表：
+
+```
+像素坐标 (x,y)
+    │
+    ▼
+sdf_rounded_box_q8()  ← 解析 O(1) 计算圆角矩形 SDF 距离 d
+    │
+    ▼
+blur_lut[d + blur]    ← 1D LUT 映射距离 → 透明度
+    │
+    ▼
+ipgui_draw_pixel()    ← 输出最终像素
+```
+
+**二、核心组件**
+
+**(A) 圆角矩形 SDF（Signed Distance Field）**
+
+采用纯整数 Q8 定点实现。给定像素到圆角矩形的有符号距离，公式为：
+
+```
+d = sqrt(max(qx,0)² + max(qy,0)²) + min(max(qx,qy), 0) - r
+
+其中: qx = |cx| - w/2 + r
+      qy = |cy| - h/2 + r
+      r  = 圆角半径
+```
+
+该公式在 O(1) 时间内解析计算出距离，无需任何迭代或采样。
+
+**(B) 1D 模糊剖面多项式映射**
+
+利用数学事实：1D SDF 距离 → 透明度 的多项式 smoothstep 映射等价于高斯卷积的 CDF（累积分布函数）采样。提供三种可选多项式：
+
+| 多项式 | 公式 | 与 erf(t) 最大误差 | 适用场景 |
+|--------|------|-------------------|----------|
+| **smoothstep3** | t²·(3-2t) | ≈0.017 | 默认推荐，C¹ 连续 |
+| **smoothstep5** | t³·(10-15t+6t²) | ≈0.007 | 大 blur（>16px），边缘更柔和 |
+| **quadratic** | t·(2-t) | ≈10% | 超低功耗 MCU，一个乘法 |
+
+误差均在人眼 8bit 深度下不可分辨（smoothstep3/5）或可接受（quadratic）。
+
+**(C) 1D 模糊剖面 LRU 缓存**
+
+LUT 长度 = `2 × blur + 1` 字节。按 `(blur, algo)` 键缓存，LRU 淘汰，全局上限 8 项。典型 16px 阴影仅占 33 字节。同 blur 半径的多次绘制完全共享缓存，避免重复计算。
+
+**(D) 纯整数平方根 (`ipgui_sqrt32`)**
+
+二分位法（Binary Digit-by-Digit）实现，16 次迭代，ARM Cortex-M 上约 40~60 周期，无需硬件除法器，完全无分支。
+
+**三、渲染流程**
+
+以**外阴影**为例：
+
+```
+1. 参数规整化
+   - blur < 0 → 0
+   - corner_radius clamp 到 min(w/2, h/2)
+   - opacity < 2 → 跳过
+
+2. 计算阴影实体框 (entity_box)
+   entity_box = content_box 向外扩展 spread，偏移 (offset_x, offset_y)
+   entity_r   = corner_radius + spread
+
+3. 裁剪遍历范围
+   x ∈ [entity_x - blur, entity_x + entity_w + blur]
+   y ∈ [entity_y - blur, entity_y + entity_h + blur]
+
+4. 逐像素渲染
+   for each (x,y) in range:
+       d = sdf_rounded_box(lx, ly, entity_w, entity_h, entity_r)
+       alpha = (blur == 0) ? (d ≤ 0 ? 255 : 0) : lut[clamp(d/256 + blur, 0, 2×blur)]
+       
+       // 挖除 content_box：阴影在内容后方被遮挡
+       cd = sdf_rounded_box(clx, cly, content_w, content_h, content_r)
+       if cd ≤ 0: continue
+       if cd < 1: alpha *= cd/256  // 边缘 1px 抗锯齿
+       
+       ipgui_draw_pixel(x, y, color, alpha, opacity, blend_mode)
+```
+
+**内阴影**流程对称，区别在于：遍历范围限定在 content_box 内；像素超过 content_box 边界则跳过；content_box 边缘做反向抗锯齿。
+
+**四、性能特征**
+
+| 指标 | 传统 2D 高斯 | 本实现 SDF+1D |
+|------|-------------|---------------|
+| 时间复杂度 (每像素) | O(blur²) | O(1) |
+| 空间复杂度 | O(blur²) 模板 | O(blur) LUT |
+| blur=8 典型遍历像素 | 200×100 全屏 20k | ~3,400 |
+| 浮点依赖 | 高斯卷积需要 | 零浮点，纯定点 Q8 |
+| 硬件要求 | FPU + 大模板 | Cortex-M0 即可 |
+
+**五、API 接口**
+
+```c
+// 外阴影（阴影在内容框后方）
+void ipgui_draw_box_shadow_outset(surf, clip, content_box, style);
+
+// 内阴影（阴影在内容框内部）
+void ipgui_draw_box_shadow_inset(surf, clip, content_box, style);
+
+// 自动根据 style->inset 选择内/外
+void ipgui_draw_box_shadow(surf, clip, content_box, style);
+```
+
+**六、与旧算法对比**
+
+| 对比维度 | 旧算法 (`ipgui_mask_gradient`) | 新算法 (SDF+1D) |
+|----------|-------------------------------|-----------------|
+| 基本原理 | 生成整幅遮罩图 → 渐变填充 | 逐像素 SDF 距离 → 1D 查表 |
+| 内存占用 | O(W×H) 全尺寸 mask 缓冲区 | O(blur) + O(1) 临时变量 |
+| 计算量 | mask 生成 + gradient 计算 + blend | SDF (O(1)) + LUT 查表 + blend |
+| 浮点依赖 | 依赖于渐变引擎实现 | 纯定点 Q8，零浮点 |
+| 圆角支持 | 需外部额外处理 | SDF 公式原生支持圆角 |
+| blur 质量 | 取决于渐变定义 | 三次/五次 smoothstep 近似高斯 CDF |
+| 内阴影 | 需外挂实现 | 同一渲染循环，SDF 反向 |
+| 硬件适配 | 需大 mask 缓冲区 | Cortex-M0 级 MCU 可运行 |
+| 像素级抗锯齿 | 取决于 mask 分辨率 | SDF 子像素级，1px 边缘平滑过渡 |
 
 ---
 
@@ -762,14 +1127,49 @@ ipgui_draw_box_background(&surf, NULL, &box_aabb, &box_style, &bg_style);
 
 ### 7.5 线段绘制
 
+**Wu 反走样细线**：
+
 ```c
 ipgui_line_style_t line_style;
 line_style.paint   = paint;
 line_style.opacity = 200;
-line_style.width   = 2;
 
 ipgui_line_t line = {{10, 10}, {100, 80}};
 ipgui_draw_line_classic(&surf, NULL, &line, &line_style);
+```
+
+**通用宽线（带圆头线帽）**：
+
+```c
+ipgui_line_style_t line_style;
+line_style.paint      = paint;
+line_style.opacity    = 200;
+line_style.width      = 4;
+line_style.cap        = IPGUI_LINE_CAP_ROUND;   // 圆头端点
+line_style.blend_mode = IPGUI_BLEND_NORMAL;
+
+ipgui_line_t line = {{10, 10}, {100, 80}};
+ipgui_draw_line_generic(&surf, NULL, &line, &line_style);
+```
+
+**渐变着色宽线**：
+
+```c
+ipgui_gradient_color_t grad;
+ipgui_liner_gradient_init(&grad, 10, 10, 100, 80);
+ipgui_liner_gradient_add_stop(&grad, 0.0f, COLOR_RED);
+ipgui_liner_gradient_add_stop(&grad, 1.0f, COLOR_BLUE);
+
+ipgui_line_style_t line_style;
+line_style.paint.type                    = IPGUI_PAINT_GRADIENT;
+line_style.paint.src.grad_src.grad_type  = IPGUI_GRADIENT_TYPE_LINEAR;
+line_style.paint.src.grad_src.grad.liner_grad = grad;
+line_style.opacity = 255;
+line_style.width   = 3;
+line_style.cap     = IPGUI_LINE_CAP_BUTT;
+
+ipgui_line_t line = {{10, 10}, {100, 80}};
+ipgui_draw_line_generic(&surf, NULL, &line, &line_style);
 ```
 
 ### 7.6 多边形绘制
@@ -797,7 +1197,8 @@ ipgui_draw_polygon(&surf, NULL, points, 4, &g_ras, &poly_style);
 | 图像混合 | `ipgui_blend_image_v2()` | `blend_image/ipgui_blend_image.c` |
 | 通用混合 | `ipgui_blend()` | `composite/ipgui_blend.c` |
 | 画点 | `ipgui_draw_pixel()` | `gfx/ipgui_draw_pixel.c` |
-| 画线 | `ipgui_draw_line_classic()` | `gfx/ipgui_draw_line.c` |
+| 画线(经典Wu) | `ipgui_draw_line_classic()` | `gfx/ipgui_draw_line.c` |
+| 画线(通用宽线) | `ipgui_draw_line_generic()` | `gfx/ipgui_draw_line.c` |
 | 画多边形 | `ipgui_draw_polygon()` | `gfx/ipgui_draw_polygon.c` |
 | 画 Box 背景 | `ipgui_draw_box_background()` | `gfx/ipgui_draw_box_background.c` |
 | 画 Box 边框 | `ipgui_draw_box_border()` | `gfx/ipgui_draw_box_border.c` |

@@ -1,5 +1,6 @@
 #include "ipgui_screen.h"
 #include "ipgui_rect_slice.h"
+#include "ipgui_widget.h"
 #include "ipgui_memory.h"
 #include "ipgui_debug.h"
 
@@ -75,7 +76,124 @@ __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
     return IPGUI_ERR_OK;
 }
 
-/* render dirty rect slice of screen */
+/* =========================================================================
+ * 内部：DFS 遍历渲染单个控件及其子树
+ *
+ * 采用 Z-order（先序遍历 DFS）确保：
+ *   - 父控件先于子控件绘制
+ *   - 同级控件按插入顺序绘制
+ *   - 子控件像素覆盖父控件像素（自然叠层）
+ *
+ * 裁剪策略（两级裁剪）：
+ *   1. 控件全局 AABB 与 clip 求交 —— 完全不可见则跳过整棵子树
+ *   2. 父控件边界裁剪 —— 子控件被父控件边界截断（除非 OVERFLOW_VISIBLE）
+ *
+ * 性能要点：
+ *   - 使用 ipgui_aabb_overlap 做快速剔除，避免遍历不可见子树
+ *   - parent_clip 在递归中累积，避免每层都重新计算祖先链
+ * ========================================================================= */
+__IPGUI_STATIC__ void ipgui_screen_render_widget_dfs(
+    struct widget_link_t * link,
+    ipgui_widget_render_ctx_t * ctx)
+{
+    if (!link || !ctx) return;
+
+    ipgui_widget_t * widget;
+
+    /* 根节点 link 不是控件，从 first_child 开始遍历 */
+    struct widget_link_t ** child = &link->first_child;
+    while (*child) {
+        widget = ipgui_container_of(*child, ipgui_widget_t, link);
+
+        /* ---- 步骤 1: 检查可见性 ---- */
+        if (widget->flags & IPGUI_WIDGET_FLAG_INVISIBLE) {
+            child = &((*child)->sib_next);
+            if (*child == link->first_child) break;
+            continue;
+        }
+
+        /* ---- 步骤 2: 计算全局 AABB ---- */
+        ipgui_aabb_t global_aabb;
+        ipgui_widget_abs_pos(widget, &global_aabb);
+
+        /* ---- 步骤 3: 与脏矩形切片(clip)求交 ---- */
+        ipgui_aabb_t intersect;
+        if (0 != ipgui_aabb_overlap(&intersect, &global_aabb, ctx->clip)) {
+            /* 控件完全在脏矩形外，跳过整个子树 */
+            child = &((*child)->sib_next);
+            if (*child == link->first_child) break;
+            continue;
+        }
+
+        /* ---- 步骤 4: 与父控件裁剪区求交 ---- */
+        if (ctx->parent_clip) {
+            ipgui_aabb_t clipped;
+            if (0 != ipgui_aabb_overlap(&clipped, &intersect, ctx->parent_clip)) {
+                /* 完全被父控件裁剪掉，跳过 */
+                child = &((*child)->sib_next);
+                if (*child == link->first_child) break;
+                continue;
+            }
+            intersect = clipped;
+        }
+
+        /* ---- 步骤 5: 计算子控件的累积裁剪区 ---- */
+        ipgui_aabb_t child_clip;
+        ipgui_aabb_t parent_global;
+        ipgui_widget_local_to_global(widget, &parent_global);
+
+        if (widget->flags & IPGUI_WIDGET_FLAG_OVERFLOW_VISIBLE) {
+            /* OVERFLOW_VISIBLE: 不裁剪子控件，继承父级的 parent_clip */
+            child_clip = global_aabb; /* 仅用于和 dirty rect 做交 */
+        } else {
+            /* 默认：子控件被限制在 parent_global 内 */
+            child_clip = parent_global;
+            /* 若父控件已有裁剪约束，取交集 */
+            if (ctx->parent_clip) {
+                if (0 != ipgui_aabb_overlap(&child_clip, &child_clip, ctx->parent_clip)) {
+                    /* 交集为空则不渲染子控件 */
+                    child_clip = parent_global; /* 回退，至少用自身边界 */
+                }
+            }
+        }
+
+        /* ---- 步骤 6: 设置子控件渲染上下文并调用 render ---- */
+        ipgui_widget_render_ctx_t child_ctx;
+        child_ctx.surf        = ctx->surf;
+        child_ctx.clip        = ctx->clip;
+        child_ctx.parent_clip = &child_clip;
+        child_ctx.user_data   = ctx->user_data;
+
+        if (widget->render) {
+            widget->render(widget, &child_ctx);
+        }
+
+        /* ---- 步骤 7: 递归渲染子控件 ---- */
+        if ((*child)->first_child) {
+            /* 为子控件构造裁剪上下文 */
+            ipgui_widget_render_ctx_t sub_ctx;
+            sub_ctx.surf        = ctx->surf;
+            sub_ctx.clip        = ctx->clip;
+            sub_ctx.user_data   = ctx->user_data;
+
+            if (widget->flags & IPGUI_WIDGET_FLAG_OVERFLOW_VISIBLE) {
+                /* 子控件可溢出边界，继承当前 parent_clip */
+                sub_ctx.parent_clip = ctx->parent_clip;
+            } else {
+                /* 子控件受当前控件边界约束 */
+                sub_ctx.parent_clip = &child_clip;
+            }
+
+            ipgui_screen_render_widget_dfs(*child, &sub_ctx);
+        }
+
+        /* ---- 步骤 8: 前进到下一个兄弟节点 ---- */
+        child = &((*child)->sib_next);
+        if (*child == link->first_child)
+            break;
+    }
+}
+
 __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect_slice(
     ipgui_scr_t * scr,
     ipgui_pfb_t * pfb,/* here pfb size is as same as dirty size */
@@ -85,22 +203,38 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect_slice(
     ipgui_coord_t w, h;
     w = ipgui_aabb_width(dirty);
     h = ipgui_aabb_height(dirty);
-    ipgui_memset(pfb->color, 0, w * h * pfb->pix_size);
 
-    // if (!root)
-    //     return;
-    // struct widget_link_t ** child = &root->first_child;
-    // if (ops)
-    //     ops(root, args);
-    // while (*child) {
-    //     if ((*child)->first_child) {
-    //         ipgui_widget_link_foreach_dfs(*child, ops, args);
-    //     } else if (ops) {
-    //         ops(*child, args);
-    //     }
-    //     child = &((*child)->sib_next);
-    //     if (*child == root->first_child)
-    //         break;
+    /* 填充黑色（argb8888/bgra8888 下 0x00000000 = 完全透明黑） */
+    ipgui_memset(pfb->color, 0, (u32_t)w * (u32_t)h * pfb->pix_size);
+
+    /* 构造surf：由pfb切片生成绘制表面 */
+    ipgui_surf_t surf;
+    surf.surf    = * dirty;                        /* 全局坐标区域 */
+    surf.color   = pfb->color;                    /* PFB 首地址 */
+    surf.stride  = (u32_t)w * pfb->pix_size;      /* 每行字节跨度 */
+    surf.pix_fmt = pfb->pix_fmt;
+    surf.pix_size = pfb->pix_size;
+
+    /* 构造渲染上下文 */
+    ipgui_widget_render_ctx_t render_ctx;
+    render_ctx.surf        = &surf;
+    render_ctx.clip        = dirty;
+    render_ctx.parent_clip = (ipgui_aabb_t *)0;   /* 根控件无父裁剪约束 */
+    render_ctx.user_data   = (void *)0;
+
+    /* 遍历控件树，渲染相交控件 */
+    ipgui_screen_render_widget_dfs(&scr->tree.root, &render_ctx);
+
+    // /* 将pfb切片刷新到物理屏幕 */
+    // if (scr->drv && scr->drv->fill_region) {
+    //     scr->drv->fill_region(
+    //         scr,
+    //         dirty->start.x,
+    //         dirty->start.y,
+    //         dirty->end.x,
+    //         dirty->end.y,
+    //         pfb->color,
+    //         surf.stride);
     // }
 }
 
@@ -123,11 +257,19 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect(
     
     ipgui_aabb_t slice_rect;
     while (ipgui_get_rect_slice(&slice_ctx, &slice_rect)) {
-        // ipgui_screen_render_dirty_rect_slice(pfb, &slice_rect);
+        ipgui_screen_render_dirty_rect_slice(scr, pfb, &slice_rect);
     }
 }
 
-/* render screen */
+/* 
+ * ipgui_screen_render
+ * 屏幕渲染主入口——在每次帧刷新时调用。
+ * 流程：
+ *   1. 检查是否有脏区域，无则直接返回（零开销快速路径）
+ *   2. 调用 ipgui_dirty_rect_flush() 做全局最优合并（减少渲染次数）
+ *   3. 遍历合并后的脏矩形池，逐个调用 ipgui_screen_render_dirty_rect()
+ *   4. 渲染完成后重置脏矩形管理器
+ */
 __IPGUI_API__ void ipgui_screen_render(ipgui_scr_t * scr)
 {
     /* check if the screen have dirty region */
@@ -172,5 +314,12 @@ __IPGUI_API__ void ipgui_screen_fill_region(ipgui_scr_t * scr,
 
 __IPGUI_API__ void ipgui_screen_handle_widget_event(ipgui_scr_t * scr, ipgui_widget_evt_t * evt)
 {
+    if (!scr || !evt) return;
 
+    /* 按 Z-order 逆序遍历控件树（最后绘制的在最上面，最先接收到事件）
+     * 找到第一个包含事件坐标的控件，调用其事件处理回调
+     * 当前为预留框架，待控件事件系统完善后实现完整的事件分发逻辑
+     */
+    (void)scr;
+    (void)evt;
 }

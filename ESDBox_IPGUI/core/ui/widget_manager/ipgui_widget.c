@@ -18,6 +18,9 @@ __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent)
     widget->w = 0;
     widget->h = 0;
 
+    /* init flags */
+    widget->flags = IPGUI_WIDGET_FLAG_NONE;
+
     /* init widget tree link node */
     ipgui_widget_link_init(&widget->link);
     /* add to parent's child list */
@@ -33,6 +36,41 @@ __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent)
     widget->render        = 0;
 
     return widget;
+}
+
+/* 设置渲染回调 */
+__IPGUI_API__ void ipgui_widget_set_render(
+    ipgui_widget_t * widget,
+    void (*render)(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx))
+{
+    if (widget)
+        widget->render = render;
+}
+
+/* 设置事件处理回调 */
+__IPGUI_API__ void ipgui_widget_set_event_handler(
+    ipgui_widget_t * widget,
+    void (*handler)(struct ipgui_widget * widget, ipgui_widget_evt_t * evt))
+{
+    if (widget)
+        widget->event_handler = handler;
+}
+
+/* 获取控件所在屏幕 */
+__IPGUI_API__ ipgui_scr_t * ipgui_widget_get_screen(ipgui_widget_t * widget)
+{
+    if (!widget) return (ipgui_scr_t *)0;
+
+    if (IPGUI_YES == ipgui_widget_link_is_detached(&widget->link))
+        return (ipgui_scr_t *)0;
+
+    struct widget_link_t * _root;
+    ipgui_scr_t * scr;
+    _root = ipgui_widget_link_get_root(&widget->link);
+
+    /* 根节点的 link 嵌入在 ipgui_scr_t.tree.root 中 */
+    scr = ipgui_container_of(_root, ipgui_scr_t, tree.root);
+    return scr;
 }
 
 /**
@@ -72,6 +110,34 @@ __IPGUI_API__ void ipgui_widget_abs_pos(ipgui_widget_t * widget, ipgui_aabb_t * 
     r->end.y   = abs_y + widget->h - 1;
 }
 
+/* 将父控件局部坐标转为全局坐标系的 aabb */
+__IPGUI_API__ void ipgui_widget_local_to_global(
+    ipgui_widget_t * widget, ipgui_aabb_t * out)
+{
+    if (!widget || !out) return;
+
+    out->start.x = widget->x;
+    out->start.y = widget->y;
+    out->end.x   = widget->x + widget->w - 1;
+    out->end.y   = widget->y + widget->h - 1;
+
+    if (IPGUI_YES == ipgui_widget_link_is_detached(&widget->link))
+        return;
+
+    struct widget_link_t * _link = &widget->link;
+    ipgui_widget_t * parent;
+    while (_link->parent) {
+        parent = ipgui_container_of(_link->parent, ipgui_widget_t, link);
+        
+        out->start.x += parent->x;
+        out->start.y += parent->y;
+        out->end.x   += parent->x;
+        out->end.y   += parent->y;
+        
+        _link = _link->parent;
+    }
+}
+
 __IPGUI_API__ void ipgui_widget_mark_dirty(ipgui_widget_t * widget)
 {
     if (!widget) return;
@@ -80,13 +146,14 @@ __IPGUI_API__ void ipgui_widget_mark_dirty(ipgui_widget_t * widget)
     if(IPGUI_YES == ipgui_widget_link_is_detached(&widget->link))
         return;
 
+    /* 标记自身为脏 */
+    widget->flags |= IPGUI_WIDGET_FLAG_DIRTY;
+
     /* 获取控件所在的树的根节点tree->link 
      * 再由根节点找到对应的屏幕
      */
-    struct widget_link_t * _root;
-    ipgui_scr_t * scr;
-    _root = ipgui_widget_link_get_root(&widget->link);
-    scr   = ipgui_container_of(_root, ipgui_scr_t, tree.root);
+    ipgui_scr_t * scr = ipgui_widget_get_screen(widget);
+    if (!scr) return;
 
     /* 计算控件的绝对坐标 */
     ipgui_aabb_t dr;
@@ -104,4 +171,3 @@ __IPGUI_API__ void ipgui_widget_mark_dirty(ipgui_widget_t * widget)
     
     ipgui_dirty_rect_add(&scr->dirty, (ipgui_dirty_rect_t *)&dr);
 }
-

@@ -6,25 +6,89 @@
 #include "ipgui_prim.h"
 #include "ipgui_widget_evt.h"
 #include "ipgui_widget_tree.h"
+#include "ipgui_core.h"
+
+typedef struct ipgui_scr_ctx ipgui_scr_t;
+
+/*
+ * 渲染上下文
+ *
+ * 作为 render 回调的参数传递给控件，包含此次渲染所需的所有环境信息。
+ * 设计原则：
+ *   - surf 描述目标绘制表面（PFB 切片），所有绘制操作输出到此表面
+ *   - clip 描述当前脏矩形切片的全局坐标范围，控件依此裁剪不可见部分
+ *   - parent_clip 是父控件链累积的裁剪区（局部坐标），子控件绘制时需联合此约束
+ *   - user_data 预留给未来扩展（动画帧数据、主题上下文等）
+ *
+ * surf 的坐标空间为全局（屏幕）坐标——即 surf.surf 字段描述该 PFB 切片映射到的
+ * 屏幕区域。控件需用 ipgui_widget_abs_pos() 获取全局坐标后再绘制。
+ */
+typedef struct {
+    ipgui_surf_t   * surf;        /* 目标绘制表面（PFB 切片） */
+    ipgui_aabb_t   * clip;        /* 脏矩形区域（全局坐标） */
+    ipgui_aabb_t   * parent_clip; /* 父控件累积裁剪区（局部坐标），可空 */
+    void           * user_data;   /* 预留扩展数据 */
+} ipgui_widget_render_ctx_t;
+
+/* 控件标志位（位掩码，控制渲染与布局行为）*/
+typedef enum {
+    IPGUI_WIDGET_FLAG_NONE              = 0x0000,
+    IPGUI_WIDGET_FLAG_INVISIBLE         = 0x0001,  /* 不可见：跳过渲染，但保留布局空间 */
+    IPGUI_WIDGET_FLAG_OVERFLOW_VISIBLE  = 0x0002,  /* 子控件可超出自身边界绘制（默认裁剪） */
+    IPGUI_WIDGET_FLAG_DIRTY             = 0x0004,  /* 需要重绘 */
+    IPGUI_WIDGET_FLAG_DISABLED          = 0x0008,  /* 禁用：不响应事件 */
+} ipgui_widget_flag_t;
 
 typedef struct ipgui_widget
 {
-    /* private data */
+    /* ---- 扩展数据 ---- */
     void                 * priv_data;
 
-    /* the link node to widget tree */
+    /* ---- 控件树节点 ---- */
     struct widget_link_t   link;
 
-    /* position and size */ /* 控件在父控件内的位置和大小，与父控件区域联合裁剪绘制区 */
+    /* ---- 位置和大小（父控件局部坐标系） ---- */
     ipgui_coord_t          x, y;
     ipgui_coord_t          w, h;
 
-    /* callback functions */
-    void (*render)       (struct ipgui_widget * widget);
-    void (*event_handler)(struct ipgui_widget * widget, ipgui_widget_evt_t * evt);
-}ipgui_widget_t;
+    /* ---- 标志位 ---- */
+    unsigned int           flags;
 
+    /* ---- 回调函数 ---- */
+    void (*render)       (struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx);
+
+    /* 事件处理回调 */
+    void (*event_handler)(struct ipgui_widget * widget, ipgui_widget_evt_t * evt);
+} ipgui_widget_t;
+
+/* ==========================================================================
+ * API
+ * ========================================================================== */
+
+/* 创建控件并挂载到 parent（parent 为 NULL 则创建游离控件，后续需手动挂载） */
 extern __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent);
 
-#endif
+/* 设置渲染回调 */
+extern __IPGUI_API__ void ipgui_widget_set_render(
+    ipgui_widget_t * widget,
+    void (*render)(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx));
 
+/* 设置事件处理回调 */
+extern __IPGUI_API__ void ipgui_widget_set_event_handler(
+    ipgui_widget_t * widget,
+    void (*handler)(struct ipgui_widget * widget, ipgui_widget_evt_t * evt));
+
+/* 获取控件在屏幕中的绝对坐标（不考虑父控件裁剪） */
+extern __IPGUI_API__ void ipgui_widget_abs_pos(ipgui_widget_t * widget, ipgui_aabb_t * r);
+
+/* 标记控件为脏，触发所属屏幕的脏矩形重绘 */
+extern __IPGUI_API__ void ipgui_widget_mark_dirty(ipgui_widget_t * widget);
+
+/* 获取控件所在屏幕（通过 tree.root 反向定位） */
+extern __IPGUI_API__ ipgui_scr_t * ipgui_widget_get_screen(ipgui_widget_t * widget);
+
+/* 将父控件局部坐标转为全局坐标系的 aabb */
+extern __IPGUI_API__ void ipgui_widget_local_to_global(
+    ipgui_widget_t * widget, ipgui_aabb_t * out);
+
+#endif
