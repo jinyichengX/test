@@ -14,19 +14,28 @@ typedef struct ipgui_scr_ctx ipgui_scr_t;
  * 渲染上下文
  *
  * 作为 render 回调的参数传递给控件，包含此次渲染所需的所有环境信息。
- * 设计原则：
- *   - surf 描述目标绘制表面（PFB 切片），所有绘制操作输出到此表面
- *   - clip 描述当前脏矩形切片的全局坐标范围，控件依此裁剪不可见部分
- *   - parent_clip 是父控件链累积的裁剪区（局部坐标），子控件绘制时需联合此约束
- *   - user_data 预留给未来扩展（动画帧数据、主题上下文等）
  *
- * surf 的坐标空间为全局（屏幕）坐标——即 surf.surf 字段描述该 PFB 切片映射到的
- * 屏幕区域。控件需用 ipgui_widget_abs_pos() 获取全局坐标后再绘制。
+ * ===== 坐标空间：控件本地坐标系（Option C） =====
+ *
+ * surf、clip、parent_clip 均处于以当前控件左上角为原点 (0,0) 的本地坐标系。
+ *
+ * 控件绘制时从 (0,0) 开始，widget->w 和 widget->h 即为画布边界。
+ * 无需调用 ipgui_widget_abs_pos()——所有坐标操作均在本地方格内完成。
+ *
+ * 设计原则：
+ *   - surf   : 目标绘制表面（PFB 切片），surf.surf 已平移到控件本地坐标
+ *   - clip   : 脏矩形区域，已平移到控件本地坐标
+ *   - parent_clip : 父控件链累积的裁剪区，已平移到控件本地坐标，可空
+ *   - user_data    : 预留给未来扩展（动画帧数据、主题上下文等）
+ *
+ * 缓冲区偏移计算公式（ipgui_surf_color_get 内部）：
+ *   offset = (y - surf.surf.start.y) * stride + (x - surf.surf.start.x) * pix_size
+ * 只要 x, y 与 surf.surf.start 在同一坐标空间，该公式即正确。
  */
 typedef struct {
-    ipgui_surf_t   * surf;        /* 目标绘制表面（PFB 切片） */
-    ipgui_aabb_t   * clip;        /* 脏矩形区域（全局坐标） */
-    ipgui_aabb_t   * parent_clip; /* 父控件累积裁剪区（局部坐标），可空 */
+    ipgui_surf_t   * surf;        /* 目标绘制表面（控件本地坐标） */
+    ipgui_aabb_t   * clip;        /* 脏矩形区域（控件本地坐标） */
+    ipgui_aabb_t   * parent_clip; /* 父控件累积裁剪区（控件本地坐标），可空 */
     void           * user_data;   /* 预留扩展数据 */
 } ipgui_widget_render_ctx_t;
 

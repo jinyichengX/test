@@ -88,6 +88,12 @@ __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
  *   1. 控件全局 AABB 与 clip 求交 —— 完全不可见则跳过整棵子树
  *   2. 父控件边界裁剪 —— 子控件被父控件边界截断（除非 OVERFLOW_VISIBLE）
  *
+ * 坐标空间策略（Option C — 控件本地坐标系）：
+ *   - DFS 内部裁剪计算使用全局坐标（性能优化，避免重复遍历）
+ *   - 在调用 widget->render() 前，将 surf、clip、parent_clip 平移到
+ *     以控件自身左上角为原点 (0,0) 的本地坐标系
+ *   - 控件绘制代码从 (0,0) 开始，widget->w/h 即为画布边界
+ *
  * 性能要点：
  *   - 使用 ipgui_aabb_overlap 做快速剔除，避免遍历不可见子树
  *   - parent_clip 在递归中累积，避免每层都重新计算祖先链
@@ -112,11 +118,11 @@ __IPGUI_STATIC__ void ipgui_screen_render_widget_dfs(
             continue;
         }
 
-        /* ---- 步骤 2: 计算全局 AABB ---- */
+        /* ---- 步骤 2: 计算全局 AABB（用于裁剪判定） ---- */
         ipgui_aabb_t global_aabb;
         ipgui_widget_abs_pos(widget, &global_aabb);
 
-        /* ---- 步骤 3: 与脏矩形切片(clip)求交 ---- */
+        /* ---- 步骤 3: 与脏矩形切片(clip)求交（全局坐标） ---- */
         ipgui_aabb_t intersect;
         if (0 != ipgui_aabb_overlap(&intersect, &global_aabb, ctx->clip)) {
             /* 控件完全在脏矩形外，跳过整个子树 */
@@ -125,7 +131,7 @@ __IPGUI_STATIC__ void ipgui_screen_render_widget_dfs(
             continue;
         }
 
-        /* ---- 步骤 4: 与父控件裁剪区求交 ---- */
+        /* ---- 步骤 4: 与父控件裁剪区求交（全局坐标） ---- */
         if (ctx->parent_clip) {
             ipgui_aabb_t clipped;
             if (0 != ipgui_aabb_overlap(&clipped, &intersect, ctx->parent_clip)) {
@@ -137,7 +143,7 @@ __IPGUI_STATIC__ void ipgui_screen_render_widget_dfs(
             intersect = clipped;
         }
 
-        /* ---- 步骤 5: 计算子控件的累积裁剪区 ---- */
+        /* ---- 步骤 5: 计算子控件的累积裁剪区（全局坐标，用于后续递归） ---- */
         ipgui_aabb_t child_clip;
         ipgui_aabb_t parent_global;
         ipgui_widget_local_to_global(widget, &parent_global);
@@ -157,30 +163,70 @@ __IPGUI_STATIC__ void ipgui_screen_render_widget_dfs(
             }
         }
 
-        /* ---- 步骤 6: 设置子控件渲染上下文并调用 render ---- */
-        ipgui_widget_render_ctx_t child_ctx;
-        child_ctx.surf        = ctx->surf;
-        child_ctx.clip        = ctx->clip;
-        child_ctx.parent_clip = &child_clip;
-        child_ctx.user_data   = ctx->user_data;
+        /* ---- 步骤 6: 构造控件本地坐标系渲染上下文并调用 render ---- */
+        /*
+         * Option C 坐标转换：将 surf.surf 和 clip 从全局坐标平移
+         * 到以控件自身左上角为原点 (0,0) 的本地坐标系。
+         *
+         * 转换公式：local = global - global_aabb.start
+         *
+         * 缓冲区偏移公式（ipgui_surf_color_get 内部）：
+         *   offset = (y - surf.surf.start.y)*stride + (x - surf.surf.start.x)*pix_size
+         * 该公式在控件本地坐标下依然正确，因为 surf->color 仍指向 PFB 首字节，
+         * 而 (local_y - surf.surf.start.y) = (global_y - widget_abs_y) - (dirty.start.y - widget_abs_y)
+         *                                = global_y - dirty.start.y（与全局坐标系一致）
+         */
+        {
+            ipgui_widget_render_ctx_t local_ctx;
+            ipgui_surf_t              local_surf;
+            ipgui_aabb_t              local_clip;
+            ipgui_aabb_t              local_parent_clip_storage;
 
-        if (widget->render) {
-            widget->render(widget, &child_ctx);
+            /* 复制 surf 结构体，仅平移 surf.surf 的坐标空间 */
+            local_surf = *ctx->surf;
+            local_surf.surf.start.x  = ctx->surf->surf.start.x - global_aabb.start.x;
+            local_surf.surf.start.y  = ctx->surf->surf.start.y - global_aabb.start.y;
+            local_surf.surf.end.x    = ctx->surf->surf.end.x   - global_aabb.start.x;
+            local_surf.surf.end.y    = ctx->surf->surf.end.y   - global_aabb.start.y;
+
+            /* 平移 clip（脏矩形）到控件本地坐标 */
+            local_clip.start.x = ctx->clip->start.x - global_aabb.start.x;
+            local_clip.start.y = ctx->clip->start.y - global_aabb.start.y;
+            local_clip.end.x   = ctx->clip->end.x   - global_aabb.start.x;
+            local_clip.end.y   = ctx->clip->end.y   - global_aabb.start.y;
+
+            /* 平移 parent_clip（父控件累积裁剪区）到控件本地坐标 */
+            if (ctx->parent_clip) {
+                local_parent_clip_storage.start.x = ctx->parent_clip->start.x - global_aabb.start.x;
+                local_parent_clip_storage.start.y = ctx->parent_clip->start.y - global_aabb.start.y;
+                local_parent_clip_storage.end.x   = ctx->parent_clip->end.x   - global_aabb.start.x;
+                local_parent_clip_storage.end.y   = ctx->parent_clip->end.y   - global_aabb.start.y;
+                local_ctx.parent_clip = &local_parent_clip_storage;
+            } else {
+                local_ctx.parent_clip = (ipgui_aabb_t *)0;
+            }
+
+            local_ctx.surf      = &local_surf;
+            local_ctx.clip      = &local_clip;
+            local_ctx.user_data = ctx->user_data;
+
+            if (widget->render) {
+                widget->render(widget, &local_ctx);
+            }
         }
 
-        /* ---- 步骤 7: 递归渲染子控件 ---- */
+        /* ---- 步骤 7: 递归渲染子控件（传递全局坐标上下文） ---- */
         if ((*child)->first_child) {
-            /* 为子控件构造裁剪上下文 */
             ipgui_widget_render_ctx_t sub_ctx;
-            sub_ctx.surf        = ctx->surf;
-            sub_ctx.clip        = ctx->clip;
-            sub_ctx.user_data   = ctx->user_data;
+            sub_ctx.surf      = ctx->surf;
+            sub_ctx.clip      = ctx->clip;
+            sub_ctx.user_data = ctx->user_data;
 
             if (widget->flags & IPGUI_WIDGET_FLAG_OVERFLOW_VISIBLE) {
-                /* 子控件可溢出边界，继承当前 parent_clip */
+                /* 子控件可溢出边界，继承当前 parent_clip（全局坐标） */
                 sub_ctx.parent_clip = ctx->parent_clip;
             } else {
-                /* 子控件受当前控件边界约束 */
+                /* 子控件受当前控件边界约束（全局坐标） */
                 sub_ctx.parent_clip = &child_clip;
             }
 
@@ -207,15 +253,15 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect_slice(
     /* 填充黑色（argb8888/bgra8888 下 0x00000000 = 完全透明黑） */
     ipgui_memset(pfb->color, 0, (u32_t)w * (u32_t)h * pfb->pix_size);
 
-    /* 构造surf：由pfb切片生成绘制表面 */
+    /* 构造surf：由pfb切片生成绘制表面（根级别：全局坐标 = 本地坐标） */
     ipgui_surf_t surf;
-    surf.surf    = * dirty;                        /* 全局坐标区域 */
+    surf.surf    = * dirty;                        /* 脏矩形区域（屏幕绝对坐标） */
     surf.color   = pfb->color;                    /* PFB 首地址 */
     surf.stride  = (u32_t)w * pfb->pix_size;      /* 每行字节跨度 */
     surf.pix_fmt = pfb->pix_fmt;
     surf.pix_size = pfb->pix_size;
 
-    /* 构造渲染上下文 */
+    /* 构造渲染上下文（根级别：控件树根控件位于 (0,0)，全局=本地） */
     ipgui_widget_render_ctx_t render_ctx;
     render_ctx.surf        = &surf;
     render_ctx.clip        = dirty;

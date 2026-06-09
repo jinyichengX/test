@@ -5,7 +5,7 @@ ESDBox_IPGUI/build/*
 build/
 
 # ESDBox_IPGUI 下的测试提示词目录
-ESDBox_IPGUI/测试提示词/
+ESDBox_IPGUI/测试提示词/*
 
 # ESDBox_IPGUI 下的写书提示词目录
 ESDBox_IPGUI/写书提示词/*
