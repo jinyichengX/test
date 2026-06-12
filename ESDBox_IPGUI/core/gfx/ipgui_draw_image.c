@@ -1,6 +1,8 @@
 #include "ipgui_draw_image.h"
 #include "ipgui_debug.h"
 #include "ipgui_image_buf.h"
+#include "ipgui_pixel_lerp.h"
+#include "ipgui_memory.h"
 
 /* some fixed macros */
 #ifndef IPGUI_FIXED_BITS
@@ -188,30 +190,6 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ u8_t * image_pixmap_get(ipgui_image_data_t * i
     return img_data->pixmap + (img_data->stride * y) + img_data->px_size * x;
 }
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_biliner_core_4ch(
-    u8_t * a, u8_t * b, u8_t * c, u8_t * d,
-    u8_t hd, u8_t vd,
-    u8_t * out)  // out[0]=R, out[1]=G, out[2]=B, out[3]=A
-{
-    u32_t w1 = (255 - hd) * (255 - vd);
-    u32_t w2 = hd * (255 - vd);
-    u32_t w3 = vd * (255 - hd);
-    u32_t w4 = hd * vd;
-    
-    for (u8_t i = 0; i < 4; i++) {
-        out[i] = ((u32_t)a[i] * w1 + (u32_t)b[i] * w2 + (u32_t)c[i] * w3 + (u32_t)d[i] * w4 + 32768) >> 16;
-    }
-}
-
-/* linear interpolation algorithm */
-__IPGUI_STATIC__ __IPGUI_INLINE__ u8_t ipgui_liner_core(u8_t a, u8_t b, u8_t d) /* d is scaled 255 (0.0 ~ 1.0 ---> 0 ~ 255)*/
-{
-    /* the five points p,a,b position like below
-     * a--d--p       b
-     */
-    return (u8_t)(((255 - d) * a + b * d + 128) >> 8);
-}
-
 /* 根据直觉设计画图片的API
  * 指定一个表面surf，然后将图钉钉在图片的某个点pivot 类似于鼠标点住这个点进行拖动，
  * 然后再把图钉钉在surf的某个点anchor（可以在surf之外）类似于鼠标拖动到的点，
@@ -315,8 +293,7 @@ __IPGUI_API__ void ipgui_draw_image(
     u8_t * cr_a, * cr_b, * cr_c, * cr_d;/* 插值点周围4点颜色值索引 */
     ipgui_coord_t temp_x, temp_y;
     s32_t alpha, d;/* for edge mask */
-    u8_t a, r, g, b;
-    u8_t cr[4];
+    u8_t cr[10];
     u32_t hd, vd;
     s32_t idx = 0, shift = 8 - IPGUI_FIXED_BITS;
 
@@ -393,21 +370,19 @@ __IPGUI_API__ void ipgui_draw_image(
                 temp_x = IPGUI_FIXED_FLOOR(xo);
                 temp_y = IPGUI_FIXED_FLOOR(yo);
 
-                /* src color */
+                /* get src color */
                 cr_a = image_pixmap_get(img_data, temp_x, temp_y); /* the top left point */
                 cr_b = cr_a + px_sz;
                 cr_c = cr_a + stride;
                 cr_d = cr_c + px_sz;
 
-                /* dst color */
-                ipgui_biliner_core_4ch(cr_a, cr_b, cr_c, cr_d, hd, vd, cr);
+                /* use src color to lerp color */
+                g_pix_lerp[img_data->fmt].bilinear(cr_a, cr_b, cr_c, cr_d, (u8_t)hd, (u8_t)vd, cr);
 
                 /* write to pixel buffer */
-                pixmap[idx * px_sz] = cr[0]; /* need to modify code here like set_image_pix(color_t color, coord_t index) */
-                pixmap[idx * px_sz + 1] = cr[1];
-                pixmap[idx * px_sz + 2] = cr[2];
-                
-                mask_buf[idx ++] = 255;
+                ipgui_memcpy(pixmap + idx * px_sz, cr, px_sz);
+
+                mask_buf[idx++] = 255;
             } else {                /* generate edge mask */
                 if (xo < 0) { /* left edge */
                     if (yo < 0) {
@@ -473,18 +448,13 @@ __IPGUI_API__ void ipgui_draw_image(
                     d = d >> (-shift);
                 }
 
-                /* dst color */
-                a = ipgui_liner_core(cr_a[3], cr_b[3], d);
-                b = ipgui_liner_core(cr_a[0], cr_b[0], d);
-                g = ipgui_liner_core(cr_a[1], cr_b[1], d);
-                r = ipgui_liner_core(cr_a[2], cr_b[2], d);
+                /* use src color to lerp color */
+                g_pix_lerp[img_data->fmt].linear(cr_a, cr_b, (u8_t)d, cr);
 
                 /* write to pixel buffer */
-                pixmap[idx * px_sz] = r; /* need to modify code here like set_image_pix(color_t color, coord_t index) */
-                pixmap[idx * px_sz + 1] = g;
-                pixmap[idx * px_sz + 2] = b;
+                ipgui_memcpy(pixmap + idx * px_sz, cr, px_sz);
 
-                mask_buf[idx ++] = alpha;
+                mask_buf[idx++] = (u8_t)alpha;
             }
 
 _next_pix_inc:

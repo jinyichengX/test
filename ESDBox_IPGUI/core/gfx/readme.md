@@ -52,6 +52,9 @@ __IPGUI_API__ ipgui_edge_coord_t edge_x_at_y(
 8. ipgui_edge_wdf_mask计算x_halfspan是采用逐点步进试探法，可以改为二倍步进 + 二分缩进法
 9. ipgui_draw_image中插值那一块只支持px_fmt为rgb的图像，需要大改
 
+需要注意的地方
+1. 调用ipgui_draw_image，img_data中的px_size不能大于10，因为在函数中写死了u8_t cr[10];
+
 edge_halfplane_mask和edge_wdf_mask的区别：
 edge_halfplane_mask是用于生成一个edge的半平面的mask
 edge_wdf_mask是用于生成一个edge的距离场(width distance-field)的mask，但是只用于整数端点线段！！！
