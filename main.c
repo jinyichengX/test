@@ -206,9 +206,9 @@ static u8_t egui_mask_circle_edge_smoothstep(int32_t signed_dist_256)
 }
 
 #define RENDER_MODE 3
- #define RENDER_MODE 1 /* 鍗曡娓叉煋 */
- #define RENDER_MODE 2 /* 鍗曡娓叉煋 */
- #define RENDER_MODE 3 /* 鍏ㄥ睆娓叉煋 */
+//  #define RENDER_MODE 1 /* 逐点渲染 */
+//  #define RENDER_MODE 2 /* 逐行渲染 */
+//  #define RENDER_MODE 3 /* 逐帧（全屏）渲染 */
 int main(void)
 {
     ipgui_input_dispatcher_t dispatcher;
@@ -362,7 +362,7 @@ int main(void)
     img3_data.h = img3_dsc.h;
 
     ipgui_img_dsc_t img4_dsc;
-    if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/kbm.bmp", &img4_dsc))
+    if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/hellokitty2.bmp", &img4_dsc))
     {
         printf("Failed to load bitmap image, please run the program at the main.c page\n");
         return -1;
@@ -370,7 +370,7 @@ int main(void)
     ipgui_image_data_t img4_data;
     img4_data.pixmap = img4_dsc.pixmap;
     img4_data.px_size = img4_dsc.stride / img4_dsc.w;
-    img4_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
+    img4_data.fmt = IPGUI_IMG_FMT_BGRA8888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
     img4_data.stride = img4_dsc.stride;
     img4_data.w = img4_dsc.w;
     img4_data.h = img4_dsc.h;
@@ -601,10 +601,10 @@ int main(void)
     
     while(1) {
 #if RENDER_MODE == 1
-        for (int y = 0; y < sdl_scr->drv->yreso; y ++) {
-            for (int x = 0; x < sdl_scr->drv->xreso; x ++) {
+        for (int y = 0; y < sdl_scr.drv->yreso; y ++) {
+            for (int x = 0; x < sdl_scr.drv->xreso; x ++) {
 #elif RENDER_MODE == 2
-        for (int y = 0; y < sdl_scr->drv->yreso; y ++) {
+        for (int y = 0; y < sdl_scr.drv->yreso; y ++) {
 #elif RENDER_MODE == 3
 
 #endif
@@ -618,13 +618,13 @@ int main(void)
                 surf1.surf.end.y = y;
 #elif RENDER_MODE == 2
                 ipgui_color_t * color;
-                for (int i = 0; i < sdl_scr->drv->xreso; i++) {
+                for (int i = 0; i < sdl_scr.drv->xreso; i++) {
                     color = (ipgui_color_t *)offline_buffer + i;
                     IPGUI_COLOR_SET((*color), 255, IPGUI_COLOR_WHITE);
                 }
                 surf1.surf.start.x = 0;
                 surf1.surf.start.y = y;
-                surf1.surf.end.x   = sdl_scr->drv->xreso - 1;
+                surf1.surf.end.x   = sdl_scr.drv->xreso - 1;
                 surf1.surf.end.y   = y;
 #elif RENDER_MODE == 3
                 ipgui_color_t * row0 = (ipgui_color_t *)offline_buffer;
@@ -767,12 +767,12 @@ int main(void)
 
                 /* 鐢诲浘缁撴潫 */
 #if RENDER_MODE == 1
-                ipgui_screen_fill_region(sdl_scr, 
+                ipgui_screen_fill_region(&sdl_scr, 
                 x, y, x, y, 
                 surf1.color, surf1.stride);
 #elif RENDER_MODE == 2
-                ipgui_screen_fill_region(sdl_scr, 
-                0, y, sdl_scr->drv->xreso - 1, y, 
+                ipgui_screen_fill_region(&sdl_scr, 
+                0, y, sdl_scr.drv->xreso - 1, y, 
                 surf1.color, surf1.stride);
 #elif RENDER_MODE == 3
                 ipgui_screen_fill_region(&sdl_scr, 

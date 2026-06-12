@@ -42,15 +42,16 @@ __IPGUI_API__ ipgui_edge_coord_t edge_x_at_y(
 
 
 需要继续优化的地方
-1. 画三角形现在的逻辑是逐像素计算mask，效率一般，可以优化掉(已经优化解决)
+1. 画三角形现在的逻辑是逐像素计算mask，效率一般，可以优化掉(已经解决)
 2. ringmask中添加实时计算mask
 3. edgemask没有对水平线的处理
 4. 现在的圆弧端点圆的画法是直接在端点处补圆，而不是用edge切除，这样会导致opacity<255时端点颜色加深
-5. ipgui_draw_line_generic.c完成度不高，需要继续写(已经优化解决)
+5. ipgui_draw_line_generic.c完成度不高，需要继续写(已经解决)
 6. edge_x_at_y除法优化
 7. 直线的圆形端点，需要优化，目前是直接在端点处补圆，会导致当opacity<255时，端点处有半个圆的颜色加深
 8. ipgui_edge_wdf_mask计算x_halfspan是采用逐点步进试探法，可以改为二倍步进 + 二分缩进法
-9. ipgui_draw_image中插值那一块只支持px_fmt为rgb的图像，需要大改
+9. ipgui_draw_image中插值那一块只支持px_fmt为rgb888的图像，需要增加不同像素的插值函数（已经解决）
+10. 为了保证图片质量，ipgui_draw_image现在只支持二次插值，需要支持一次线性插值
 
 需要注意的地方
 1. 调用ipgui_draw_image，img_data中的px_size不能大于10，因为在函数中写死了u8_t cr[10];

@@ -297,7 +297,7 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_bgra8888(const u8_t *a, const 
 }
 
 /* 索引表 */
-static const ipgui_pix_lerp_t g_pix_lerp[IPGUI_IMG_FMT_MAX] = {
+__IPGUI_STATIC__ const ipgui_pix_lerp_t g_pix_lerp[IPGUI_IMG_FMT_MAX] = {
     [IPGUI_IMG_FMT_L8]       = { pix_bilinear_l8,       pix_linear_l8       },
     [IPGUI_IMG_FMT_LA88]     = { pix_bilinear_la88,     pix_linear_la88     },
     [IPGUI_IMG_FMT_RGB565]   = { pix_bilinear_rgb565,   pix_linear_rgb565   },
