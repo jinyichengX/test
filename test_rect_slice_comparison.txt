@@ -1,8 +1,0 @@
-CORRECTNESS: 128/128 passed, 0 failed
-
-===== PERFORMANCE (2M rects each) =====
-  100x100  sl=99      orig= 0.3641s  opt= 0.2834s  speedup= 1.28x  (orig=    2ns, opt=    1ns)
-  100x100  sl=100     orig= 0.2872s  opt= 0.2391s  speedup= 1.20x  (orig=    1ns, opt=    1ns)
-  100x100  sl=5000    orig= 0.0073s  opt= 0.0081s  speedup= 0.91x  (orig=    2ns, opt=    2ns)
-  200x50   sl=120     orig= 0.3504s  opt= 0.3227s  speedup= 1.09x  (orig=    2ns, opt=    2ns)
-  200x100  sl=200     orig= 0.2864s  opt= 0.2455s  speedup= 1.17x  (orig=    1ns, opt=    1ns)

@@ -1,3 +1,5 @@
+﻿
+
 // #include "ipgui_queue.h"
 // #include "ipgui_timer.h"
 // #include "ipgui_list.h"
@@ -35,12 +37,13 @@
 // #include "open_sans.h"
 // #include "ipgui_box_style.h"
 // #include "ipgui_draw_box_background.h"
-// #include "ipgui_draw_box_shadow.h"
+// // #include "ipgui_draw_box_shadow.h"
 // #include "ipgui_draw_box_border.h"
 // #include "ipgui_edge_halfplane_mask.h"
 // #include "ipgui_edge_wdf_mask.h"
 // #include "ipgui_draw_triangle.h"
 // #include "ipgui_draw_arc.h"
+// #include "ipgui_input_dispatcher.h"
 // #include "ipgui_draw_polygon.h"
 // #include "ipgui_draw_builtin_font.h"
 // #include "ipgui_gradient_color.h"
@@ -70,14 +73,23 @@
 // }
 
 // clock_t start, end;
+// ipgui_scr_drv_t sdl_drv = {
+// .xreso = 800,
+// .yreso = 480,
 
+// .pri_data    = &g_sdl_private,
+// .put_pixel   = sdl_put_pixel,
+// .fill_region = sdl_fill_region,
+// // .close       = sdl_exit,
+// .flush       = sdl_flush,
+// };
 
 // ipgui_scr_t * sdl_scr;
 // ipgui_color_t g_color;
 // ipgui_surf_t surf;
 // ipgui_aabb_t clip;
 // int cnt11 = 0;
-
+// ipgui_input_src_id_t pointer_id;
 // #define EGUI_ALPHA_100 255
 // #define EGUI_MASK_CIRCLE_AA_HALF_256  192
 // static u8_t egui_mask_circle_edge_smoothstep(int32_t signed_dist_256)
@@ -117,9 +129,9 @@
 // }
 
 // #define RENDER_MODE 3
-// // #define RENDER_MODE 1 /* 单行渲染 */
-// // #define RENDER_MODE 2 /* 单行渲染 */
-// // #define RENDER_MODE 3 /* 全屏渲染 */
+//  #define RENDER_MODE 1 /* 鍗曡娓叉煋 */
+//  #define RENDER_MODE 2 /* 鍗曡娓叉煋 */
+//  #define RENDER_MODE 3 /* 鍏ㄥ睆娓叉煋 */
 // int main(void)
 // {
 //     ipgui_input_dispatcher_t dispatcher;
@@ -127,14 +139,14 @@
 
 //     ipgui_input_src_t touch_src;
 //     ipgui_input_src_t key_src;
-//     ipgui_scr_t main_screen;
+//     ipgui_scr_t sdl_scr;
     
-//     // 2. 注册输入源和屏幕
+//     // 2. 娉ㄥ唽杈撳叆婧愬拰灞忓箷
 //     s32_t touch_id = ipgui_dispatcher_register_input_src(&dispatcher, &touch_src);
 //     s32_t key_id = ipgui_dispatcher_register_input_src(&dispatcher, &key_src);
-//     s32_t main_scr_id = ipgui_dispatcher_register_screen(&dispatcher, &main_screen);
+//     s32_t main_scr_id = ipgui_dispatcher_register_screen(&dispatcher, &sdl_scr);
 
-//     // 3. 绑定映射
+//     // 3. 缁戝畾鏄犲皠
 //     ipgui_bind_input_src_with_screen(&dispatcher, touch_id, main_scr_id);
 //     ipgui_bind_input_src_with_screen(&dispatcher, key_id, main_scr_id);
 
@@ -146,20 +158,19 @@
 //     }
 
 //     /* GUI */
-//     sdl_scr = ipgui_sdl_screen_create();
-//     clear_fucking_screen(sdl_scr);
+//     ipgui_screen_init(&sdl_scr, &sdl_drv);
+//     ipgui_sdl_screen_init(&sdl_scr);
 
-
-//     surf.color = ((struct sdl_private_t *)sdl_scr->drv->pri_data)->framebuffer;
+//     surf.color = ((struct sdl_private_t *)sdl_scr.drv->pri_data)->framebuffer;
 //     surf.surf.start.x = 0;
 //     surf.surf.start.y = 0;
-//     surf.surf.end.x = sdl_scr->drv->xreso - 1;
-//     surf.surf.end.y = sdl_scr->drv->yreso - 1;
+//     surf.surf.end.x = sdl_scr.drv->xreso - 1;
+//     surf.surf.end.y = sdl_scr.drv->yreso - 1;
 //     surf.pix_fmt = PIX_FMT_RGBA8888;
 //     surf.pix_size = 4;
 //     // surf.pix_fmt = PIX_FMT_RGB888;
 //     // surf.pix_size = 3;
-//     surf.stride = sdl_scr->drv->xreso * surf.pix_size;
+//     surf.stride = sdl_scr.drv->xreso * surf.pix_size;
 
 //     clip.start.x = 0;
 //     clip.start.y = 0;
@@ -240,7 +251,7 @@
 //     ipgui_image_data_t img_data;
 //     img_data.pixmap = img_dsc.pixmap;
 //     img_data.px_size = img_dsc.stride / img_dsc.w;
-//     img_data.fmt = IPGUI_IMG_FMT_BGR888;//可以改成L8或者LA88或者RGB565试试，虽然这么改逻辑上不对，但是有效果
+//     img_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
 //     img_data.stride = img_dsc.stride;
 //     img_data.w = img_dsc.w;
 //     img_data.h = img_dsc.h;
@@ -254,7 +265,7 @@
 //     ipgui_image_data_t img2_data;
 //     img2_data.pixmap = img2_dsc.pixmap;
 //     img2_data.px_size = img2_dsc.stride / img2_dsc.w;
-//     img2_data.fmt = IPGUI_IMG_FMT_BGR888;//可以改成L8或者LA88或者RGB565试试，虽然这么改逻辑上不对，但是有效果
+//     img2_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
 //     img2_data.stride = img2_dsc.stride;
 //     img2_data.w = img2_dsc.w;
 //     img2_data.h = img2_dsc.h;
@@ -268,7 +279,7 @@
 //     ipgui_image_data_t img3_data;
 //     img3_data.pixmap = img3_dsc.pixmap;
 //     img3_data.px_size = img3_dsc.stride / img3_dsc.w;
-//     img3_data.fmt = IPGUI_IMG_FMT_BGR888;//可以改成L8或者LA88或者RGB565试试，虽然这么改逻辑上不对，但是有效果
+//     img3_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
 //     img3_data.stride = img3_dsc.stride;
 //     img3_data.w = img3_dsc.w;
 //     img3_data.h = img3_dsc.h;
@@ -282,7 +293,7 @@
 //     ipgui_image_data_t img4_data;
 //     img4_data.pixmap = img4_dsc.pixmap;
 //     img4_data.px_size = img4_dsc.stride / img4_dsc.w;
-//     img4_data.fmt = IPGUI_IMG_FMT_BGR888;//可以改成L8或者LA88或者RGB565试试，虽然这么改逻辑上不对，但是有效果
+//     img4_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
 //     img4_data.stride = img4_dsc.stride;
 //     img4_data.w = img4_dsc.w;
 //     img4_data.h = img4_dsc.h;
@@ -291,9 +302,8 @@
 //     pivot.x = img_dsc.w / 2;
 //     pivot.y = img_dsc.h / 2;
 //     ipgui_point_t anchor;
-//     anchor.x = sdl_scr->drv->xreso / 2 + 200;
-//     anchor.y = sdl_scr->drv->yreso / 2;
-// // anchor.x = anchor.y = 0;
+//     anchor.x = sdl_scr.drv->xreso / 2 + 200;
+//     anchor.y = sdl_scr.drv->yreso / 2;
 
 //     ipgui_image_draw_style_t img_style;
 //     img_style.blend_mode = 0;
@@ -350,7 +360,7 @@
 //     // ipgui_image_data_t img_data;
 //     // img_data.pixmap = img_dsc.pixmap;
 //     // img_data.px_size = img_dsc.stride / img_dsc.w;
-//     // img_data.fmt = IPGUI_IMG_FMT_BGR888;//可以改成L8或者LA88或者RGB565试试，虽然这么改逻辑上不对，但是有效果
+//     // img_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
 //     // img_data.stride = img_dsc.stride;
 //     // img_data.w = img_dsc.w;
 //     // img_data.h = img_dsc.h;
@@ -507,17 +517,6 @@
 
 //     surf1.color = offline_buffer;
 
-
-//     ipgui_box_shadow_style_t shadow_style;
-//     IPGUI_COLOR_SET(shadow_style.color, 255, IPGUI_COLOR_4);
-//     shadow_style.blur          = 20;
-//     shadow_style.spread        = 0;
-//     shadow_style.offset_x      = 0;
-//     shadow_style.offset_y      = 0;
-//     shadow_style.corner_radius = 20;
-//     shadow_style.opacity       = 255;
-//     shadow_style.blend_mode    = 0;
-
 //     static u32_t degree = 20;
 //     static u32_t degree1 = 0;
 //     float sx = 0.5;
@@ -552,18 +551,18 @@
 //                 surf1.surf.end.y   = y;
 // #elif RENDER_MODE == 3
 //                 ipgui_color_t * row0 = (ipgui_color_t *)offline_buffer;
-//                 for (int i = 0; i < sdl_scr->drv->xreso; i ++) {
+//                 for (int i = 0; i < sdl_scr.drv->xreso; i ++) {
 //                     IPGUI_COLOR_SET(row0[i], 255, IPGUI_COLOR_WHITE);
 //                 }
-//                 for (int y = 1; y < sdl_scr->drv->yreso; y ++) {
+//                 for (int y = 1; y < sdl_scr.drv->yreso; y ++) {
 //                     memcpy(offline_buffer + y * surf1.stride, offline_buffer, surf1.stride);
 //                 }
 //                 surf1.surf.start.x = 0;
 //                 surf1.surf.start.y = 0;
-//                 surf1.surf.end.x   = sdl_scr->drv->xreso - 1;
-//                 surf1.surf.end.y   = sdl_scr->drv->yreso- 1;
+//                 surf1.surf.end.x   = sdl_scr.drv->xreso - 1;
+//                 surf1.surf.end.y   = sdl_scr.drv->yreso- 1;
 // #endif
-//                 /* 画图开始 */
+//                 /* 鐢诲浘寮€濮?*/
 
 //                 ipgui_draw_image(
 //                     &surf1,
@@ -575,8 +574,16 @@
 //                     &img_style
 //                 );
 
-//                 ipgui_img_geo_trans_t trans;
+//                 ipgui_draw_pixel(
+//                     &surf1, 
+//                     NULL,
+//                     anchor.x, anchor.y,
+//                     g_color,
+//                     255,
+//                     255,
+//                     0);
 
+//                 ipgui_img_geo_trans_t trans;
 //                 ipgui_point_t pivot1;
 //                 pivot1.x = 190;
 //                 pivot1.y = 190;
@@ -588,7 +595,7 @@
 //                 anchor1.x = 200;
 //                 anchor1.y = 200;
 //                 ipgui_draw_image( 
-//                     &surf1,       //这个函数带变换参数时只支持RGB888格式的图像，需要优化
+//                     &surf1,       //杩欎釜鍑芥暟甯﹀彉鎹㈠弬鏁版椂鍙敮鎸丷GB888鏍煎紡鐨勫浘鍍忥紝闇€瑕佷紭鍖?
 //                     NULL,
 //                     &img2_data,
 //                     &trans.pivot,
@@ -596,6 +603,7 @@
 //                     (ipgui_trans_mat_t *)&trans.mat,
 //                     &img2_style
 //                 );
+
 
 
 //                 ipgui_draw_arc(
@@ -610,10 +618,10 @@
 //                     &tri_p1, &tri_p2, &tri_p3,
 //                     &tri_style);
 
-//                 ipgui_draw_box_shadow(&surf1, 
-//                     NULL, 
-//                     &box, 
-//                     &shadow_style);
+//                 // ipgui_draw_box_shadow(&surf1, 
+//                 //     NULL, 
+//                 //     &box, 
+//                 //     &shadow_style);
 
 //                 ipgui_draw_box_background(
 //                     &surf1,
@@ -670,7 +678,7 @@
 //                 ipgui_point_t anchor2;
 //                 anchor2.x = 400;
 //                 anchor2.y = 240;
-//                 ipgui_draw_image(//这个函数带变换参数时只支持RGB888格式的图像，需要优化
+//                 ipgui_draw_image(//杩欎釜鍑芥暟甯﹀彉鎹㈠弬鏁版椂鍙敮鎸丷GB888鏍煎紡鐨勫浘鍍忥紝闇€瑕佷紭鍖?
 //                     &surf1,
 //                     NULL,
 //                     &img4_data,
@@ -680,7 +688,7 @@
 //                     &img4_style
 //                 );
 
-//                 /* 画图结束 */
+//                 /* 鐢诲浘缁撴潫 */
 // #if RENDER_MODE == 1
 //                 ipgui_screen_fill_region(sdl_scr, 
 //                 x, y, x, y, 
@@ -690,8 +698,8 @@
 //                 0, y, sdl_scr->drv->xreso - 1, y, 
 //                 surf1.color, surf1.stride);
 // #elif RENDER_MODE == 3
-//                 ipgui_screen_fill_region(sdl_scr, 
-//                     0, 0, sdl_scr->drv->xreso - 1, sdl_scr->drv->yreso - 1, 
+//                 ipgui_screen_fill_region(&sdl_scr, 
+//                     0, 0, sdl_scr.drv->xreso - 1, sdl_scr.drv->yreso - 1, 
 //                     surf1.color, surf1.stride);
 // #endif
 
@@ -703,13 +711,13 @@
 // #elif RENDER_MODE == 3
         
 // #endif
-//         sdl_scr->drv->flush(sdl_scr);
+//         sdl_scr.drv->flush(&sdl_scr);
 //         arc.start += 1;
 //         degree += 2;
 //         degree1 -= 1;
 //         line.start.y --;
 //         arc_style.paint.src.grad_src.grad.conic_grad.angle_start ++;
-//         /* 改变位置 */
+//         /* 鏀瑰彉浣嶇疆 */
 //         if(cnt11 ++ < 400) {
 //             sx += 0.007;
 //                         sy += 0.007;
@@ -751,7 +759,7 @@
 //             cnt11 = 0;
 //         }
 
-//         /* 心跳 */
+//         /* 蹇冭烦 */
 //         ipgui_loop_def(2);
 //         Sleep(2);
 //     }

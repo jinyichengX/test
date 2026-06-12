@@ -2,69 +2,95 @@
 
 ## 本书立意
 
-嵌入式图形系统是一个交叉领域：它既需要计算机图形学的理论基础，又必须直面嵌入式环境的严苛约束——有限的处理器主频、匮乏的随机存储器、没有硬件浮点单元，以及常常只有十几KB的代码空间。ESDBox_IPGUI 正是在这些约束下从零构建的一套图形渲染引擎，纯 C 语言实现，覆盖从基础像素着色到完整控件系统的全链路。
+本书是一部关于嵌入式图形系统的技术专著。它以 ESDBox_IPGUI 引擎的完整工程实现为蓝本，从最底层的像素着色原理出发，贯穿整个图形渲染管线的建构过程，最终抵达完整控件系统的渲染调度机制。
 
-本书聚焦于该引擎的两个核心子模块——**图形绘制引擎（core/gfx）** 与**颜色合成系统（core/composite）**。全书采用"先读源码、再讲设计"的叙述方式：每一节都从实际源码出发，分析其数据结构、核心算法、边界处理和性能优化策略，最终回归到架构设计层面的思考。读者将看到的不是抽象的伪代码或原理示意，而是可以直接编译运行的工程代码及其背后的取舍逻辑。
+ESDBox_IPGUI 是一套纯 C 语言实现的嵌入式 2D GUI 引擎，代码总量超过三万行，覆盖从基础内存管理、定点数坐标系统、反走样图元绘制、Alpha 颜色合成到控件树遍历与脏矩形优化的全链路技术栈。本书聚焦其中两个最核心的子系统——图形绘制引擎（gfx）与颜色合成系统（composite）——并对渲染调度层的脏矩形机制与屏幕刷新管线进行完整拆解。
+
+本书的核心立场是：**理解一个图形系统的唯一方法，是追踪从用户指令到屏幕像素的完整数据流**。为此，每一节都从实际源码出发，分析数据结构的设计动机、核心算法的正确性论证、边界条件的处理策略以及性能优化的量化依据。书中引用的所有代码片段均来自项目真实源码，并标注了对应的文件路径和行号。
 
 ## 适用读者
 
-- 具有 C 语言基础，希望理解图形渲染底层实现的开发者
-- 正在构建或维护嵌入式 GUI 系统的工程师
-- 对实时图形算法和嵌入式优化策略感兴趣的研究者
-- 需要参考完整工程实践来设计自研渲染模块的架构师
+- 具备 C 语言基础、希望系统理解嵌入式图形渲染底层机制的开发者
+- 正在自主构建或维护嵌入式 GUI 框架的工程师
+- 对实时图形算法（反走样、有符号距离场、三角形光栅化、多边形活动边表）有研究兴趣的学者
+- 需要从完整工程实践中提取架构设计参考的系统架构师
+
+本书不要求读者具备计算机图形学的预备知识——第一章会从零开始建立坐标系统和反走样的直觉。但读者需要对 C 语言的结构体、联合体、指针运算和位操作有基本的熟悉。
 
 ## 阅读建议
 
-两章构成递进关系。第一章建立的"遮罩"概念和"表面坐标系"是第二章理解 Paint 分发器和 premultiplied alpha 混合的基础。建议按顺序阅读。
+本书共分两章，采用递进式结构。
 
-每节内容独立成篇：你可以在需要时直接跳转到某一节，查阅特定的算法或数据结构。但理解完整的设计动机，需要跟随全书脉络。
+第一章建立了"子像素坐标系"和"遮罩数组"两个核心概念，它们是理解整个渲染管线的基础。如果你跳过了第一章直奔第二章，会遇到大量无法理解的前置引用。
+
+每节内容在逻辑上是自包含的。你可以将任一节作为独立的技术参考文档查阅，但理解整个系统的设计动机，仍然需要跟随全书的脉络。文中大量交叉引用了前文的术语和概念，建议首读时不要跳节。
+
+在每章末尾，我附上了"重点知识回顾"和"思考问题"。前者是帮你快速梳理核心概念的索引，后者是帮助你验证理解深度的自测工具。如果你能独立回答所有思考问题，说明你已经掌握该章的核心思想。
 
 ## 工程结构导航
 
+为保证叙述的准确性，全书引用的代码均来自 ESDBox_IPGUI 工程的实际文件。以下是本书涉及的核心模块的目录结构：
+
 ```
-ESDBox_IPGUI/
-├── core/gfx/                    # 第一章：图形绘制引擎
-│   ├── ipgui_edge_halfplane_mask.c/h  # 半平面边缘遮罩（2.6 定点数）
-│   ├── ipgui_edge_wdf_mask.c/h        # 宽线厚度遮罩
-│   ├── ipgui_ring_mask.c/h            # 环形遮罩（圆角矩形 SDF + LRU 缓存）
-│   ├── ipgui_draw_line.c/h            # 线段绘制（Wu 经典 + 宽线 + 线帽 + 渐变）
-│   ├── ipgui_draw_arc.c/h             # 弧/圆/扇形/圆环统一接口
-│   ├── ipgui_draw_polygon.c/h         # 多边形光栅化（扫描线 + AVL 活动边表）
-│   ├── ipgui_draw_box_background.c/h  # Box 背景绘制
-│   ├── ipgui_draw_box_border.c/h      # Box 边框绘制
-│   ├── ipgui_draw_box_shadow.c/h      # Box 阴影（SDF + 1D 多项式 CDF 近似）
-│   ├── ipgui_gradient_color.c/h       # 渐变色彩（线性/径向/锥形）
-│   ├── ipgui_mask_gradient.c/h        # 遮罩渐变
-│   ├── ipgui_image_buf.c/h            # 图像缓冲区管理
-│   └── ipgui_mask_buf.c/h             # 遮罩缓冲区管理
-├── core/composite/              # 第二章：颜色合成系统
-│   ├── ipgui_blend.c/h                # Paint 分发器
-│   ├── ipgui_blend_color.c/h          # 纯色混合（函数表 + packed blend）
-│   ├── ipgui_blend_gradient_color.c/h # 渐变混合（方向优化快速通道）
-│   └── ipgui_blend_image.c/h          # 图像混合（全像素格式交叉矩阵）
-└── al/hal/                      # 渲染调度层
-    ├── ipgui_screen.c/h               # 屏幕渲染主入口
-    └── ipgui_rect_slice.c/h           # 矩形切片器（贪心列优先 + 除法消除）
+core/gfx/                               ── 第一章：图形绘制引擎
+├── ipgui_edge_halfplane_mask.c/h       ── 半平面边缘遮罩（Q26.6 定点数反走样）
+├── ipgui_edge_wdf_mask.c/h             ── WDF 宽线分布函数遮罩
+├── ipgui_ring_mask.c/h                 ── 环形遮罩（圆角矩形 SDF + LRU 缓存）
+├── ipgui_mask_gradient.c/h             ── 遮罩渐变
+├── ipgui_mask_buf.c/h                  ── 遮罩缓冲区管理
+├── ipgui_image_buf.c/h                 ── 图像缓冲区管理
+├── ipgui_image_mask.c/h                ── 图像遮罩生成
+├── ipgui_draw_line.c/h                 ── 线段绘制（Wu 经典细线 + 宽线 + 线帽）
+├── ipgui_draw_arc.c/h                  ── 弧/圆/扇形/圆环统一接口
+├── ipgui_draw_triangle.c/h             ── 三角形光栅化（半平面遮罩 + 三点排序法）
+├── ipgui_draw_polygon.c/h              ── 多边形光栅化（扫描线 + AVL 活动边表）
+├── ipgui_draw_pixel.c/h                ── 单像素混合绘制
+├── ipgui_draw_box_background.c/h       ── Box 背景（圆角矩形分解策略）
+├── ipgui_draw_box_border.c/h           ── Box 边框（四条边 + 四个圆角）
+└── ipgui_draw_box_shadow.c/h           ── Box 阴影（SDF + 1D 多项式 CDF 近似）
+
+core/composite/                         ── 第二章：颜色合成系统
+├── ipgui_blend.c/h                     ── Paint 分发器
+├── blend_color/ipgui_blend_color.c/h   ── 纯色混合（函数表 + packed blend）
+├── blend_gradient/ipgui_blend_gradient_color.c/h ── 渐变混合（方向优化快速通道）
+└── blend_image/ipgui_blend_image.c/h   ── 图像混合（格式交叉矩阵）
+
+core/ui/widget_manager/                 ── 渲染调度层
+├── ipgui_dirty_rect.c/h                ── 脏矩形管理器（DFS 收集 + 相邻合并）
+└── ipgui_widget_tree.c/h               ── 控件树遍历
+
+al/hal/                                 ── 硬件抽象 + 渲染入口
+├── ipgui_screen.c/h                    ── 屏幕渲染主入口（PFB 分配 + 逐片渲染）
+└── ipgui_rect_slice.c/h               ── 矩形切片器（贪心列优先 + 除法消除）
+
+base/inc/                               ── 基础设施
+├── ipgui_memory.h                      ── 内存管理（内存池 + 多策略分配器）
+├── ipgui_avl.h                         ── AVL 自平衡二叉搜索树
+├── ipgui_membox.h                      ── 固定大小内存块分配器
+└── ipgui_list.h                        ── 双向链表（内核风格 list_head）
 ```
 
 ## 排版约定
 
-- **常量**：`IPGUI_COLOR_A`、`MASK_RB`（全大写 + 下划线）
-- **函数**：`ipgui_blend()`、`ipgui_edge_wdf_mask()`（小写 + 下划线）
-- **类型**：`ipgui_color_t`、`ipgui_surf_t`（小写 + `_t` 后缀）
-- **文件路径**：`core/gfx/ipgui_draw_line.c`（等宽字体）
-- 书中出现的所有源码片段均来自真实工程文件，行号与文件实际行号一致
+全书遵循以下排版规则：
 
-## 术语对照
+- **常量/宏**：`IPGUI_PIXEL_BITS`、`EDGE_EMBED_NUM`（全大写+下划线）
+- **函数名**：`ipgui_blend()`、`ipgui_edge_wdf_mask()`（小写+下划线，前缀 `ipgui_`）
+- **类型名**：`ipgui_color_t`、`ipgui_surf_t`（小写+下划线，后缀 `_t`）
+- **文件路径**：`core/gfx/ipgui_draw_line.c`（使用等宽字体 Markdown 包裹）
+- **代码片段**：所有源码均来自真实工程文件，行号与源文件保持一致
 
-| 术语 | 对应概念 | 说明 |
-|------|---------|------|
-| 遮罩（Mask） | Alpha mask / coverage mask | 0-255 的通道权重数组，控制颜色的像素级透明度 |
-| 表面（Surface） | Framebuffer slice | 描述一段像素缓冲区的元信息（坐标、跨度、格式） |
-| 脏矩形（Dirty rect） | Invalidation region | 屏幕中需要重绘的区域 |
-| PFB（Partial FB） | 部分帧缓冲区 | 由于内存限制，每次只分配覆盖一个脏矩形的像素缓冲区 |
-| Premultiplied alpha | 预乘 Alpha | 颜色通道在混合前已与 alpha 通道相乘的格式 |
-| 26.6 定点数 | Q26.6 fixed-point | 32 位整数，高 26 位为整数部，低 6 位为小数部（1/64 精度） |
-| SDF | Signed Distance Field | 有符号距离场：每个像素存储到最近形状边界的距离 |
+## 术语表
 
----
+| 术语 | 缩写 | 定义 |
+|------|------|------|
+| 遮罩（Mask） | mask | 0-255 的 u8 数组，控制颜色在像素级的作用强度 |
+| 表面（Surface） | surf | 描述一段像素缓冲区的元信息（坐标范围、跨度、像素格式） |
+| 脏矩形（Dirty rect） | DR | 屏幕上需要重绘的矩形区域 |
+| 部分帧缓冲（Partial FB） | PFB | 因内存限制而只覆盖脏矩形的临时像素缓冲区 |
+| 预乘 Alpha | PM Alpha | 颜色通道在混合前已与 Alpha 通道相乘的存储格式 |
+| Q26.6 定点数 | - | 32 位整数，高 26 位整数部 / 低 6 位小数部（精度 1/64） |
+| 有符号距离场 | SDF | 每个像素存储到最近形状边界的带符号距离 |
+| 活动边表 | AET | 扫描线算法中维护当前扫描线与多边形相交边的数据结构 |
+| 包容性填充规则 | Non-zero / Even-odd | 多边形填充的两种判定规则 |
+| 半平面（Halfplane） | - | 二维平面被一条有向直线分割成的两个区域 |

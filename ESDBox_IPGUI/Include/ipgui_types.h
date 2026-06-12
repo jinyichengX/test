@@ -29,7 +29,7 @@ typedef enum
     IPGUI_ERR_QUEUE_FULL        = 17,
     IPGUI_ERR_QUEUE_EMPTY       = 18,
     IPGUI_ERR_LOGIC             = 19,
-    IPGUI_ERR_CHILDREN_LIMIT_EXCEEDED = 19,
+    IPGUI_ERR_CHILDREN_LIMIT_EXCEEDED = 20,
 
     /* bmp file header check */
     IPGUI_ERR_BMP_FIL_HDR_STRUCT_LEN,

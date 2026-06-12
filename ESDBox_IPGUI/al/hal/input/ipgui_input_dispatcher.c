@@ -20,6 +20,17 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ u32_t generic_ffs(u32_t v)
     return ret;
 }
 
+/*
+ * bitmap 末字掩码：当 INPUT_SRC_MAX / SCREEN_MAX 不是 32 的整数倍时，
+ * 末字中仅有低 N 位有效，其余位在 init 时被置 0。
+ * alloc 函数中 generic_ffs 天然不会检索到 0 bit，无需运行时分支。
+ */
+__IPGUI_STATIC__ __IPGUI_INLINE__ u32_t bmp_last_mask(u32_t max)
+{
+    u32_t rem = max & 31;
+    return rem ? ((1u << rem) - 1) : ~0U;
+}
+
 __IPGUI_STATIC__ ipgui_input_src_id_t ipgui_alloc_id_for_input_src(
     ipgui_input_dispatcher_t * dispatcher)
 {
@@ -28,15 +39,11 @@ __IPGUI_STATIC__ ipgui_input_src_id_t ipgui_alloc_id_for_input_src(
 
     if (!dispatcher) return -1;
 
-    /* search for a free bit in bmp */
     for (; iter < dispatcher->input_src_bmp_iter_max; ++ iter) {
-        if (iter < dispatcher->input_src_bmp_iter_max - 1)
-            temp = dispatcher->input_src_bmp[iter] & (~0U);
-        else
-            temp = dispatcher->input_src_bmp[iter] & dispatcher->input_src_bmp_last_mask;
+        temp = dispatcher->input_src_bmp[iter];
         bit = generic_ffs(temp);
         if (bit) {
-            dispatcher->input_src_bmp[iter] &= ~(1 << (bit - 1));
+            dispatcher->input_src_bmp[iter] &= ~(1u << (bit - 1));
             id = (iter << 5) + bit;
             break;
         }
@@ -53,15 +60,11 @@ __IPGUI_STATIC__ ipgui_scr_id_t ipgui_alloc_id_for_screen(
 
     if (!dispatcher) return -1;
 
-    /* search for a free bit in bmp */
     for (; iter < dispatcher->scr_bmp_iter_max; ++ iter) {
-        if (iter < dispatcher->scr_bmp_iter_max - 1)
-            temp = dispatcher->scr_bmp[iter] & (~0U);
-        else
-            temp = dispatcher->scr_bmp[iter] & dispatcher->scr_bmp_last_mask;
+        temp = dispatcher->scr_bmp[iter];
         bit = generic_ffs(temp);
         if (bit) {
-            dispatcher->scr_bmp[iter] &= ~(1 << (bit - 1));
+            dispatcher->scr_bmp[iter] &= ~(1u << (bit - 1));
             id = (iter << 5) + bit;
             break;
         }
@@ -75,19 +78,24 @@ __IPGUI_API__ void ipgui_input_dispatcher_init(ipgui_input_dispatcher_t * dispat
     ipgui_memset(dispatcher, 0, sizeof(ipgui_input_dispatcher_t));
 
     s32_t i;
-    /* init input src manager */
+    u32_t last_idx;
+
+    /* ---- init input src bitmap ---- */
     dispatcher->input_src_bmp_iter_max = IPGUI_ARRAY_LEN(dispatcher->input_src_bmp);
     for (i = 0; i < dispatcher->input_src_bmp_iter_max; i ++) {
         dispatcher->input_src_bmp[i] = ~0U;
     }
-    dispatcher->input_src_bmp_last_mask = (~0U >> (32 - (INPUT_SRC_MAX - ((INPUT_SRC_MAX >> 5) << 5))));
+    /* 末字未用 bit 置 0：generic_ffs 只检索有效 bit */
+    last_idx = dispatcher->input_src_bmp_iter_max - 1;
+    dispatcher->input_src_bmp[last_idx] &= bmp_last_mask(INPUT_SRC_MAX);
 
-    /* init screen manager */
+    /* ---- init screen bitmap ---- */
     dispatcher->scr_bmp_iter_max = IPGUI_ARRAY_LEN(dispatcher->scr_bmp);
     for (i = 0; i < dispatcher->scr_bmp_iter_max; i ++) {
         dispatcher->scr_bmp[i] = ~0U;
     }
-    dispatcher->scr_bmp_last_mask = (~0U >> (32 - (SCREEN_MAX - ((SCREEN_MAX >> 5) << 5))));
+    last_idx = dispatcher->scr_bmp_iter_max - 1;
+    dispatcher->scr_bmp[last_idx] &= bmp_last_mask(SCREEN_MAX);
 
     /* init input source event queue */
     ipgui_norm_queue_init(
@@ -140,18 +148,80 @@ __IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_register_screen(
     return id;
 }
 
+/*
+ * 注销输入源：
+ *   1. 校验 id 有效性
+ *   2. 清除与该输入源关联的所有 screen 绑定
+ *   3. 从 input_src_list 中摘除
+ *   4. 归还 bitmap bit
+ */
 __IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_unregister_input_src(
     ipgui_input_dispatcher_t * dispatcher,
     ipgui_input_src_id_t input_src_id)
 {
+    s32_t i;
+    u32_t word_idx, bit_idx;
 
+    if (!dispatcher || input_src_id < 0 || input_src_id >= INPUT_SRC_MAX)
+        return -1;
+
+    /* 清除所有关联到该 input_src 的 map_arr 绑定 */
+    for (i = 0; i < INPUT_SRC_MAX * SCREEN_MAX; i ++) {
+        if (dispatcher->map_arr[i].used &&
+            dispatcher->map_arr[i].input_src_id == (u32_t)input_src_id) {
+            list_del_init(&dispatcher->map_arr[i].node);
+            dispatcher->map_arr[i].used = 0;
+            dispatcher->map_arr[i].conv_state_idx = 0;
+        }
+    }
+
+    /* 从输入源链表中摘除 */
+    list_del_init(&dispatcher->input_src_node_arr[input_src_id].node);
+
+    /* 归还 bitmap bit */
+    word_idx = (u32_t)input_src_id >> 5;
+    bit_idx  = (u32_t)input_src_id & 31;
+    dispatcher->input_src_bmp[word_idx] |= (1u << bit_idx);
+
+    return input_src_id;
 }
 
+/*
+ * 注销屏幕：
+ *   1. 校验 id 有效性
+ *   2. 清除与该屏幕关联的所有 input_src 绑定
+ *   3. 从 screen_list 中摘除
+ *   4. 归还 bitmap bit
+ */
 __IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_unregister_screen(
     ipgui_input_dispatcher_t * dispatcher,
     ipgui_scr_id_t screen_id)
 {
+    s32_t i;
+    u32_t word_idx, bit_idx;
 
+    if (!dispatcher || screen_id < 0 || screen_id >= SCREEN_MAX)
+        return -1;
+
+    /* 清除所有关联到该 screen 的 map_arr 绑定 */
+    for (i = 0; i < INPUT_SRC_MAX * SCREEN_MAX; i ++) {
+        if (dispatcher->map_arr[i].used &&
+            dispatcher->map_arr[i].scr_id == (u32_t)screen_id) {
+            list_del_init(&dispatcher->map_arr[i].node);
+            dispatcher->map_arr[i].used = 0;
+            dispatcher->map_arr[i].conv_state_idx = 0;
+        }
+    }
+
+    /* 从屏幕链表中摘除 */
+    list_del_init(&dispatcher->scr_node_arr[screen_id].node);
+
+    /* 归还 bitmap bit */
+    word_idx = (u32_t)screen_id >> 5;
+    bit_idx  = (u32_t)screen_id & 31;
+    dispatcher->scr_bmp[word_idx] |= (1u << bit_idx);
+
+    return screen_id;
 }
 
 __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(

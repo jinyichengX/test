@@ -47,18 +47,18 @@ typedef struct {
     struct list_head       input_src_list;
     struct list_head       screen_list;
 
-    /* bitmap for allocate input source id and screen id
-     * it is used to manage input source and screen
+    /*
+     * bitmap 分配器：每个 u32 存 32 个 ID 的状态 (1=空闲, 0=已分配)
+     * bmp 末字超出 INPUT_SRC_MAX/SCREEN_MAX 的未用 bit 在 init 时被置 0，
+     * alloc 时无需特殊分支——generic_ffs 天然不会检索到 0 bit。
      */
     ipgui_input_src_node_t input_src_node_arr[INPUT_SRC_MAX];
     u32_t                  input_src_bmp[(INPUT_SRC_MAX + 31) >> 5];
     u32_t                  input_src_bmp_iter_max;
-    u32_t                  input_src_bmp_last_mask;
 
     ipgui_scr_node_t       scr_node_arr[SCREEN_MAX];
     u32_t                  scr_bmp[(SCREEN_MAX + 31) >> 5];
     u32_t                  scr_bmp_iter_max;
-    u32_t                  scr_bmp_last_mask;
 
     map_node_t             map_arr[INPUT_SRC_MAX * SCREEN_MAX];
 
@@ -73,7 +73,9 @@ typedef struct {
 
 extern __IPGUI_API__ void ipgui_input_dispatcher_init(ipgui_input_dispatcher_t * dispatcher);
 extern __IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_register_input_src(ipgui_input_dispatcher_t * dispatcher, ipgui_input_src_t * input_src);
+extern __IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_unregister_input_src(ipgui_input_dispatcher_t * dispatcher, ipgui_input_src_id_t input_src_id);
 extern __IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_register_screen(ipgui_input_dispatcher_t * dispatcher, ipgui_scr_t * screen);
+extern __IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_unregister_screen(ipgui_input_dispatcher_t * dispatcher, ipgui_scr_id_t screen_id);
 extern __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(ipgui_input_dispatcher_t * dispatcher, ipgui_input_src_id_t input_src_id, ipgui_scr_id_t screen_id);
 extern __IPGUI_API__ void ipgui_dispatch_input_event(ipgui_input_dispatcher_t * dispatcher);
 

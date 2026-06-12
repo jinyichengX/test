@@ -406,6 +406,7 @@ __IPGUI_API__ void ipgui_draw_image(
                 pixmap[idx * px_sz] = cr[0]; /* need to modify code here like set_image_pix(color_t color, coord_t index) */
                 pixmap[idx * px_sz + 1] = cr[1];
                 pixmap[idx * px_sz + 2] = cr[2];
+                
                 mask_buf[idx ++] = 255;
             } else {                /* generate edge mask */
                 if (xo < 0) { /* left edge */
