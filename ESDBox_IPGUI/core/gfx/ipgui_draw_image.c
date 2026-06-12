@@ -295,8 +295,8 @@ __IPGUI_API__ void ipgui_draw_image(
     s32_t alpha, d;/* for edge mask */
     u8_t cr[10];
     u32_t hd, vd;
-    s32_t idx = 0, shift = 8 - IPGUI_FIXED_BITS;
-
+    s32_t idx = 0;
+#define SHIFT (8 - IPGUI_FIXED_BITS)
     u32_t px_sz  = img_data->px_size; /* per pixel size */
     u32_t stride = img_data->stride;
 
@@ -358,13 +358,13 @@ __IPGUI_API__ void ipgui_draw_image(
                 hd = xo & (~IPGUI_FIXED_MASK);
                 vd = yo & (~IPGUI_FIXED_MASK);
                 /* scale to 0-255 */
-                if (shift > 0) {
-                    hd = hd << shift;
-                    vd = vd << shift;
-                } else if (shift < 0) {
-                    hd = hd >> (-shift);
-                    vd = vd >> (-shift);
-                }
+#if SHIFT > 0
+                    hd = hd << SHIFT;
+                    vd = vd << SHIFT;
+#elif SHIFT < 0
+                    hd = hd >> (-SHIFT);
+                    vd = vd >> (-SHIFT);
+#endif
 
                 /* left top point(a) coordinate */
                 temp_x = IPGUI_FIXED_FLOOR(xo);
@@ -440,13 +440,13 @@ __IPGUI_API__ void ipgui_draw_image(
 
                 /* pre-handle alpha and d */
                 alpha = IPGUI_FIXED_PRECI - alpha;
-                if (shift > 0) {
-                    alpha = alpha << shift;
-                    d = d << shift;
-                } else if (shift < 0) {
-                    alpha = alpha >> (-shift);
-                    d = d >> (-shift);
-                }
+#if SHIFT > 0
+                    alpha = alpha << SHIFT;
+                    d = d << SHIFT;
+#elif SHIFT < 0
+                    alpha = alpha >> (-SHIFT);
+                    d = d >> (-SHIFT);
+#endif
 
                 /* use src color to lerp color */
                 g_pix_lerp[img_data->fmt].linear(cr_a, cr_b, (u8_t)d, cr);

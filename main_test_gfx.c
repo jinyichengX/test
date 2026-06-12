@@ -285,7 +285,7 @@
 //     img3_data.h = img3_dsc.h;
 
 //     ipgui_img_dsc_t img4_dsc;
-//     if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/kbm.bmp", &img4_dsc))
+//     if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/hellokitty2.bmp", &img4_dsc))
 //     {
 //         printf("Failed to load bitmap image, please run the program at the main.c page\n");
 //         return -1;
@@ -293,7 +293,7 @@
 //     ipgui_image_data_t img4_data;
 //     img4_data.pixmap = img4_dsc.pixmap;
 //     img4_data.px_size = img4_dsc.stride / img4_dsc.w;
-//     img4_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
+//     img4_data.fmt = IPGUI_IMG_FMT_BGRA8888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
 //     img4_data.stride = img4_dsc.stride;
 //     img4_data.w = img4_dsc.w;
 //     img4_data.h = img4_dsc.h;
