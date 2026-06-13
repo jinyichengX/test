@@ -61,7 +61,7 @@ typedef struct ipgui_widget
     ipgui_coord_t          w, h;
 
     /* ---- 标志位 ---- */
-    unsigned int           flags;
+    u32_t                  flags;
 
     /* ---- 回调函数 ---- */
     void (*render)       (struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx);

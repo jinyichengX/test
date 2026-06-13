@@ -271,17 +271,17 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect_slice(
     /* 遍历控件树，渲染相交控件 */
     ipgui_screen_render_widget_dfs(&scr->tree.root, &render_ctx);
 
-    // /* 将pfb切片刷新到物理屏幕 */
-    // if (scr->drv && scr->drv->fill_region) {
-    //     scr->drv->fill_region(
-    //         scr,
-    //         dirty->start.x,
-    //         dirty->start.y,
-    //         dirty->end.x,
-    //         dirty->end.y,
-    //         pfb->color,
-    //         surf.stride);
-    // }
+    /* 将pfb切片刷新到物理屏幕 */
+    if (scr->drv && scr->drv->fill_region) {
+        scr->drv->fill_region(
+            scr,
+            dirty->start.x,
+            dirty->start.y,
+            dirty->end.x,
+            dirty->end.y,
+            pfb->color,
+            surf.stride);
+    }
 }
 
 /* render dirty rect of screen */
@@ -335,6 +335,125 @@ __IPGUI_API__ void ipgui_screen_render(ipgui_scr_t * scr)
     ipgui_dirty_rect_mgr_reset(&scr->dirty);
 }
 
+/*
+ * hit-test 内部递归
+ *
+ * 从 root 的子控件中按 Z-order（从最上层到最下层）查找点 (x,y) 落在哪个控件上。
+ *
+ * 参数：
+ *   root       : 当前层级父节点的 link（只遍历其 children）
+ *   x, y       : 屏幕全局坐标
+ *   parent_clip: 祖先链累积的可见区域（全局坐标），子控件必须在此区域内方可命中
+ *
+ * 遮挡与裁剪机制：
+ *   Q1: 同层兄弟遮挡怎么处理？
+ *       遍历顺序本身就是遮挡处理——从上往下遍历，上层先被检查，
+ *       命中后立即 return，下层兄弟根本不会被问到。
+ *   Q2: 父控件对子控件的裁剪怎么处理？
+ *       visible = 控件全局AABB ∩ parent_clip，parent_clip 沿着递归向下传递并逐步收窄。
+ *       子控件的可见区域不可能超过祖先累积裁剪区。
+ *   Q3: INVISIBLE 控件能点击吗？
+ *       能。INVISIBLE 只控制渲染，不影响 hit-test。DISABLED 才跳过。
+ *       例如：声明一个 INVISIBLE 的全屏控件即可作为透明手势热区。
+ *
+ * 遍历规则：
+ *   1. 同级从最后一个（最上层）往前（最下层）遍历，循环链表终止条件：child == first
+ *   2. 跳过 DISABLED 控件（IPGUI_WIDGET_FLAG_DISABLED）
+ *   3. 优先递归子控件（子控件画在父控件之上），子控件无人认领才返回父控件自身
+ */
+__IPGUI_STATIC__ ipgui_widget_t * ipgui_screen_point_on_recurse(
+    struct widget_link_t  * root,
+    ipgui_coord_t           x,
+    ipgui_coord_t           y,
+    const ipgui_aabb_t    * parent_clip)
+{
+    struct widget_link_t * first; /* Z-order最下层（first_child） */
+    struct widget_link_t * child;
+
+    first = root->first_child;
+    if (!first)
+        return (ipgui_widget_t *)0;
+
+    /* 从最上层往最下层遍历（child = child->sib_prev），碰到first时终止 */
+    child = first->sib_prev;
+
+    for (;;) {
+        ipgui_widget_t * w = ipgui_container_of(child, ipgui_widget_t, link);
+
+        /* 跳过禁用的控件（INVISIBLE状态仅控制渲染，不影响点击） */
+        if (!(w->flags & IPGUI_WIDGET_FLAG_DISABLED)) {
+            ipgui_aabb_t aabb;
+            ipgui_aabb_t visible;
+
+            /* 控件全局包围盒 */
+            ipgui_widget_abs_pos(w, &aabb);
+
+            /* 与祖先累积裁剪区求交 = 控件实际可见区域 */
+            if (parent_clip) {
+                if (0 != ipgui_aabb_overlap(&visible, &aabb, parent_clip))
+                    goto _next_sibling;
+            } else {
+                visible = aabb;
+            }
+
+            /* 点是否在可见区域内 */
+            if (ipgui_point_in_aabb(x, y, &visible)) {
+
+                /* 优先问子控件（子控件在上层） */
+                ipgui_widget_t * hit = ipgui_screen_point_on_recurse(&w->link, x, y, &visible);
+                if (hit)
+                    return hit;
+
+                /* 无子控件命中，返回当前控件 */
+                return w;
+            }
+        }
+
+    _next_sibling:
+        if (child == first)
+            break;
+        child = child->sib_prev;
+    }
+
+    return (ipgui_widget_t *)0;
+}
+
+/* 屏幕上的hit-test：返回点 (x,y) 处最上层的控件 */
+__IPGUI_API__ ipgui_widget_t * ipgui_screen_point_on(
+    ipgui_scr_t  * scr,
+    ipgui_coord_t  x,
+    ipgui_coord_t  y)
+{
+    ipgui_aabb_t screen_aabb;
+
+    if (!scr)
+        return (ipgui_widget_t *)0;
+
+    /* 检查点是否在屏幕范围内 */
+    screen_aabb.start.x = 0;
+    screen_aabb.start.y = 0;
+    screen_aabb.end.x   = scr->drv->xreso - 1;
+    screen_aabb.end.y   = scr->drv->yreso - 1;
+
+    if (!ipgui_point_in_aabb(x, y, &screen_aabb))
+        return (ipgui_widget_t *)0;
+
+    /* 以屏幕作为初始parent_clip，从根节点开始递归 */
+    return ipgui_screen_point_on_recurse(&scr->tree.root, x, y, &screen_aabb);
+}
+
+__IPGUI_API__ void ipgui_screen_handle_widget_event(ipgui_scr_t * scr, ipgui_widget_evt_t * evt)
+{
+    if (!scr || !evt) return;
+
+    /* 按 Z-order 逆序遍历控件树（最后绘制的在最上面，最先接收到事件）
+     * 找到第一个包含事件坐标的控件，调用其事件处理回调
+     * 当前为预留框架，待控件事件系统完善后实现完整的事件分发逻辑
+     */
+    (void)scr;
+    (void)evt;
+}
+
 __IPGUI_API__ void ipgui_screen_putpixel(ipgui_scr_t * scr, ipgui_coord_t x, ipgui_coord_t y, u8_t * pix)
 {
     if (scr && scr->drv && scr->drv->put_pixel) {
@@ -356,16 +475,4 @@ __IPGUI_API__ void ipgui_screen_fill_region(ipgui_scr_t * scr,
     if (scr && scr->drv && scr->drv->fill_region) {
         scr->drv->fill_region(scr, x1, y1, x2, y2, pix_buf, stride);
     }
-}
-
-__IPGUI_API__ void ipgui_screen_handle_widget_event(ipgui_scr_t * scr, ipgui_widget_evt_t * evt)
-{
-    if (!scr || !evt) return;
-
-    /* 按 Z-order 逆序遍历控件树（最后绘制的在最上面，最先接收到事件）
-     * 找到第一个包含事件坐标的控件，调用其事件处理回调
-     * 当前为预留框架，待控件事件系统完善后实现完整的事件分发逻辑
-     */
-    (void)scr;
-    (void)evt;
 }

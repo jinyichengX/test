@@ -61,9 +61,22 @@ int main(void)
 
     // ipgui_widget_create();
 
+    ipgui_input_src_evt_t raw_evt;
     while(1)
     {
-        ipgui_dispatch_input_event(&dispatcher);
+
+        /* 读取原始事件 */
+        pointer_src.input_src_event_read_cb(&pointer_src, &raw_evt);
+        /* push into queue */
+        ipgui_norm_queue_post(&dispatcher.evt_queue, &raw_evt, sizeof(raw_evt));
+
+        printf("raw_evt: input_src_id=%d, input_src_evt=%d, pointer_pos.x=%d, y=%d\n", 
+            raw_evt.input_src_id, 
+            raw_evt.input_src_evt, 
+            raw_evt.evt_info.pointer_pos.x, 
+            raw_evt.evt_info.pointer_pos.y);
+
+        // ipgui_dispatch_input_event(&dispatcher);
 
         
 

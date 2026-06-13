@@ -126,7 +126,7 @@ __IPGUI_API__ void ipgui_widget_local_to_global(
 
     struct widget_link_t * _link = &widget->link;
     ipgui_widget_t * parent;
-    while (_link->parent) {
+    while (_link->parent && !ipgui_widget_link_is_root(_link->parent)) {
         parent = ipgui_container_of(_link->parent, ipgui_widget_t, link);
         
         out->start.x += parent->x;

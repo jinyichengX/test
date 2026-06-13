@@ -170,10 +170,10 @@ __IPGUI_API__ void ipgui_liner_gradient_apply_to_aabb(
     w = aabb->end.x - aabb->start.x + 1;
     h = aabb->end.y - aabb->start.y + 1;
     /* calculate absolute coordinate of gradient start point and end point */
-    gradient->x_start_abs = aabb->start.x + (gradient->x_start * w + 127) / 255;
-    gradient->y_start_abs = aabb->start.y + (gradient->y_start * h + 127) / 255;
-    gradient->x_end_abs   = aabb->start.x + (gradient->x_end * w + 127) / 255;
-    gradient->y_end_abs   = aabb->start.y + (gradient->y_end * h + 127) / 255;
+    gradient->x_start_abs = aabb->start.x + (gradient->x_start * w + 128) >> 8;
+    gradient->y_start_abs = aabb->start.y + (gradient->y_start * h + 128) >> 8;
+    gradient->x_end_abs   = aabb->start.x + (gradient->x_end * w + 128) >> 8;
+    gradient->y_end_abs   = aabb->start.y + (gradient->y_end * h + 128) >> 8;
 
     /* calculate gradient absolute vector, not absolute value!!! */
     gradient->gradient_vector.x = gradient->x_end_abs - gradient->x_start_abs;
