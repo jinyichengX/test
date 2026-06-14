@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPGUI 渐变可视化工具</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1a1a2e;--panel-bg:#16213e;--card-bg:#0f3460;--accent:#e94560;--accent-hover:#ff6b81;--text:#e0e0e0;--text-dim:#999;--border:#2a2a4a;--slider-track:#333;--success:#4caf50;--radius:8px}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+.app{display:flex;height:100vh;max-width:1600px;margin:0 auto}
+.preview-area{flex:1;display:flex;align-items:center;justify-content:center;background:#e8ecf1;position:relative;min-width:0}
+.preview-box{width:350px;height:280px;background:#fff;border-radius:8px;transition:background .15s ease}
+.control-panel{width:400px;background:var(--panel-bg);display:flex;flex-direction:column;border-left:1px solid var(--border);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--slider-track) transparent}
+.control-panel::-webkit-scrollbar{width:6px}
+.control-panel::-webkit-scrollbar-thumb{background:var(--slider-track);border-radius:3px}
+.panel-header{padding:18px 24px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel-bg);z-index:2}
+.panel-header h1{font-size:18px;font-weight:600;color:var(--accent)}
+.panel-header .sub{font-size:12px;color:var(--text-dim);margin-top:4px}
+.panel-body{padding:10px 24px;display:flex;flex-direction:column;gap:8px}
+
+.type-tabs{display:flex;gap:2px;background:rgba(0,0,0,.2);border-radius:6px;padding:2px;margin-bottom:2px}
+.type-tab{flex:1;padding:8px 6px;text-align:center;font-size:12px;font-weight:600;color:var(--text-dim);background:transparent;border:none;border-radius:5px;cursor:pointer;transition:.15s;letter-spacing:.5px}
+.type-tab:hover{color:var(--text)}
+.type-tab.active{background:var(--accent);color:#fff}
+
+.cg{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.cg .title{font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.cg .title .badge{font-size:10px;padding:1px 7px;border-radius:8px;font-weight:700;background:var(--card-bg);color:var(--text-dim)}
+
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.slider-row:last-child{margin-bottom:0}
+.slider-row label{font-size:12px;color:var(--text);white-space:nowrap;min-width:68px}
+.slider-row .range-wrap{flex:1;display:flex;align-items:center;gap:4px}
+.slider-row .val{font-size:11px;color:var(--accent);font-weight:600;min-width:26px;text-align:right}
+.slider-row .unit{font-size:10px;color:var(--text-dim);min-width:12px}
+.slider-row .stepper{display:flex;gap:1px;margin-left:2px}
+.slider-row .stepper button{width:18px;height:18px;padding:0;border:1px solid var(--border);border-radius:3px;background:rgba(255,255,255,.04);color:var(--text);font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:monospace;user-select:none}
+.slider-row .stepper button:hover{background:var(--card-bg);border-color:var(--accent);color:var(--accent)}
+.slider-row .stepper button:active{transform:scale(.9)}
+
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:5px;background:var(--slider-track);border-radius:3px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--accent);border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 0 8px rgba(233,69,96,.4)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--accent);border-radius:50%;border:2px solid #fff}
+
+.stop-list{display:flex;flex-direction:column;gap:5px}
+.stop-item{display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(0,0,0,.15);border-radius:4px}
+.stop-item .stop-pos{font-size:11px;color:var(--accent);font-weight:600;min-width:30px;text-align:right;cursor:pointer}
+.stop-item input[type=color]{-webkit-appearance:none;width:28px;height:22px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:transparent;padding:1px}
+.stop-item .del-btn{background:transparent;color:#ff5252;border:none;font-size:14px;cursor:pointer;padding:0 4px;line-height:1;opacity:.6;margin-left:auto}
+.stop-item .del-btn:hover{opacity:1}
+
+.stop-bar{position:relative;height:24px;border-radius:4px;margin:6px 0;cursor:pointer}
+.stop-marker{position:absolute;top:-3px;width:12px;height:30px;background:var(--accent);border:2px solid #fff;border-radius:3px;transform:translateX(-50%);cursor:pointer;z-index:1;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.stop-marker:hover{transform:translateX(-50%) scale(1.2)}
+
+.add-stop-row{display:flex;gap:6px;align-items:center;margin-top:6px}
+.add-stop-row input[type=color]{height:28px;width:32px;cursor:pointer;border-radius:4px;border:1px solid var(--border);background:transparent}
+.add-stop-row button{flex:1;padding:6px;background:var(--card-bg);color:var(--text);border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer}
+.add-stop-row button:hover{background:var(--accent);border-color:var(--accent)}
+
+.css-wrap{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;position:relative}
+.css-wrap .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.css-wrap code{display:block;font-family:'Cascadia Code','Consolas',monospace;font-size:11px;color:#7ec699;white-space:pre-wrap;word-break:break-all;line-height:1.6;background:rgba(0,0,0,.2);padding:8px 10px;border-radius:4px;max-height:70px;overflow-y:auto}
+.copy-btn{position:absolute;top:8px;right:12px;background:var(--card-bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 10px;font-size:10px;cursor:pointer}
+.copy-btn:hover{background:var(--accent);border-color:var(--accent)}
+.copy-btn.copied{background:var(--success);border-color:var(--success)}
+
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.preset-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:6px;font-size:11px;color:var(--text);cursor:pointer;text-align:center;transition:.15s}
+.preset-btn:hover{background:var(--card-bg);border-color:var(--accent)}
+
+.btn-row{display:flex;gap:6px}
+.btn{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;text-align:center}
+.btn-pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-pri:hover{background:var(--accent-hover)}
+.btn-sec{background:transparent;color:var(--text)}
+.btn-sec:hover{background:rgba(255,255,255,.05)}
+.btn-dan{background:transparent;color:#ff9800;border-color:#ff9800}
+.btn-dan:hover{background:rgba(255,152,0,.1)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:8px 20px;border-radius:5px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:1000}
+.toast.show{opacity:1}
+
+@media(max-width:860px){.app{flex-direction:column}.preview-area{height:35vh}.preview-box{width:260px;height:200px}.control-panel{width:100%;flex:1}}
+</style>
+</head>
+<body>
+
+<div class="app">
+<div class="preview-area"><div class="preview-box" id="previewBox"></div></div>
+
+<div class="control-panel">
+<div class="panel-header"><h1>渐变工具</h1><div class="sub">线性 · 径向 · 锥形</div></div>
+
+<div class="panel-body">
+    <!-- 类型选择 -->
+    <div class="type-tabs" id="typeTabs">
+        <button class="type-tab active" data-type="linear">线性</button>
+        <button class="type-tab" data-type="radial">径向</button>
+        <button class="type-tab" data-type="conic">锥形</button>
+    </div>
+
+    <!-- 线性: 仅角度 -->
+    <div class="cg" id="linearParams">
+        <div class="title">线性 Linear</div>
+        <div class="slider-row">
+            <label>角度</label>
+            <div class="range-wrap">
+                <input type="range" id="lAng" min="0" max="360" value="180" step="1"><span class="val" id="lAngV">180</span><span class="unit">°</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 径向: 中心 X/Y -->
+    <div class="cg" id="radialParams" style="display:none">
+        <div class="title">径向 Radial</div>
+        <div class="slider-row">
+            <label>中心 X</label>
+            <div class="range-wrap">
+                <input type="range" id="rCx" min="0" max="100" value="50" step="1"><span class="val" id="rCxV">50</span><span class="unit">%</span>
+            </div>
+        </div>
+        <div class="slider-row">
+            <label>中心 Y</label>
+            <div class="range-wrap">
+                <input type="range" id="rCy" min="0" max="100" value="50" step="1"><span class="val" id="rCyV">50</span><span class="unit">%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 锥形: 仅起始角度 -->
+    <div class="cg" id="conicParams" style="display:none">
+        <div class="title">锥形 Conic</div>
+        <div class="slider-row">
+            <label>起始角度</label>
+            <div class="range-wrap">
+                <input type="range" id="cAng" min="0" max="360" value="0" step="1"><span class="val" id="cAngV">0</span><span class="unit">°</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 色标 -->
+    <div class="cg">
+        <div class="title">色标 Stops <span class="badge" id="stopCount">2</span></div>
+        <div class="stop-bar" id="stopBar"></div>
+        <div class="stop-list" id="stopList"></div>
+        <div class="add-stop-row">
+            <input type="color" id="newColor" value="#e94560">
+            <button id="addStopBtn">+ 添加色标</button>
+        </div>
+    </div>
+
+    <!-- CSS -->
+    <div class="cg">
+        <div class="title">CSS 代码</div>
+        <div class="css-wrap" style="border:none;background:transparent;padding:0">
+            <div class="lbl">background</div>
+            <code id="cssOutput"></code>
+            <button class="copy-btn" id="copyBtn">复制</button>
+        </div>
+    </div>
+
+    <!-- 预设 -->
+    <div class="cg">
+        <div class="title">预设效果</div>
+        <div class="preset-grid" id="presetGrid"></div>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn btn-pri" id="savePresetBtn">保存预设</button>
+        <button class="btn btn-sec" id="showSavedBtn">我的预设</button>
+        <button class="btn btn-dan" id="resetBtn">重置</button>
+    </div>
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* DOM */
+const previewBox=$('previewBox'),typeTabs=$('typeTabs');
+const linearParams=$('linearParams'),radialParams=$('radialParams'),conicParams=$('conicParams');
+const lAng=$('lAng'),lAngV=$('lAngV');
+const rCx=$('rCx'),rCy=$('rCy'),rCxV=$('rCxV'),rCyV=$('rCyV');
+const cAng=$('cAng'),cAngV=$('cAngV');
+const stopBar=$('stopBar'),stopList=$('stopList'),stopCount=$('stopCount');
+const cssOutput=$('cssOutput'),copyBtn=$('copyBtn'),presetGrid=$('presetGrid'),toast=$('toast');
+const addStopBtn=$('addStopBtn'),newColor=$('newColor');
+
+/* State */
+let currentType='linear';
+let stops=[
+    {pos:0,color:'#e94560'},
+    {pos:100,color:'#4fc3f7'},
+];
+
+function sortStops(){stops.sort((a,b)=>a.pos-b.pos)}
+function cssStops(){return stops.map(s=>`${s.color} ${s.pos}%`).join(', ')}
+
+function buildCss(){
+    switch(currentType){
+    case'linear':
+        return `linear-gradient(${parseInt(lAng.value)}deg, ${cssStops()});`;
+    case'radial':{
+        const cx=parseInt(rCx.value),cy=parseInt(rCy.value);
+        return `radial-gradient(circle farthest-corner at ${cx}% ${cy}%, ${cssStops()});`;
+    }
+    case'conic':
+        return `conic-gradient(from ${parseInt(cAng.value)}deg at 50% 50%, ${cssStops()});`;
+    }
+}
+
+function updatePreview(){
+    previewBox.style.background=buildCss().replace(';','');
+    cssOutput.textContent=buildCss();
+}
+
+/* ---- Stop bar ---- */
+function renderStopBar(){
+    stopBar.style.background=`linear-gradient(to right, ${cssStops()})`;
+    stopBar.querySelectorAll('.stop-marker').forEach(m=>m.remove());
+    stops.forEach(stop=>{
+        const m=document.createElement('div');
+        m.className='stop-marker';
+        m.style.left=stop.pos+'%';
+        m.style.background=stop.color;
+        m.dataset.pos=stop.pos;
+        m.title=stop.color+' '+stop.pos+'%';
+        m.addEventListener('mousedown',startDrag);
+        m.addEventListener('touchstart',startDrag,{passive:false});
+        stopBar.appendChild(m);
+    });
+}
+
+function renderStopList(){
+    stopList.innerHTML='';
+    stops.forEach((stop,i)=>{
+        const div=document.createElement('div');
+        div.className='stop-item';
+        div.innerHTML=`
+            <span class="stop-pos" title="点击修改位置">${stop.pos}%</span>
+            <input type="color" value="${stop.color}" data-idx="${i}" class="sc">
+            <span style="font-size:11px;color:var(--text-dim);font-family:monospace">${stop.color}</span>
+            <button class="del-btn" data-idx="${i}" ${stops.length<=2?'disabled style="opacity:.2;"':''}>&#10005;</button>`;
+        div.querySelector('.stop-pos').addEventListener('click',()=>{
+            const p=prompt('位置 (0-100):',stop.pos);
+            if(p!==null){stops[i].pos=Math.max(0,Math.min(100,parseInt(p)||0));sortStops();updateAll();}
+        });
+        div.querySelector('.sc').addEventListener('input',e=>{stops[i].color=e.target.value;updateAll();});
+        div.querySelector('.del-btn').addEventListener('click',()=>{if(stops.length<=2)return;stops.splice(i,1);updateAll();});
+        stopList.appendChild(div);
+    });
+    stopCount.textContent=stops.length;
+}
+
+/* ---- Drag on stop bar ---- */
+let dragIdx=-1,dragActive=false;
+function startDrag(e){
+    e.preventDefault();
+    const pos=parseInt(e.target.dataset.pos);
+    dragIdx=stops.findIndex(s=>s.pos===pos);
+    if(dragIdx===-1)return;
+    dragActive=true;
+}
+document.addEventListener('mousemove',e=>{
+    if(!dragActive)return;
+    const rect=stopBar.getBoundingClientRect();
+    let pct=Math.round(((e.clientX-rect.left)/rect.width)*100);
+    pct=Math.max(0,Math.min(100,pct));
+    stops[dragIdx].pos=pct;sortStops();updateAll();
+});
+document.addEventListener('mouseup',()=>{dragActive=false});
+document.addEventListener('touchmove',e=>{
+    if(!dragActive)return;
+    const rect=stopBar.getBoundingClientRect();
+    let pct=Math.round(((e.touches[0].clientX-rect.left)/rect.width)*100);
+    pct=Math.max(0,Math.min(100,pct));
+    stops[dragIdx].pos=pct;sortStops();updateAll();
+},{passive:false});
+document.addEventListener('touchend',()=>{dragActive=false});
+
+/* ---- Add stop ---- */
+function addStop(){
+    const existing=stops.map(s=>s.pos);
+    let best=50;
+    for(let i=0;i<existing.length-1;i++){
+        if(existing[i+1]-existing[i]>=20){best=existing[i]+Math.floor((existing[i+1]-existing[i])/2);break}
+    }
+    stops.push({pos:best,color:newColor.value});sortStops();updateAll();
+}
+
+/* ---- Updates ---- */
+function updateAll(){
+    sortStops();renderStopBar();renderStopList();
+    lAngV.textContent=lAng.value;rCxV.textContent=rCx.value;rCyV.textContent=rCy.value;cAngV.textContent=cAng.value;
+    updatePreview();
+}
+
+function switchType(type){
+    currentType=type;
+    document.querySelectorAll('.type-tab').forEach(t=>t.classList.toggle('active',t.dataset.type===type));
+    linearParams.style.display=type==='linear'?'':'none';
+    radialParams.style.display=type==='radial'?'':'none';
+    conicParams.style.display=type==='conic'?'':'none';
+    updateAll();
+}
+
+/* ---- Presets ---- */
+// 色值主要来自 ipgui_pattle.h 中国传统色
+// 格式: 0xAABBCC → #BBCCAA (文件内为 0xRRGGBB，输出为 #RRGGBB)
+const PRESETS=[
+    //==== 一、宫廷红韵 ====
+    {name:'01 朱砂·胭脂', type:'linear',lAng:180,stops:[{pos:0,color:'#ed5126'},{pos:100,color:'#7c1823'}]},
+    {name:'02 榴火·枣红', type:'linear',lAng:180,stops:[{pos:0,color:'#f34718'},{pos:100,color:'#82111f'}]},
+    {name:'03 绮霞·桃夭', type:'linear',lAng:135,stops:[{pos:0,color:'#ef82a0'},{pos:33,color:'#eea2a4'},{pos:100,color:'#f1c4cd'}]},
+    {name:'04 海棠·春梅', type:'linear',lAng:160,stops:[{pos:0,color:'#f03752'},{pos:100,color:'#f1939c'}]},
+    {name:'05 玫瑰·绛紫', type:'linear',lAng:135,stops:[{pos:0,color:'#d2357d'},{pos:100,color:'#461629'}]},
+
+    //==== 二、烟霞金暖 ====
+    {name:'06 佛手·鹅黄', type:'linear',lAng:180,stops:[{pos:0,color:'#ffd111'},{pos:100,color:'#fbb929'}]},
+    {name:'07 藤黄·秋葵', type:'linear',lAng:160,stops:[{pos:0,color:'#fcd337'},{pos:100,color:'#eed045'}]},
+    {name:'08 麦秆·茉莉', type:'linear',lAng:180,stops:[{pos:0,color:'#f8df70'},{pos:50,color:'#f8df72'},{pos:100,color:'#f7e8aa'}]},
+    {name:'09 琥珀·雄黄', type:'linear',lAng:135,stops:[{pos:0,color:'#fca104'},{pos:100,color:'#ff9900'}]},
+    {name:'10 橘橙·金黄', type:'linear',lAng:160,stops:[{pos:0,color:'#f97d1c'},{pos:100,color:'#f26b1f'}]},
+
+    //==== 三、青绿山水 ====
+    {name:'11 翠微·苍绿', type:'linear',lAng:180,stops:[{pos:0,color:'#20a162'},{pos:100,color:'#15231b'}]},
+    {name:'12 铜绿·瓦松', type:'linear',lAng:90,stops:[{pos:0,color:'#2bae85'},{pos:100,color:'#6e8b74'}]},
+    {name:'13 蛙绿·粉绿', type:'linear',lAng:135,stops:[{pos:0,color:'#45b787'},{pos:100,color:'#83cbac'}]},
+    {name:'14 鹦鹉·芽绿', type:'linear',lAng:160,stops:[{pos:0,color:'#5bae23'},{pos:100,color:'#96c24e'}]},
+    {name:'15 薄荷·玉髓', type:'linear',lAng:180,stops:[{pos:0,color:'#207f4c'},{pos:100,color:'#41b349'}]},
+
+    //==== 四、紫气东来 ====
+    {name:'16 魏紫·青莲', type:'linear',lAng:135,stops:[{pos:0,color:'#7e1671'},{pos:100,color:'#8b2671'}]},
+    {name:'17 桔梗·蕈紫', type:'linear',lAng:160,stops:[{pos:0,color:'#813c85'},{pos:100,color:'#815c94'}]},
+    {name:'18 满天星·槿紫', type:'linear',lAng:180,stops:[{pos:0,color:'#2e317c'},{pos:100,color:'#806d9e'}]},
+    {name:'19 晶石·远山', type:'linear',lAng:135,stops:[{pos:0,color:'#1f2040'},{pos:100,color:'#ccccd6'}]},
+    {name:'20 龙睛·荸荠', type:'linear',lAng:180,stops:[{pos:0,color:'#4e2a40'},{pos:100,color:'#1e131d'}]},
+
+    //==== 五、水墨丹青 ====
+    {name:'21 墨韵·鸦青', type:'linear',lAng:180,stops:[{pos:0,color:'#131124'},{pos:50,color:'#2d2e36'},{pos:100,color:'#ccccd6'}]},
+    {name:'22 远山·淡黛', type:'linear',lAng:90,stops:[{pos:0,color:'#132c33'},{pos:50,color:'#475164'},{pos:100,color:'#baccd9'}]},
+    {name:'23 烟雨·苍蓝', type:'linear',lAng:135,stops:[{pos:0,color:'#2c3e50'},{pos:50,color:'#5e7987'},{pos:100,color:'#c4cbcf'}]},
+    {name:'24 霁青·云白', type:'linear',lAng:180,stops:[{pos:0,color:'#134857'},{pos:100,color:'#baccd9'}]},
+    {name:'25 青灰·钢蓝', type:'linear',lAng:160,stops:[{pos:0,color:'#2b333e'},{pos:100,color:'#0f1423'}]},
+
+    //==== 六、月华清辉 ====
+    {name:'26 月白·云峰', type:'linear',lAng:135,stops:[{pos:0,color:'#eef7f2'},{pos:100,color:'#d8e3e7'}]},
+    {name:'27 象牙·雪白', type:'linear',lAng:160,stops:[{pos:0,color:'#fffef8'},{pos:100,color:'#e9ddb6'}]},
+    {name:'28 汉白·银鱼', type:'linear',lAng:135,stops:[{pos:0,color:'#f8f4ed'},{pos:100,color:'#cdd1d3'}]},
+    {name:'29 鱼肚·蚌肉', type:'linear',lAng:180,stops:[{pos:0,color:'#f7f4ed'},{pos:100,color:'#f9f1db'}]},
+    {name:'30 初桃·玉粉', type:'linear',lAng:160,stops:[{pos:0,color:'#f6dcce'},{pos:100,color:'#fbecde'}]},
+
+    //==== 七、秋色鎏金 ====
+    {name:'31 杏熟·蜜黄', type:'linear',lAng:180,stops:[{pos:0,color:'#eaad1a'},{pos:100,color:'#fbb957'}]},
+    {name:'32 枇杷·金莺', type:'linear',lAng:160,stops:[{pos:0,color:'#fca106'},{pos:100,color:'#f4a83a'}]},
+    {name:'33 凋棕·玳瑁', type:'linear',lAng:135,stops:[{pos:0,color:'#e7a23f'},{pos:100,color:'#daa45a'}]},
+    {name:'34 枫丹·余烬', type:'linear',lAng:160,stops:[{pos:0,color:'#c21f30'},{pos:50,color:'#f28e16'},{pos:100,color:'#cf7543'}]},
+    {name:'35 落叶·驼色', type:'linear',lAng:180,stops:[{pos:0,color:'#be7e4a'},{pos:100,color:'#5d3d21'}]},
+
+    //==== 八、春和景明 ====
+    {name:'36 春晓·翠篁', type:'linear',lAng:180,stops:[{pos:0,color:'#69a794'},{pos:100,color:'#c6dfc8'}]},
+    {name:'37 芦苇·嫩菊', type:'linear',lAng:160,stops:[{pos:0,color:'#b7d07a'},{pos:100,color:'#f0f5e5'}]},
+    {name:'38 明绿·嘉陵', type:'linear',lAng:135,stops:[{pos:0,color:'#9eccab'},{pos:100,color:'#add5a2'}]},
+    {name:'39 海天·清水', type:'linear',lAng:180,stops:[{pos:0,color:'#c6e6e8'},{pos:100,color:'#93d5dc'}]},
+    {name:'40 翠寒·水晶', type:'linear',lAng:160,stops:[{pos:0,color:'#12a182'},{pos:100,color:'#57c3c2'}]},
+
+    //==== 九、暮色远山 ====
+    {name:'41 暮霭·暮云', type:'linear',lAng:180,stops:[{pos:0,color:'#5d3f51'},{pos:33,color:'#482936'},{pos:100,color:'#36282b'}]},
+    {name:'42 燕颔·鸽蓝', type:'linear',lAng:135,stops:[{pos:0,color:'#131824'},{pos:100,color:'#1c2938'}]},
+    {name:'43 野葡萄·紫灰', type:'linear',lAng:160,stops:[{pos:0,color:'#302f4b'},{pos:100,color:'#5e616d'}]},
+    {name:'44 苍岫·鲸灰', type:'linear',lAng:180,stops:[{pos:0,color:'#2c3e50'},{pos:50,color:'#5e7987'},{pos:100,color:'#74787a'}]},
+    {name:'45 玄青·石板', type:'linear',lAng:135,stops:[{pos:0,color:'#22202e'},{pos:100,color:'#624941'}]},
+
+    //==== 十、鹤骨松风 ====
+    {name:'46 茶褐·岩石', type:'linear',lAng:180,stops:[{pos:0,color:'#5d3d21'},{pos:100,color:'#964d22'}]},
+    {name:'47 鹿褐·蟹壳', type:'linear',lAng:160,stops:[{pos:0,color:'#d99156'},{pos:100,color:'#8c4b31'}]},
+    {name:'48 淡赭·鹿角', type:'linear',lAng:135,stops:[{pos:0,color:'#be7e4a'},{pos:100,color:'#e3bd8d'}]},
+    {name:'49 古鼎·淡松', type:'linear',lAng:180,stops:[{pos:0,color:'#36292f'},{pos:50,color:'#624941'},{pos:100,color:'#9a8878'}]},
+    {name:'50 鹤灰·尘灰', type:'linear',lAng:160,stops:[{pos:0,color:'#4a4035'},{pos:100,color:'#b6a476'}]},
+];
+
+let savedPresets=[];
+function loadParams(p){
+    currentType=p.type||'linear';
+    if(p.lAng!=null){lAng.value=p.lAng;}
+    if(p.rCx!=null){rCx.value=p.rCx;rCy.value=p.rCy;}
+    if(p.cAng!=null){cAng.value=p.cAng;}
+    stops=p.stops?JSON.parse(JSON.stringify(p.stops)):[...stops];
+    switchType(currentType);
+    sortStops();updateAll();
+}
+
+function getParams(){
+    return {
+        type:currentType,
+        lAng:parseInt(lAng.value),rCx:parseInt(rCx.value),rCy:parseInt(rCy.value),cAng:parseInt(cAng.value),
+        stops:JSON.parse(JSON.stringify(stops)),
+    };
+}
+
+function renderPresets(){
+    const all=[...PRESETS,...savedPresets.map((p,i)=>({...p,_idx:i,_custom:true}))];
+    presetGrid.innerHTML='';
+    all.forEach(p=>{
+        const btn=document.createElement('button');
+        btn.className='preset-btn';btn.textContent=(p._custom?'★ ':'')+p.name;
+        btn.addEventListener('click',()=>{loadParams(p);showToast('已应用: '+p.name)});
+        presetGrid.appendChild(btn);
+    });
+}
+
+function openSaveModal(){
+    const name=prompt('保存预设名称:');
+    if(!name||!name.trim())return;
+    savedPresets.push({...getParams(),name:name.trim()});
+    localStorage.setItem('gradSaved',JSON.stringify(savedPresets));
+    renderPresets();showToast('已保存: '+name);
+}
+function openManageModal(){
+    let msg=savedPresets.length?savedPresets.map((p,i)=>`${i+1}. ${p.name}`).join('\n'):'暂无保存的预设';
+    const sel=prompt('输入编号应用, 输入 "del 编号" 删除:\n\n'+msg);
+    if(!sel)return;
+    if(sel.startsWith('del ')){
+        const idx=parseInt(sel.slice(4))-1;
+        if(idx>=0&&idx<savedPresets.length){savedPresets.splice(idx,1);localStorage.setItem('gradSaved',JSON.stringify(savedPresets));renderPresets();showToast('已删除')}
+    }else{
+        const idx=parseInt(sel)-1;
+        if(idx>=0&&idx<savedPresets.length){loadParams(savedPresets[idx]);showToast('已应用: '+savedPresets[idx].name)}
+    }
+}
+function loadSavedPresets(){try{const r=localStorage.getItem('gradSaved');if(r)savedPresets=JSON.parse(r)}catch(e){savedPresets=[]}}
+
+let toastTimer;
+function showToast(msg){clearTimeout(toastTimer);toast.textContent=msg;toast.classList.add('show');toastTimer=setTimeout(()=>toast.classList.remove('show'),2000)}
+
+function copyCss(){
+    const t=cssOutput.textContent;
+    navigator.clipboard.writeText(t).then(()=>{copyBtn.textContent='已复制';copyBtn.classList.add('copied');setTimeout(()=>{copyBtn.textContent='复制';copyBtn.classList.remove('copied')},1500);showToast('已复制')})
+    .catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('已复制')});
+}
+
+/* ---- Stepper ---- */
+function injectSteppers(){
+    document.querySelectorAll('.range-wrap').forEach(w=>{
+        const rng=w.querySelector('input[type=range]');if(!rng)return;
+        const s=document.createElement('span');s.className='stepper';
+        s.innerHTML='<button data-dir="-1">─</button><button data-dir="1">+</button>';
+        w.appendChild(s);
+    });
+    document.querySelector('.control-panel').addEventListener('click',e=>{
+        const btn=e.target.closest('.stepper button');if(!btn)return;
+        const dir=parseInt(btn.dataset.dir);
+        const rng=btn.closest('.range-wrap').querySelector('input[type="range"]');if(!rng)return;
+        const min=parseInt(rng.min),max=parseInt(rng.max);
+        let val=parseInt(rng.value)+dir;val=Math.max(min,Math.min(max,val));
+        if(val===parseInt(rng.value))return;rng.value=val;
+        rng.dispatchEvent(new Event('input',{bubbles:true}));
+    });
+}
+
+/* ---- Events ---- */
+typeTabs.addEventListener('click',e=>{const tab=e.target.closest('.type-tab');if(tab)switchType(tab.dataset.type);});
+[lAng,rCx,rCy,cAng].forEach(el=>el.addEventListener('input',updateAll));
+addStopBtn.addEventListener('click',addStop);
+copyBtn.addEventListener('click',copyCss);
+$('savePresetBtn').addEventListener('click',openSaveModal);
+$('showSavedBtn').addEventListener('click',openManageModal);
+$('resetBtn').addEventListener('click',()=>{loadParams(PRESETS[0]);showToast('已重置')});
+
+/* ---- Init ---- */
+injectSteppers();loadSavedPresets();renderPresets();
+switchType('linear');loadParams(PRESETS[0]); /* 朱砂·胭脂 */
+</script>
+</body>
+</html>

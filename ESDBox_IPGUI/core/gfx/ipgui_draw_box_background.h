@@ -14,7 +14,7 @@ typedef struct {
     ipgui_paint_t      paint;
 
     /* bg opacity */
-    unsigned char      opacity;
+    u8_t               opacity;
 
     /* bg blend mode */
     ipgui_blend_mode_t blend_mode;

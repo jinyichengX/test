@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPGUI 图片绘制可视化工具</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1a1a2e;--panel-bg:#16213e;--card-bg:#0f3460;--accent:#e94560;--accent-hover:#ff6b81;--text:#e0e0e0;--text-dim:#999;--border:#2a2a4a;--slider-track:#333;--success:#4caf50;--warning:#ff9800;--radius:8px}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+.app{display:flex;height:100vh;max-width:1600px;margin:0 auto}
+
+.preview-area{flex:1;display:flex;align-items:center;justify-content:center;background:#dbdbdf;position:relative;min-width:0;overflow:hidden}
+.preview-area canvas{display:block;border:1px solid #bbb;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.control-panel{width:400px;background:var(--panel-bg);display:flex;flex-direction:column;border-left:1px solid var(--border);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--slider-track) transparent}
+.control-panel::-webkit-scrollbar{width:6px}
+.control-panel::-webkit-scrollbar-thumb{background:var(--slider-track);border-radius:3px}
+.panel-header{padding:18px 24px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel-bg);z-index:2}
+.panel-header h1{font-size:18px;font-weight:600;color:var(--accent)}
+.panel-header .sub{font-size:12px;color:var(--text-dim);margin-top:4px}
+.panel-body{padding:10px 24px;display:flex;flex-direction:column;gap:8px}
+
+.cg{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.cg .title{font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.slider-row:last-child{margin-bottom:0}
+.slider-row label{font-size:12px;color:var(--text);white-space:nowrap;min-width:68px}
+.slider-row .range-wrap{flex:1;display:flex;align-items:center;gap:4px}
+.slider-row .val{font-size:11px;color:var(--accent);font-weight:600;min-width:26px;text-align:right}
+.slider-row .unit{font-size:10px;color:var(--text-dim);min-width:12px}
+.slider-row .stepper{display:flex;gap:1px;margin-left:2px}
+.slider-row .stepper button{width:18px;height:18px;padding:0;border:1px solid var(--border);border-radius:3px;background:rgba(255,255,255,.04);color:var(--text);font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:monospace;user-select:none}
+.slider-row .stepper button:hover{background:var(--card-bg);border-color:var(--accent);color:var(--accent)}
+
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:5px;background:var(--slider-track);border-radius:3px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--accent);border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 0 8px rgba(233,69,96,.4)}
+.color-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.color-row label{font-size:12px;min-width:68px}
+.color-row input[type=color]{width:32px;height:24px;border:2px solid var(--border);border-radius:4px;cursor:pointer;background:transparent}
+.color-row .hex-val{font-size:12px;color:var(--text);font-family:monospace}
+
+.toggle-row{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.toggle-row label{font-size:12px;flex:1}
+.toggle-switch{position:relative;width:44px;height:24px;background:var(--slider-track);border-radius:12px;cursor:pointer;transition:background .2s}
+.toggle-switch.active{background:var(--accent)}
+.toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left .2s}
+.toggle-switch.active::after{left:22px}
+.toggle-label{font-size:11px;color:var(--text-dim);min-width:50px;text-align:center}
+
+.btn-row{display:flex;gap:6px}
+.btn{flex:1;padding:8px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;text-align:center}
+.btn-pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-pri:hover{background:var(--accent-hover)}
+.btn-sec{background:transparent;color:var(--text)}
+.btn-sec:hover{background:rgba(255,255,255,.05)}
+.btn-sel{background:var(--card-bg);color:#fff;border-color:var(--accent)}
+.btn-dan{background:transparent;color:var(--warning);border-color:var(--warning)}
+.btn-dan:hover{background:rgba(255,152,0,.1)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:8px 20px;border-radius:5px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:1000}
+.toast.show{opacity:1}
+
+.align-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:2px}
+.align-btn{padding:4px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text-dim);font-size:9px;cursor:pointer;text-align:center;line-height:1.3}
+.align-btn:hover{background:var(--card-bg);color:var(--text)}
+.align-btn.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.fit-btn-row{display:flex;gap:3px;margin-top:2px}
+.fit-btn{flex:1;padding:4px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text-dim);font-size:10px;cursor:pointer;text-align:center}
+.fit-btn:hover{background:var(--card-bg);color:var(--text)}
+.fit-btn.sel{background:var(--card-bg);color:#fff;border-color:var(--accent)}
+
+.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;font-size:11px;color:var(--text-dim);cursor:pointer;margin-top:2px}
+.drop-zone:hover{border-color:var(--accent);color:var(--accent)}
+.drop-zone img{max-width:100%;max-height:120px;display:block;margin:0 auto 6px;border-radius:4px}
+
+.info-text{font-size:10px;color:var(--text-dim);line-height:1.6}
+.info-text span{color:var(--accent)}
+
+@media(max-width:860px){.app{flex-direction:column}.preview-area{height:50vh}.control-panel{width:100%;flex:1}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="preview-area" id="previewArea"><canvas id="canvas"></canvas></div>
+
+<div class="control-panel">
+<div class="panel-header"><h1>图片绘制</h1><div class="sub">ipgui_draw_image_at / centered / in_rect</div></div>
+<div class="panel-body">
+
+<div class="cg">
+    <div class="title">图片源 Image Source</div>
+    <div class="drop-zone" id="dropZone">点击或拖放上传图片</div>
+</div>
+
+<div class="cg">
+    <div class="title">离屏缓冲 Surf <span style="color:var(--text-dim);font-weight:400;font-size:11px">(Offscreen Buffer)</span></div>
+    <div class="slider-row"><label>宽 W</label><div class="range-wrap"><input type="range" id="surfW" min="100" max="1200" value="580" step="1"><span class="val" id="surfWVal">580</span><span class="unit">px</span></div></div>
+    <div class="slider-row"><label>高 H</label><div class="range-wrap"><input type="range" id="surfH" min="50" max="900" value="430" step="1"><span class="val" id="surfHVal">430</span><span class="unit">px</span></div></div>
+</div>
+
+<div class="cg">
+    <div class="title">绘制模式 Draw Mode</div>
+    <div class="btn-row" style="margin-bottom:6px">
+        <button class="btn btn-sec" id="modeAt">ipgui_draw_image_at</button>
+        <button class="btn btn-sec" id="modeCentered">ipgui_draw_image_centered</button>
+    </div>
+    <button class="btn btn-sel" id="modeInRect" style="width:100%">ipgui_draw_image_in_rect</button>
+</div>
+
+<!-- in_rect 专用参数组 -->
+<div class="cg" id="cgTarget">
+    <div class="title">目标矩形 Target Rect</div>
+    <div class="slider-row"><label>X</label><div class="range-wrap"><input type="range" id="targetX" min="-580" max="700" value="140" step="1"><span class="val" id="targetXVal">140</span><span class="unit">px</span></div></div>
+    <div class="slider-row"><label>Y</label><div class="range-wrap"><input type="range" id="targetY" min="-430" max="500" value="70" step="1"><span class="val" id="targetYVal">70</span><span class="unit">px</span></div></div>
+    <div class="slider-row"><label>宽 W</label><div class="range-wrap"><input type="range" id="targetW" min="20" max="700" value="320" step="1"><span class="val" id="targetWVal">320</span><span class="unit">px</span></div></div>
+    <div class="slider-row"><label>高 H</label><div class="range-wrap"><input type="range" id="targetH" min="20" max="500" value="240" step="1"><span class="val" id="targetHVal">240</span><span class="unit">px</span></div></div>
+
+    <div class="title" style="margin-top:8px">对齐 Align (九宫格)</div>
+    <div class="align-grid" id="alignGrid">
+        <button class="align-btn" data-align="0">TOP<br>LEFT</button>
+        <button class="align-btn sel" data-align="1">TOP</button>
+        <button class="align-btn" data-align="2">TOP<br>RIGHT</button>
+        <button class="align-btn" data-align="3">LEFT</button>
+        <button class="align-btn" data-align="4">CENTER</button>
+        <button class="align-btn" data-align="5">RIGHT</button>
+        <button class="align-btn" data-align="6">BOTTOM<br>LEFT</button>
+        <button class="align-btn" data-align="7">BOTTOM</button>
+        <button class="align-btn" data-align="8">BOTTOM<br>RIGHT</button>
+    </div>
+
+    <div class="title" style="margin-top:8px">缩放 Fit Mode</div>
+    <div class="fit-btn-row" id="fitRow">
+        <button class="fit-btn" data-fit="0">NONE<br>原图</button>
+        <button class="fit-btn sel" data-fit="1">FIT<br>等比容纳</button>
+        <button class="fit-btn" data-fit="2">FILL<br>等比覆盖</button>
+        <button class="fit-btn" data-fit="3">STRETCH<br>拉伸</button>
+    </div>
+</div>
+
+<!-- at / centered 专用参数组 -->
+<div class="cg" id="cgPos" style="display:none">
+    <div class="title" id="cgPosTitle">锚点 Anchor</div>
+    <div class="slider-row"><label>X</label><div class="range-wrap"><input type="range" id="anchorX" min="-580" max="700" value="290" step="1"><span class="val" id="anchorXVal">290</span><span class="unit">px</span></div></div>
+    <div class="slider-row"><label>Y</label><div class="range-wrap"><input type="range" id="anchorY" min="-430" max="500" value="215" step="1"><span class="val" id="anchorYVal">215</span><span class="unit">px</span></div></div>
+    <div class="info-text" style="margin-top:4px" id="cgPosInfo">at : 左上角置于 <span>(X, Y)</span><br>centered : 中心置于 <span>(X, Y)</span></div>
+</div>
+
+<div class="cg">
+    <div class="title">绘制样式 Style</div>
+    <div class="slider-row">
+        <label>不透明度</label><div class="range-wrap"><input type="range" id="opacity" min="0" max="255" value="255" step="1"><span class="val" id="opacityVal">255</span><span class="unit">/255</span></div>
+    </div>
+    <div class="title" style="margin-top:8px">混合模式 Blend</div>
+    <div class="btn-row">
+        <button class="btn btn-sel" id="blendNormal">Normal</button>
+        <button class="btn btn-sec" id="blendAdd">Add</button>
+        <button class="btn btn-sec" id="blendMultiply">Multiply</button>
+    </div>
+</div>
+
+<div class="cg">
+    <div class="title">C 语言代码</div>
+    <div class="info-text" id="codeOut" style="font-family:monospace;font-size:11px;background:rgba(0,0,0,.2);padding:8px;border-radius:4px;white-space:pre-wrap;max-height:120px;overflow-y:auto">请先上传图片</div>
+</div>
+
+<div class="btn-row">
+    <button class="btn btn-dan" id="resetBtn">重置</button>
+</div>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================================
+ * IPGUI 图片绘制可视化工具
+ * 模拟 ipgui_draw_image_at / ipgui_draw_image_centered / ipgui_draw_image_in_rect
+ * ============================================================================ */
+const $=id=>document.getElementById(id);
+
+const canvas=$('canvas'),ctx=canvas.getContext('2d');
+const dropZone=$('dropZone');
+const modeAt=$('modeAt'),modeCentered=$('modeCentered'),modeInRect=$('modeInRect');
+const cgTarget=$('cgTarget'),cgPos=$('cgPos'),cgPosTitle=$('cgPosTitle'),cgPosInfo=$('cgPosInfo');
+const targetX=$('targetX'),targetY=$('targetY'),targetW=$('targetW'),targetH=$('targetH');
+const targetXVal=$('targetXVal'),targetYVal=$('targetYVal'),targetWVal=$('targetWVal'),targetHVal=$('targetHVal');
+const anchorX=$('anchorX'),anchorY=$('anchorY'),anchorXVal=$('anchorXVal'),anchorYVal=$('anchorYVal');
+const opacity=$('opacity'),opacityVal=$('opacityVal');
+const blendNormal=$('blendNormal'),blendAdd=$('blendAdd'),blendMultiply=$('blendMultiply');
+const codeOut=$('codeOut'),toast=$('toast');
+const fitRow=$('fitRow'),alignGrid=$('alignGrid');
+const surfW=$('surfW'),surfH=$('surfH'),surfWVal=$('surfWVal'),surfHVal=$('surfHVal');
+
+/* ---- 状态 ---- */
+let sourceImg=null;      /* HTML Image */
+let drawMode='in_rect';  /* 'at' | 'centered' | 'in_rect' */
+let align=1;             /* TOP */
+let fit=1;               /* FIT */
+let blendMode='normal';
+let dragging=false, dragStartMX=0,dragStartMY=0,dragStartTX=0,dragStartTY=0;
+let resizing=null;  /* 'top'|'bottom'|'left'|'right'|'tl'|'tr'|'bl'|'br' */
+let rzStartMX=0,rzStartMY=0,rzStartTX=0,rzStartTY=0,rzStartTW=0,rzStartTH=0;
+
+let canW=700,canH=540;
+let SURF_W=580, SURF_H=430;    /* 模拟 surf 尺寸（动态适应画布） */
+let sx=0, sy=0;                /* surf 左上角在 canvas 上的坐标 */
+
+function resize(){
+    const pa=document.getElementById('previewArea');
+    const w=Math.max(500,pa.clientWidth-24);
+    const h=Math.max(400,pa.clientHeight-24);
+    if(w===canW&&h===canH)return;
+    canW=w;canH=h;
+    canvas.width=canW;canvas.height=canH;
+    canvas.style.width=canW+'px';canvas.style.height=canH+'px';
+    recalcSurfPos();
+    /* slider max = surf 尺寸 */
+    targetX.min=-SURF_W;targetX.max=SURF_W;targetY.min=-SURF_H;targetY.max=SURF_H;
+    anchorX.min=-SURF_W;anchorX.max=SURF_W*2;anchorY.min=-SURF_H;anchorY.max=SURF_H*2;
+    rerender();
+}
+window.addEventListener('resize',resize);
+
+function recalcSurfPos(){
+    SURF_W=parseInt(surfW.value); SURF_H=parseInt(surfH.value);
+    sx=Math.floor((canW-SURF_W)/2); sy=Math.floor((canH-SURF_H)/2);
+}
+
+/* ---- 混合 ---- */
+function blendPx(bgR,bgG,bgB, srcR,srcG,srcB,srcA){
+    srcA=Math.min(1,srcA/255);
+    switch(blendMode){
+    case'add':
+        return[Math.min(255,Math.round(srcR*srcA+bgR)),Math.min(255,Math.round(srcG*srcA+bgG)),Math.min(255,Math.round(srcB*srcA+bgB))];
+    case'multiply':
+        return[Math.round(bgR*(srcR/255*srcA+(1-srcA))),Math.round(bgG*(srcG/255*srcA+(1-srcA))),Math.round(bgB*(srcB/255*srcA+(1-srcA)))];
+    default:
+        return[Math.round(srcR*srcA+bgR*(1-srcA)),Math.round(srcG*srcA+bgG*(1-srcA)),Math.round(srcB*srcA+bgB*(1-srcA))];
+    }
+}
+
+/* ---- 核心渲染 ---- */
+function rerender(){
+    const imgBuf=ctx.createImageData(canW,canH);
+    const d=imgBuf.data;
+    for(let y=0;y<canH;y++){
+        for(let x=0;x<canW;x++){
+            const idx=(y*canW+x)*4;
+            const v=(((x>>4)+(y>>4))&1)?240:255;
+            d[idx]=v;d[idx+1]=v;d[idx+2]=v;d[idx+3]=255;
+        }
+    }
+
+    /* surf 矩形（画布居中） */
+    for(let y=sy;y<sy+SURF_H;y++){for(let x=sx;x<sx+SURF_W;x++){
+        const idx=(y*canW+x)*4;d[idx]=255;d[idx+1]=255;d[idx+2]=255;d[idx+3]=255;
+    }}
+
+    if(!sourceImg){drawRectOutline(sx,sy,SURF_W,SURF_H,d,'#333');ctx.putImageData(imgBuf,0,0);drawOverlayText();return;}
+
+    const op=parseInt(opacity.value);
+    const iw=sourceImg.width,ih=sourceImg.height;
+    const tmpC=document.createElement('canvas');tmpC.width=iw;tmpC.height=ih;
+    const tmpCtx=tmpC.getContext('2d');tmpCtx.drawImage(sourceImg,0,0);
+    const srcData=tmpCtx.getImageData(0,0,iw,ih).data;
+
+    if(drawMode==='in_rect'){
+        const tx=sx+parseInt(targetX.value),ty=sy+parseInt(targetY.value),tw=parseInt(targetW.value),th=parseInt(targetH.value);
+
+        let dw,dh, scaleX=1,scaleY=1;
+
+        switch(fit){
+        case 0:/* NONE */ dw=iw; dh=ih; break;
+        case 1:/* FIT */
+        case 2:/* FILL */ {
+            /* C: int width_is_limiting = ((s64_t)tw * ih <= (s64_t)th * iw) */
+            const wLimiting = (tw * ih <= th * iw);
+            const useW = (fit===1) ? wLimiting : !wLimiting;
+            if(useW){
+                scaleX=tw/iw; scaleY=scaleX;
+                dw=tw;
+                dh=Math.floor((ih*tw + Math.floor(iw/2)) / iw); /* C: (ih*tw + iw/2)/iw */
+            }else{
+                scaleX=th/ih; scaleY=scaleX;
+                dw=Math.floor((iw*th + Math.floor(ih/2)) / ih);
+                dh=th;
+            }
+        } break;
+        case 3:/* STRETCH */ scaleX=tw/iw; scaleY=th/ih; dw=tw; dh=th; break;
+        }
+
+        /* C: ipgui_compute_align_offset — 整数除法 */
+        let ox,oy;
+        switch(align){
+        case 0:ox=0;           oy=0;           break;
+        case 1:ox=Math.floor((tw-dw)/2); oy=0;           break;
+        case 2:ox=tw-dw;       oy=0;           break;
+        case 3:ox=0;           oy=Math.floor((th-dh)/2); break;
+        case 4:ox=Math.floor((tw-dw)/2); oy=Math.floor((th-dh)/2); break;
+        case 5:ox=tw-dw;       oy=Math.floor((th-dh)/2); break;
+        case 6:ox=0;           oy=th-dh;       break;
+        case 7:ox=Math.floor((tw-dw)/2); oy=th-dh;       break;
+        case 8:ox=tw-dw;       oy=th-dh;       break;
+        }
+        const drawX=tx+ox, drawY=ty+oy;
+
+        const invSX=1/scaleX, invSY=1/scaleY;
+        /* target rect 裁剪区域 */
+        const clipX0=tx, clipY0=ty, clipX1=tx+tw, clipY1=ty+th;
+        for(let dy=0;dy<dh;dy++){
+            const py=drawY+dy;
+            if(py<clipY0||py>=clipY1)continue;
+            if(py<sy||py>=sy+SURF_H)continue;
+            for(let dx=0;dx<dw;dx++){
+                const px=drawX+dx;
+                if(px<clipX0||px>=clipX1)continue;
+                if(px<sx||px>=sx+SURF_W)continue;
+                const six=Math.min(iw-1,Math.max(0,Math.floor(dx*invSX+0.5)));
+                const siy=Math.min(ih-1,Math.max(0,Math.floor(dy*invSY+0.5)));
+                const si=(siy*iw+six)*4;
+                const sr=srcData[si],sg=srcData[si+1],sb=srcData[si+2];
+                const idx=(py*canW+px)*4;
+                const[r,g,b]=blendPx(d[idx],d[idx+1],d[idx+2],sr,sg,sb,op);
+                d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=255;
+            }
+        }
+        drawRectOutline(tx,ty,tw,th,d,'#e94560');
+
+    } else {
+        const ax=sx+parseInt(anchorX.value),ay=sy+parseInt(anchorY.value);
+        let drawX,drawY;
+        if(drawMode==='at'){drawX=ax;drawY=ay;}
+        else{drawX=ax-Math.floor(iw/2);drawY=ay-Math.floor(ih/2);}
+
+        for(let sy2=0;sy2<ih;sy2++){
+            const py=drawY+sy2;if(py<sy||py>=sy+SURF_H)continue;
+            for(let sx2=0;sx2<iw;sx2++){
+                const px=drawX+sx2;if(px<sx||px>=sx+SURF_W)continue;
+                const si=(sy2*iw+sx2)*4;
+                const sr=srcData[si],sg=srcData[si+1],sb=srcData[si+2];
+                const idx=(py*canW+px)*4;
+                const[r,g,b]=blendPx(d[idx],d[idx+1],d[idx+2],sr,sg,sb,op);
+                d[idx]=r;d[idx+1]=g;d[idx+2]=b;d[idx+3]=255;
+            }
+        }
+    }
+
+    drawRectOutline(sx,sy,SURF_W,SURF_H,d,'#333333');
+    ctx.putImageData(imgBuf,0,0);
+    drawOverlayText();
+    updateCode();
+}
+
+/* ---- 浮动坐标文本 ---- */
+function drawOverlayText(){
+    ctx.save();
+    ctx.textBaseline='top';
+
+    /* surf 标签 — 上方外侧 */
+    const labelY=Math.max(4, sy-18);
+    ctx.font='bold 12px "Segoe UI",system-ui,sans-serif';
+    ctx.fillStyle='#444';
+    ctx.fillText('离屏缓冲 surf    '+SURF_W+'×'+SURF_H, Math.min(sx, canW-220), labelY);
+
+    /* surf 坐标 — 下方外侧 */
+    const botY=sy+SURF_H+4;
+    if(botY+12<=canH){
+        ctx.font='11px "Segoe UI",system-ui,sans-serif';
+        ctx.fillStyle='#888';
+        ctx.fillText('(0, 0)  →  ('+SURF_W+', '+SURF_H+')', sx+2, botY);
+    }
+
+    /* target rect 坐标 — 红框上方 */
+    if(drawMode==='in_rect'){
+        const tx=sx+parseInt(targetX.value), ty=sy+parseInt(targetY.value);
+        const tw=parseInt(targetW.value), th=parseInt(targetH.value);
+        ctx.font='bold 11px "Segoe UI",system-ui,sans-serif';
+        ctx.fillStyle='#e94560';
+        const tLabelY=Math.max(4, ty-17);
+        const xv=parseInt(targetX.value),yv=parseInt(targetY.value);
+        const wv=parseInt(targetW.value),hv=parseInt(targetH.value);
+        ctx.fillText('target    x:'+xv+'  y:'+yv+'  w:'+wv+'  h:'+hv+'  (AABB: {{'+xv+', '+yv+'}, {'+(xv+wv)+', '+(yv+hv)+'}})', Math.min(tx, canW-300), tLabelY);
+    }
+
+    ctx.restore();
+}
+
+/* ---- 画矩形框 ---- */
+function drawRectOutline(x,y,w,h,d,hex){
+    const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    for(let i=0;i<w;i++){
+        for(let t=0;t<2;t++){
+            let yy=y+t;if(yy>=0&&yy<canH){const idx=(yy*canW+(x+i))*4;d[idx]=r;d[idx+1]=g;d[idx+2]=b;}
+            yy=y+h-1-t;if(yy>=0&&yy<canH){const idx=(yy*canW+(x+i))*4;d[idx]=r;d[idx+1]=g;d[idx+2]=b;}
+        }
+    }
+    for(let i=0;i<h;i++){
+        for(let t=0;t<2;t++){
+            let xx=x+t;if(xx>=0&&xx<canW){const idx=((y+i)*canW+xx)*4;d[idx]=r;d[idx+1]=g;d[idx+2]=b;}
+            xx=x+w-1-t;if(xx>=0&&xx<canW){const idx=((y+i)*canW+xx)*4;d[idx]=r;d[idx+1]=g;d[idx+2]=b;}
+        }
+    }
+}
+
+/* ---- C 代码生成 ---- */
+function updateCode(){
+    if(!sourceImg){codeOut.textContent='请先上传图片';return;}
+    const op=parseInt(opacity.value);
+    const alignNames=['TOP_LEFT','TOP','TOP_RIGHT','LEFT','CENTER','RIGHT','BOTTOM_LEFT','BOTTOM','BOTTOM_RIGHT'];
+    const fitNames=['NONE','FIT','FILL','STRETCH'];
+    const blendNames={normal:'IPGUI_BLEND_MODE_NORMAL',add:'IPGUI_BLEND_MODE_ADD',multiply:'IPGUI_BLEND_MODE_MULTIPLY'};
+
+    let code;
+    if(drawMode==='at'){
+        code=`ipgui_image_draw_style_t style = { .opacity = ${op}, .blend_mode = ${blendNames[blendMode]} };\n`+
+             `ipgui_draw_image_at(surf, img, ${parseInt(anchorX.value)}, ${parseInt(anchorY.value)}, &style);`;
+    }else if(drawMode==='centered'){
+        code=`ipgui_image_draw_style_t style = { .opacity = ${op}, .blend_mode = ${blendNames[blendMode]} };\n`+
+             `ipgui_draw_image_centered(surf, img, ${parseInt(anchorX.value)}, ${parseInt(anchorY.value)}, &style);`;
+    }else{
+        code=`ipgui_image_draw_style_t style = { .opacity = ${op}, .blend_mode = ${blendNames[blendMode]} };\n`+
+             `ipgui_aabb_t target = { {${parseInt(targetX.value)},${parseInt(targetY.value)}}, {${parseInt(targetX.value)+parseInt(targetW.value)},${parseInt(targetY.value)+parseInt(targetH.value)}} };\n`+
+             `ipgui_draw_image_in_rect(surf, img, &target,\n    IPGUI_IMG_ALIGN_${alignNames[align]}, IPGUI_IMG_FIT_${fitNames[fit]}, &style);`;
+    }
+    codeOut.textContent=code;
+}
+
+/* ---- 拖放上传 ---- */
+dropZone.addEventListener('click',()=>{const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.onchange=e=>loadFile(e.target.files[0]);inp.click();});
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.style.borderColor='var(--accent)';});
+dropZone.addEventListener('dragleave',()=>{dropZone.style.borderColor='var(--border)';});
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.style.borderColor='var(--border)';if(e.dataTransfer.files.length)loadFile(e.dataTransfer.files[0]);});
+
+function loadFile(file){
+    if(!file||!file.type.startsWith('image/'))return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{
+            sourceImg=img;
+            dropZone.innerHTML=`<img src="${ev.target.result}"><br>${file.name} (${img.width}×${img.height})`;
+            rerender();
+        };
+        img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+/* ---- 模式切换 ---- */
+function switchMode(m){
+    drawMode=m;
+    [modeAt,modeCentered,modeInRect].forEach(b=>{b.classList.remove('btn-sel');b.classList.add('btn-sec');});
+    $(m==='at'?'modeAt':m==='centered'?'modeCentered':'modeInRect').classList.add('btn-sel');
+    $(m==='at'?'modeAt':m==='centered'?'modeCentered':'modeInRect').classList.remove('btn-sec');
+    cgTarget.style.display=m==='in_rect'?'':'none';
+    cgPos.style.display=m!=='in_rect'?'':'none';
+    if(m==='at'){cgPosTitle.textContent='At (图片左上角定位于此点)';cgPosInfo.innerHTML='图片左上角定位<span>(X, Y)</span>';}
+    else if(m==='centered'){cgPosTitle.textContent='Center (图片中心定位于此点)';cgPosInfo.innerHTML='图片中心定位<span>(X, Y)</span>';}
+    rerender();
+}
+modeAt.addEventListener('click',()=>switchMode('at'));
+modeCentered.addEventListener('click',()=>switchMode('centered'));
+modeInRect.addEventListener('click',()=>switchMode('in_rect'));
+
+/* ---- surf 尺寸事件 ---- */
+[surfW,surfH].forEach(el=>el.addEventListener('input',()=>{
+    surfWVal.textContent=surfW.value; surfHVal.textContent=surfH.value;
+    recalcSurfPos();
+    targetX.min=-SURF_W;targetX.max=SURF_W;targetY.min=-SURF_H;targetY.max=SURF_H;
+    anchorX.min=-SURF_W;anchorX.max=SURF_W*2;anchorY.min=-SURF_H;anchorY.max=SURF_H*2;
+    rerender();
+}));
+
+/* ---- in_rect 参数事件 ---- */
+[targetX,targetY,targetW,targetH,anchorX,anchorY,opacity].forEach(el=>el.addEventListener('input',()=>{
+    targetXVal.textContent=targetX.value;targetYVal.textContent=targetY.value;
+    targetWVal.textContent=targetW.value;targetHVal.textContent=targetH.value;
+    anchorXVal.textContent=anchorX.value;anchorYVal.textContent=anchorY.value;
+    opacityVal.textContent=opacity.value;
+    rerender();
+}));
+
+/* ---- 对齐按钮 ---- */
+alignGrid.querySelectorAll('.align-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        alignGrid.querySelectorAll('.align-btn').forEach(b=>b.classList.remove('sel'));
+        btn.classList.add('sel');
+        align=parseInt(btn.dataset.align);
+        rerender();
+    });
+});
+
+/* ---- Fit 按钮 ---- */
+fitRow.querySelectorAll('.fit-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        fitRow.querySelectorAll('.fit-btn').forEach(b=>b.classList.remove('sel'));
+        btn.classList.add('sel');
+        fit=parseInt(btn.dataset.fit);
+        rerender();
+    });
+});
+
+/* ---- 混合模式 ---- */
+[blendNormal,blendAdd,blendMultiply].forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        [blendNormal,blendAdd,blendMultiply].forEach(b=>{b.classList.remove('btn-sel');b.classList.add('btn-sec');});
+        btn.classList.add('btn-sel');btn.classList.remove('btn-sec');
+        blendMode=btn.textContent.trim().toLowerCase();
+        rerender();
+    });
+});
+
+/* ---- 微调按钮 ---- */
+function injectSteppers(){
+    document.querySelectorAll('.range-wrap').forEach(w=>{
+        const rng=w.querySelector('input[type=range]');if(!rng)return;
+        const s=document.createElement('span');s.className='stepper';
+        s.innerHTML='<button data-dir="-1">─</button><button data-dir="1">+</button>';
+        w.appendChild(s);
+    });
+    document.querySelector('.control-panel').addEventListener('click',e=>{
+        const btn=e.target.closest('.stepper button');if(!btn)return;
+        const dir=parseInt(btn.dataset.dir);
+        const rng=btn.closest('.range-wrap').querySelector('input[type="range"]');if(!rng)return;
+        const min=parseInt(rng.min),max=parseInt(rng.max);
+        let val=parseInt(rng.value)+dir;val=Math.max(min,Math.min(max,val));
+        if(val===parseInt(rng.value))return;rng.value=val;
+        rng.dispatchEvent(new Event('input',{bubbles:true}));
+    });
+}
+
+/* ---- 手动画圆角矩形路径 ---- */
+function drawRoundRect(cx, x, y, w, h, r){
+    r=Math.min(r, w/2, h/2);
+    cx.beginPath();
+    cx.moveTo(x+r, y);
+    cx.lineTo(x+w-r, y);
+    cx.arcTo(x+w, y, x+w, y+r, r);
+    cx.lineTo(x+w, y+h-r);
+    cx.arcTo(x+w, y+h, x+w-r, y+h, r);
+    cx.lineTo(x+r, y+h);
+    cx.arcTo(x, y+h, x, y+h-r, r);
+    cx.lineTo(x, y+r);
+    cx.arcTo(x, y, x+r, y, r);
+    cx.closePath();
+}
+
+/* ---- 示例图标 ---- */
+function genSampleIcon(){
+    const size=200;
+    const c2=document.createElement('canvas');c2.width=size;c2.height=size;
+    const cx=c2.getContext('2d');
+    const g=cx.createLinearGradient(0,0,size,size);
+    g.addColorStop(0,'#e94560');g.addColorStop(0.5,'#ff6b81');g.addColorStop(1,'#e94560');
+    cx.fillStyle=g; drawRoundRect(cx, 10, 10, size-20, size-20, 30); cx.fill();
+    cx.fillStyle='rgba(255,255,255,0.25)';
+    drawRoundRect(cx, size*0.2, size*0.2, size*0.6, size*0.6, 16); cx.fill();
+    cx.fillStyle='#fff';
+    cx.beginPath();cx.moveTo(size*0.42,size*0.33);cx.lineTo(size*0.42,size*0.67);cx.lineTo(size*0.65,size*0.5);cx.closePath();cx.fill();
+    return c2;
+}
+$('resetBtn').addEventListener('click',()=>{
+    surfW.value=580;surfH.value=430;surfWVal.textContent='580';surfHVal.textContent='430';
+    targetX.value=140;targetY.value=70;targetW.value=320;targetH.value=240;
+    anchorX.value=290;anchorY.value=215;opacity.value=255;
+    targetXVal.textContent='140';targetYVal.textContent='70';targetWVal.textContent='320';targetHVal.textContent='240';
+    anchorXVal.textContent='290';anchorYVal.textContent='215';opacityVal.textContent='255';
+    recalcSurfPos();
+    targetX.min=-SURF_W;targetX.max=SURF_W;targetY.min=-SURF_H;targetY.max=SURF_H;
+    anchorX.min=-SURF_W;anchorX.max=SURF_W*2;anchorY.min=-SURF_H;anchorY.max=SURF_H*2;
+    align=1;fit=1;
+    alignGrid.querySelectorAll('.align-btn').forEach((b,i)=>{b.classList.toggle('sel',i===1);});
+    fitRow.querySelectorAll('.fit-btn').forEach((b,i)=>{b.classList.toggle('sel',i===1);});
+    blendMode='normal';[blendNormal,blendAdd,blendMultiply].forEach(b=>{b.classList.remove('btn-sel');b.classList.add('btn-sec');});
+    blendNormal.classList.add('btn-sel');blendNormal.classList.remove('btn-sec');
+    rerender();
+});
+
+/* ---- Canvas 拖动 & 缩放 target ---- */
+const EDGE=6;  /* 边缘吸附范围(px) */
+
+function getTargetRect(){
+    return{
+        x:sx+parseInt(targetX.value), y:sy+parseInt(targetY.value),
+        w:parseInt(targetW.value),   h:parseInt(targetH.value)
+    };
+}
+
+function hitEdge(r, mx,my){
+    if(drawMode!=='in_rect')return null;
+    const on=(v,lo,hi)=>v>=lo-EDGE&&v<=hi+EDGE;
+    const t=on(my,r.y,r.y),b=on(my,r.y+r.h,r.y+r.h),l=on(mx,r.x,r.x),ri=on(mx,r.x+r.w,r.x+r.w);
+    const inY=mx>r.x+EDGE&&mx<r.x+r.w-EDGE;
+    const inX=my>r.y+EDGE&&my<r.y+r.h-EDGE;
+    if(t&&inY)return'top'; if(b&&inY)return'bottom';
+    if(l&&inX)return'left'; if(ri&&inX)return'right';
+    if(t&&l)return'tl'; if(t&&ri)return'tr';
+    if(b&&l)return'bl'; if(b&&ri)return'br';
+    return null;
+}
+
+function insideTarget(r,mx,my){
+    return mx>=r.x&&mx<r.x+r.w&&my>=r.y&&my<r.y+r.h;
+}
+
+const cursorMap={top:'ns-resize',bottom:'ns-resize',left:'ew-resize',right:'ew-resize',
+    tl:'nwse-resize',tr:'nesw-resize',bl:'nesw-resize',br:'nwse-resize'};
+
+canvas.addEventListener('mousemove',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    const r=getTargetRect();
+    if(dragging){
+        const dx=Math.round(mx-dragStartMX),dy=Math.round(my-dragStartMY);
+        let nx=dragStartTX+dx, ny=dragStartTY+dy;
+        nx=Math.max(-SURF_W,Math.min(SURF_W,nx)); ny=Math.max(-SURF_H,Math.min(SURF_H,ny));
+        targetX.value=nx;targetY.value=ny;
+        targetXVal.textContent=nx;targetYVal.textContent=ny;
+        rerender();
+    }else if(resizing){
+        const dx=Math.round(mx-rzStartMX), dy=Math.round(my-rzStartMY);
+        let nx=rzStartTX,ny=rzStartTY,nw=rzStartTW,nh=rzStartTH;
+        switch(resizing){
+        case'left':  nx=rzStartTX+dx; nw=rzStartTW-dx; break;
+        case'right': nw=rzStartTW+dx; break;
+        case'top':   ny=rzStartTY+dy; nh=rzStartTH-dy; break;
+        case'bottom':nh=rzStartTH+dy; break;
+        case'tl': nx=rzStartTX+dx;nw=rzStartTW-dx; ny=rzStartTY+dy;nh=rzStartTH-dy; break;
+        case'tr': nw=rzStartTW+dx; ny=rzStartTY+dy;nh=rzStartTH-dy; break;
+        case'bl': nx=rzStartTX+dx;nw=rzStartTW-dx; nh=rzStartTH+dy; break;
+        case'br': nw=rzStartTW+dx; nh=rzStartTH+dy; break;
+        }
+        nw=Math.max(10,nw); nh=Math.max(10,nh);
+        targetX.value=nx;targetY.value=ny;targetW.value=nw;targetH.value=nh;
+        targetXVal.textContent=nx;targetYVal.textContent=ny;
+        targetWVal.textContent=nw;targetHVal.textContent=nh;
+        rerender();
+    }else{
+        const edge=hitEdge(r,mx,my);
+        if(edge){canvas.style.cursor=cursorMap[edge];}
+        else if(insideTarget(r,mx,my)){canvas.style.cursor='move';}
+        else{canvas.style.cursor='default';}
+    }
+});
+canvas.addEventListener('mousedown',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    const r=getTargetRect();
+    const edge=hitEdge(r,mx,my);
+    if(edge){
+        resizing=edge;
+        rzStartMX=mx;rzStartMY=my;
+        rzStartTX=parseInt(targetX.value);rzStartTY=parseInt(targetY.value);
+        rzStartTW=parseInt(targetW.value);rzStartTH=parseInt(targetH.value);
+        canvas.style.cursor=cursorMap[edge];
+        e.preventDefault();
+    }else if(insideTarget(r,mx,my)){
+        dragging=true;
+        dragStartMX=mx;dragStartMY=my;
+        dragStartTX=parseInt(targetX.value);dragStartTY=parseInt(targetY.value);
+        canvas.style.cursor='grabbing';
+        e.preventDefault();
+    }
+});
+canvas.addEventListener('mouseup',()=>{
+    if(dragging){dragging=false;canvas.style.cursor='default';}
+    if(resizing){resizing=null;canvas.style.cursor='default';}
+});
+canvas.addEventListener('mouseleave',()=>{
+    if(dragging){dragging=false;}
+    if(resizing){resizing=null;}
+    canvas.style.cursor='default';
+});
+
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2000);}
+
+/* ---- 初始化 ---- */
+document.addEventListener('DOMContentLoaded',()=>{
+    resize();
+    injectSteppers();
+    const c2=genSampleIcon();
+    const img=new Image();
+    img.onload=()=>{sourceImg=img;dropZone.innerHTML=`<img src="${c2.toDataURL()}"><br>示例图标 (200x200)`;rerender();};
+    img.src=c2.toDataURL();
+});
+</script>
+</body>
+</html>
