@@ -1,7 +1,6 @@
 #include "ipgui_draw_image_api.h"
 #include "ipgui_image_geometry_transform.h"
 
-/* ---- ipgui_draw_image_at ---- */
 __IPGUI_API__ void ipgui_draw_image_at(
     ipgui_surf_t                   * surf,
     ipgui_image_data_t             * img,
@@ -11,8 +10,8 @@ __IPGUI_API__ void ipgui_draw_image_at(
 {
     if (!surf || !img || !style) return;
 
-    ipgui_point_t pivot  = { 0, 0 };
-    ipgui_point_t anchor = { x, y };
+    ipgui_point_t pivot  = {0, 0};
+    ipgui_point_t anchor = {x, y};
 
     ipgui_draw_image(surf, (ipgui_aabb_t *)0, img,
                      &pivot, &anchor,
@@ -20,7 +19,6 @@ __IPGUI_API__ void ipgui_draw_image_at(
                      (ipgui_image_draw_style_t *)style);
 }
 
-/* ---- ipgui_draw_image_centered ---- */
 __IPGUI_API__ void ipgui_draw_image_centered(
     ipgui_surf_t                   * surf,
     ipgui_image_data_t             * img,
@@ -30,8 +28,8 @@ __IPGUI_API__ void ipgui_draw_image_centered(
 {
     if (!surf || !img || !style) return;
 
-    ipgui_point_t pivot  = { img->w / 2, img->h / 2 };
-    ipgui_point_t anchor = { cx, cy };
+    ipgui_point_t pivot  = {img->w / 2, img->h / 2};
+    ipgui_point_t anchor = {cx, cy};
 
     ipgui_draw_image(surf, (ipgui_aabb_t *)0, img,
                      &pivot, &anchor,
@@ -39,30 +37,28 @@ __IPGUI_API__ void ipgui_draw_image_centered(
                      (ipgui_image_draw_style_t *)style);
 }
 
-/* ---- 内部辅助：计算对齐偏移 ---- */
 __IPGUI_STATIC__ void ipgui_compute_align_offset(
     ipgui_image_align_t align,
     ipgui_coord_t       container_w,
     ipgui_coord_t       container_h,
     ipgui_coord_t       item_w,
     ipgui_coord_t       item_h,
-    ipgui_coord_t      *ox,
-    ipgui_coord_t      *oy)
+    ipgui_coord_t     * ox,
+    ipgui_coord_t     * oy)
 {
     switch (align) {
-        case IPGUI_IMG_ALIGN_TOP_LEFT:     *ox = 0;                                      *oy = 0;                                      return;
-        case IPGUI_IMG_ALIGN_TOP:           *ox = (container_w - item_w) / 2;             *oy = 0;                                      return;
-        case IPGUI_IMG_ALIGN_TOP_RIGHT:    *ox = container_w - item_w;                    *oy = 0;                                      return;
-        case IPGUI_IMG_ALIGN_LEFT:          *ox = 0;                                      *oy = (container_h - item_h) / 2;             return;
-        case IPGUI_IMG_ALIGN_CENTER:        *ox = (container_w - item_w) / 2;             *oy = (container_h - item_h) / 2;             return;
-        case IPGUI_IMG_ALIGN_RIGHT:         *ox = container_w - item_w;                    *oy = (container_h - item_h) / 2;             return;
-        case IPGUI_IMG_ALIGN_BOTTOM_LEFT:  *ox = 0;                                      *oy = container_h - item_h;                  return;
-        case IPGUI_IMG_ALIGN_BOTTOM:        *ox = (container_w - item_w) / 2;             *oy = container_h - item_h;                  return;
-        case IPGUI_IMG_ALIGN_BOTTOM_RIGHT: *ox = container_w - item_w;                    *oy = container_h - item_h;                  return;
+        case IPGUI_IMG_ALIGN_TOP_LEFT:     * ox = 0;                           * oy = 0;                           return;
+        case IPGUI_IMG_ALIGN_TOP:          * ox = (container_w - item_w) / 2;  * oy = 0;                           return;
+        case IPGUI_IMG_ALIGN_TOP_RIGHT:    * ox = container_w - item_w;        * oy = 0;                           return;
+        case IPGUI_IMG_ALIGN_LEFT:         * ox = 0;                           * oy = (container_h - item_h) / 2;  return;
+        case IPGUI_IMG_ALIGN_CENTER:       * ox = (container_w - item_w) / 2;  * oy = (container_h - item_h) / 2;  return;
+        case IPGUI_IMG_ALIGN_RIGHT:        * ox = container_w - item_w;        * oy = (container_h - item_h) / 2;  return;
+        case IPGUI_IMG_ALIGN_BOTTOM_LEFT:  * ox = 0;                           * oy = container_h - item_h;        return;
+        case IPGUI_IMG_ALIGN_BOTTOM:       * ox = (container_w - item_w) / 2;  * oy = container_h - item_h;        return;
+        case IPGUI_IMG_ALIGN_BOTTOM_RIGHT: * ox = container_w - item_w;        * oy = container_h - item_h;        return;
     }
 }
 
-/* ---- ipgui_draw_image_in_rect ---- */
 __IPGUI_API__ void ipgui_draw_image_in_rect(
     ipgui_surf_t                   * surf,
     ipgui_image_data_t             * img,
@@ -81,7 +77,6 @@ __IPGUI_API__ void ipgui_draw_image_in_rect(
     iw = img->w;
     ih = img->h;
 
-    /* ======== NONE：原图大小，只做对齐，无变换 ======== */
     if (fit == IPGUI_IMG_FIT_NONE) {
         ipgui_coord_t ox, oy;
         ipgui_coord_t draw_w, draw_h;
@@ -103,7 +98,7 @@ __IPGUI_API__ void ipgui_draw_image_in_rect(
         return;
     }
 
-    /* ======== FIT / FILL / STRETCH：需要缩放变换 ======== */
+    /* 需要缩放变换 */
     {
         ipgui_img_geo_trans_t geo_trans;
         ipgui_coord_t         scaled_w, scaled_h;
@@ -150,7 +145,7 @@ __IPGUI_API__ void ipgui_draw_image_in_rect(
         ipgui_compute_align_offset(align, tw, th, scaled_w, scaled_h, &ox, &oy);
 
         ipgui_image_trans_pivot(&geo_trans,
-            (ipgui_point_t){ iw / 2, ih / 2 });
+            (ipgui_point_t){iw / 2, ih / 2});
 
         anchor.x = target->start.x + ox + scaled_w / 2;
         anchor.y = target->start.y + oy + scaled_h / 2;

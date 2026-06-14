@@ -284,7 +284,7 @@ _ras_mid_line:
         u8_t * mask_buf = mask; 
         u8_t m1, m2, m3;
         
-        for (int j = 0; j < w; j ++) {
+        for (s32_t j = 0; j < w; j ++) {
             m1 = ipgui_edge_halfplane_mask(&em1, mask_aabb.start.x + j);
             m2 = ipgui_edge_halfplane_mask(&em2, mask_aabb.start.x + j);
             m3 = ipgui_edge_halfplane_mask(&em3, mask_aabb.start.x + j);
