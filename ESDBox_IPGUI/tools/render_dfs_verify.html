@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>DFS Render Verify</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font:13px monospace;background:#1a1a2e;color:#ccc;display:flex;height:100vh}
+#left{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px}
+canvas{border:1px solid #555}
+#right{width:420px;background:#12122a;padding:12px;overflow-y:auto;border-left:1px solid #333}
+h3{color:#e94560;margin:12px 0 6px;font-size:14px}
+.panel{margin-bottom:10px}
+.log{font-size:12px;line-height:1.5;white-space:pre-wrap}
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:11px;color:#fff}
+.tag-vis{background:#4caf50}.tag-int{background:#e91e63}.tag-off{background:#9c27b0}
+.tag-surf{background:#009688}.tag-skip{background:#666}
+button{padding:4px 10px;border:none;border-radius:3px;font:inherit}
+.btns{margin:6px 0}
+</style>
+</head>
+<body>
+<div id="left">
+  <canvas id="c" width="800" height="600"></canvas>
+  <div class="btns">
+    <button onclick="preset('full')">全屏脏矩形</button>
+    <button onclick="preset('cross')">跨两个控件</button>
+    <button onclick="preset('partial')">部分覆盖子控件</button>
+    <button onclick="preset('childLarger')">子控件超出父控件</button>
+    <button onclick="preset('stack')">子控件堆叠</button>
+    <button onclick="resetWidgets()">重置控件位置</button>
+  </div>
+</div>
+<div id="right">
+  <div class="panel"><h3>操作说明</h3>
+    <div class="log">拖拽控件 → 移动<br>拖拽脏矩形内 → 移动脏矩形<br>拖拽脏矩形边/角 → 缩放</div>
+  </div>
+  <div class="panel"><h3>控件树</h3><div id="tree"></div></div>
+  <div class="panel"><h3>渲染日志</h3><div id="log" class="log"></div></div>
+  <div class="panel"><h3>光标信息</h3><div id="info" class="log"></div></div>
+</div>
+<script>
+const W=800, H=600;
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+
+const screen = {
+  id:'Screen', x:0, y:0, w:W, h:H, color:'#111',
+  children:[
+    { id:'Panel A (50,20) 300x200', x:50, y:20, w:300, h:200, color:'#2d5aa0',
+      children:[
+        {id:'Btn 1 (10,10) 80x60 [DIS]', x:10, y:10, w:80, h:60, color:'#4caf50', flags:0x0008, children:[]},
+        {id:'Btn 2 (120,10) 100x80', x:120, y:10, w:100, h:80, color:'#e040fb', children:[]},
+        {id:'Status (10,110) 260x70', x:10, y:110, w:260, h:70, color:'#00bcd4', children:[]},
+      ]
+    },{ id:'Panel Clip (500,20) 120x100 [OVF]', x:500, y:20, w:120, h:100, color:'#607d8b', flags:0x0002,
+      children:[
+        {id:'Overflow (-25,-15) 180x130', x:-25, y:-15, w:180, h:130, color:'#f44336', children:[]},
+      ]
+    },{ id:'Panel Stack (50,380) 350x200', x:50, y:380, w:350, h:200, color:'#455a64',
+      children:[
+        {id:'Red (10,10) 150x100', x:10, y:10, w:150, h:100, color:'#f44336', children:[]},
+        {id:'Blue (60,50) 200x90', x:60, y:50, w:200, h:90, color:'#2196f3', children:[]},
+        {id:'Green (120,30) 180x110 [DIS]', x:120, y:30, w:180, h:110, color:'#4caf50', flags:0x0008, children:[]},
+      ]
+    },
+  ]
+};
+
+/* 保存初始位置 */
+const initWidgets = [];
+(function snap(nodes){
+  for(const w of nodes){
+    initWidgets.push({ref:w, x:w.x, y:w.y});
+    if(w.children) snap(w.children);
+  }
+})(screen.children);
+
+function resetWidgets(){
+  for(const s of initWidgets){ s.ref.x = s.x; s.ref.y = s.y; }
+  doRender();
+}
+
+let dirtyRect = {x1:0,y1:0,x2:800,y2:600};
+let logs = [];
+
+function absPos(w, px, py){
+  const ax=(w.x||0)+(px||0), ay=(w.y||0)+(py||0);
+  return {x1:ax, y1:ay, x2:ax+(w.w||0)-1, y2:ay+(w.h||0)-1};
+}
+
+function overlap(a, b){
+  const s={x1:Math.max(a.x1,b.x1), y1:Math.max(a.y1,b.y1),
+           x2:Math.min(a.x2,b.x2), y2:Math.min(a.y2,b.y2)};
+  if(s.x1>s.x2||s.y1>s.y2) return null;
+  return s;
+}
+
+let drawOps = [];
+
+function doRender(){
+  drawOps = []; logs = [];
+  const clip = {x1:dirtyRect.x1, y1:dirtyRect.y1, x2:dirtyRect.x2-1, y2:dirtyRect.y2-1};
+  const w = dirtyRect.x2 - dirtyRect.x1, h = dirtyRect.y2 - dirtyRect.y1;
+  const px = 4;
+  const pfb = new Uint8Array(w * h * px);
+  pfb.fill(0xFF);
+  const sBase = {left:dirtyRect.x1, top:dirtyRect.y1, right:dirtyRect.x1+w, bottom:dirtyRect.y1+h, stride:w*px, px, pfb};
+
+  function dfs(node, pxAcc, pyAcc, parent_clip){
+    const aabb = absPos(node, pxAcc, pyAcc);
+    const inter = overlap(aabb, clip);
+    if(!inter){ logs.push(`<span class="tag tag-skip">SKIP</span> ${node.id}: 不在脏矩形内`); return; }
+    let visible = inter;
+    if(parent_clip){
+      const clipped = overlap(inter, parent_clip);
+      if(!clipped){ logs.push(`<span class="tag tag-skip">SKIP</span> ${node.id}: 被父控件裁剪`); return; }
+      visible = clipped;
+    }
+    if(node.flags & 0x0001){ logs.push(`<span class="tag tag-skip">SKIP</span> ${node.id}: INVISIBLE`); return; }
+    const skipDisabled = (node.flags & 0x0008)?' [DISABLED]':'';
+    const lx1 = visible.x1 - aabb.x1, ly1 = visible.y1 - aabb.y1;
+    const lx2 = visible.x2 - aabb.x1, ly2 = visible.y2 - aabb.y1;
+    const colOff = (visible.x1 - sBase.left)*px;
+    const rowOff = (visible.y1 - sBase.top)*sBase.stride;
+    const pfbOff = rowOff + colOff;
+    logs.push(
+      `<span class="tag tag-vis">VIS</span> ${node.id}${skipDisabled}\n`+
+      `  <span class="tag tag-int">intersect</span> global[${visible.x1},${visible.y1}→${visible.x2},${visible.y2}] local[${lx1},${ly1}→${lx2},${ly2}]\n`+
+      `  <span class="tag tag-off">offset</span> col=${colOff} row=${rowOff} → pfb[${pfbOff}]\n`+
+      `  <span class="tag tag-surf">surf</span> [${lx1},${ly1}→${lx2+1},${ly2+1}] size=${lx2-lx1+1}x${ly2-ly1+1}`
+    );
+    const cr = parseColor(node.color);
+    for(let y=ly1; y<=ly2; y++)
+      for(let x=lx1; x<=lx2; x++){
+        const off = pfbOff + (y-ly1)*sBase.stride + (x-lx1)*px;
+        pfb[off]=cr.b; pfb[off+1]=cr.g; pfb[off+2]=cr.r; pfb[off+3]=255;
+      }
+    drawOps.push({id:node.id, ref:node, aabb, inter:visible, pxAcc, pyAcc, color:node.color, skipDisabled:(node.flags&0x0008), ls:{left:lx1,top:ly1,right:lx2+1,bottom:ly2+1}});
+
+    const parentGlobal = {x1:aabb.x1, y1:aabb.y1, x2:aabb.x1+node.w-1, y2:aabb.y1+node.h-1};
+    let childClip;
+    if(node.flags & 0x0002/*OVERFLOW_VISIBLE*/){
+      childClip = {x1:aabb.x1, y1:aabb.y1, x2:aabb.x2, y2:aabb.y2}; /* global_aabb */
+    } else {
+      childClip = parentGlobal;
+      if(parent_clip){ const c = overlap(parentGlobal, parent_clip); if(c) childClip = c; }
+    }
+
+    if(node.children) for(const ch of node.children){
+      const subParentClip = (node.flags & 0x0002/*OVERFLOW_VISIBLE*/) ? parent_clip : childClip;
+      dfs(ch, pxAcc+node.x, pyAcc+node.y, subParentClip);
+    }
+  }
+  for(const ch of screen.children) dfs(ch, 0, 0, clip);
+  render(pfb);
+  updateLog(); updateTree();
+}
+
+function render(pfb){
+  ctx.clearRect(0,0,W,H);
+  const dw = dirtyRect.x2 - dirtyRect.x1, dh = dirtyRect.y2 - dirtyRect.y1;
+  /* PFB → canvas */
+  for(let y=0; y<dh; y++)
+    for(let x=0; x<dw; x++){
+      const off = (y*dw + x)*4;
+      ctx.fillStyle=`rgb(${pfb[off+2]},${pfb[off+1]},${pfb[off+0]})`;
+      ctx.fillRect(dirtyRect.x1+x, dirtyRect.y1+y, 1, 1);
+    }
+  /* 控件边界 */
+  function outline(node, px, py){
+    const a = absPos(node, px, py);
+    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1;
+    ctx.strokeRect(a.x1+0.5, a.y1+0.5, a.x2-a.x1, a.y2-a.y1);
+    if(node.children) for(const ch of node.children) outline(ch, px+node.x, py+node.y);
+  }
+  for(const ch of screen.children) outline(ch, 0, 0);
+
+  /* 脏矩形 */
+  ctx.strokeStyle='#00e5ff'; ctx.lineWidth=2;
+  ctx.setLineDash([6,3]);
+  ctx.strokeRect(dirtyRect.x1, dirtyRect.y1, dw, dh);
+  ctx.setLineDash([]);
+  /* 脏矩形 8 个控制柄 */
+  const M = 5;
+  const hs = [
+    {x:dirtyRect.x1, y:dirtyRect.y1}, {x:Math.floor((dirtyRect.x1+dirtyRect.x2)/2), y:dirtyRect.y1},
+    {x:dirtyRect.x2, y:dirtyRect.y1}, {x:dirtyRect.x1, y:Math.floor((dirtyRect.y1+dirtyRect.y2)/2)},
+    {x:dirtyRect.x2, y:Math.floor((dirtyRect.y1+dirtyRect.y2)/2)},
+    {x:dirtyRect.x1, y:dirtyRect.y2}, {x:Math.floor((dirtyRect.x1+dirtyRect.x2)/2), y:dirtyRect.y2},
+    {x:dirtyRect.x2, y:dirtyRect.y2}
+  ];
+  ctx.fillStyle='#00e5ff';
+  for(const h of hs) ctx.fillRect(h.x-M, h.y-M, M*2, M*2);
+}
+
+function updateTree(){
+  const el=document.getElementById('tree');
+  let h='';
+  function t(node,indent){
+    const dis=node.flags&0x0008?' [D]':'', inv=node.flags&0x0001?' [I]':'', ovf=node.flags&0x0002?' [O]':'';
+    h+=`<div style="padding-left:${indent*16}px">${indent?'└':''} <span style="color:${node.color}">■</span> ${node.id}${dis}${inv}${ovf} x=${node.x} y=${node.y}</div>`;
+    if(node.children) for(const ch of node.children) t(ch,indent+1);
+  }
+  for(const ch of screen.children) t(ch,0);
+  el.innerHTML=h||'empty';
+}
+
+function updateLog(){ document.getElementById('log').innerHTML = logs.join('\n'); }
+function parseColor(c){ const h=c.replace('#',''); return {r:parseInt(h.substr(0,2),16),g:parseInt(h.substr(2,2),16),b:parseInt(h.substr(4,2),16)}; }
+
+/* ===== 鼠标交互：拖拽控件 / 缩放脏矩形 / 移动脏矩形 ===== */
+const HIT_NONE=0, HIT_WIDGET=1, HIT_DIRTY_MOVE=2, HIT_DIRTY_HANDLE=3;
+let dragState = null; /* {type, ref, pxAcc, pyAcc, sx, sy, ox, oy, handleIdx} */
+const HANDLE_SIZE=7;
+
+function hitTest(gx, gy){
+  /* 先检查脏矩形控制柄（角4+边4=8个） */
+  const M = HANDLE_SIZE;
+  const hs = [
+    [dirtyRect.x1, dirtyRect.y1, 0], [Math.floor((dirtyRect.x1+dirtyRect.x2)/2), dirtyRect.y1, 1],
+    [dirtyRect.x2, dirtyRect.y1, 2], [dirtyRect.x1, Math.floor((dirtyRect.y1+dirtyRect.y2)/2), 3],
+    [dirtyRect.x2, Math.floor((dirtyRect.y1+dirtyRect.y2)/2), 4],
+    [dirtyRect.x1, dirtyRect.y2, 5], [Math.floor((dirtyRect.x1+dirtyRect.x2)/2), dirtyRect.y2, 6],
+    [dirtyRect.x2, dirtyRect.y2, 7]
+  ];
+  for(const [hx, hy, idx] of hs){
+    if(gx>=hx-M && gx<=hx+M && gy>=hy-M && gy<=hy+M)
+      return {type:HIT_DIRTY_HANDLE, handleIdx:idx};
+  }
+
+  /* 再检查控件（从最上层往最下层，只检查 screen.children 顶层） */
+  function hitWidget(node, px, py){
+    const a = absPos(node, px, py);
+    if(gx>=a.x1 && gx<=a.x2 && gy>=a.y1 && gy<=a.y2){
+      /* 优先子控件 */
+      if(node.children) for(let i=node.children.length-1; i>=0; i--){
+        const h = hitWidget(node.children[i], px+node.x, py+node.y);
+        if(h) return h;
+      }
+      return {type:HIT_WIDGET, ref:node, pxAcc:px, pyAcc:py};
+    }
+    return null;
+  }
+  for(let i=screen.children.length-1; i>=0; i--){
+    const h = hitWidget(screen.children[i], 0, 0);
+    if(h) return h;
+  }
+
+  /* 脏矩形内部（移动） */
+  if(gx>=dirtyRect.x1 && gx<=dirtyRect.x2 && gy>=dirtyRect.y1 && gy<=dirtyRect.y2)
+    return {type:HIT_DIRTY_MOVE};
+
+  return {type:HIT_NONE};
+}
+
+function getCursor(type, handleIdx){
+  if(type===HIT_DIRTY_HANDLE){
+    const cursors = ['nw-resize','n-resize','ne-resize','w-resize','e-resize','sw-resize','s-resize','se-resize'];
+    return cursors[handleIdx];
+  }
+  if(type===HIT_WIDGET) return 'grab';
+  if(type===HIT_DIRTY_MOVE) return 'move';
+  return 'crosshair';
+}
+
+canvas.addEventListener('mousedown', e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=Math.floor(e.clientX-rect.left), my=Math.floor(e.clientY-rect.top);
+  const hit = hitTest(mx, my);
+  if(hit.type===HIT_NONE) return;
+  dragState = {type:hit.type, sx:mx, sy:my};
+  if(hit.type===HIT_WIDGET){
+    dragState.ref = hit.ref; dragState.ox = hit.ref.x; dragState.oy = hit.ref.y;
+  }else if(hit.type===HIT_DIRTY_MOVE){
+    dragState.ox = dirtyRect.x1; dragState.oy = dirtyRect.y1;
+    dragState.ox2 = dirtyRect.x2; dragState.oy2 = dirtyRect.y2;
+  }else if(hit.type===HIT_DIRTY_HANDLE){
+    dragState.handleIdx = hit.handleIdx;
+    dragState.ox1 = dirtyRect.x1; dragState.oy1 = dirtyRect.y1;
+    dragState.ox2 = dirtyRect.x2; dragState.oy2 = dirtyRect.y2;
+  }
+  e.preventDefault();
+});
+
+canvas.addEventListener('mousemove', e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=Math.floor(e.clientX-rect.left), my=Math.floor(e.clientY-rect.top);
+
+  if(dragState){
+    const dx=mx-dragState.sx, dy=my-dragState.sy;
+    if(dragState.type===HIT_WIDGET){
+      dragState.ref.x = dragState.ox + dx;
+      dragState.ref.y = dragState.oy + dy;
+      doRender();
+    }else if(dragState.type===HIT_DIRTY_MOVE){
+      const nw = dragState.ox2 - dragState.ox, nh = dragState.oy2 - dragState.oy;
+      dirtyRect.x1 = Math.max(0, Math.min(W-nw, dragState.ox+dx));
+      dirtyRect.y1 = Math.max(0, Math.min(H-nh, dragState.oy+dy));
+      dirtyRect.x2 = dirtyRect.x1 + nw;
+      dirtyRect.y2 = dirtyRect.y1 + nh;
+      doRender();
+    }else if(dragState.type===HIT_DIRTY_HANDLE){
+      let {ox1, oy1, ox2, oy2} = dragState;
+      const hi = dragState.handleIdx;
+      if(hi===0||hi===3||hi===5){ ox1 = Math.max(0,Math.min(ox2-10,ox1+dx)); }
+      if(hi===2||hi===4||hi===7){ ox2 = Math.min(W,Math.max(ox1+10,ox2+dx)); }
+      if(hi===0||hi===1||hi===2){ oy1 = Math.max(0,Math.min(oy2-10,oy1+dy)); }
+      if(hi===5||hi===6||hi===7){ oy2 = Math.min(H,Math.max(oy1+10,oy2+dy)); }
+      dirtyRect = {x1:ox1, y1:oy1, x2:ox2, y2:oy2};
+      doRender();
+    }
+  }else{
+    const hit = hitTest(mx, my);
+    canvas.style.cursor = getCursor(hit.type, hit.handleIdx);
+
+    /* 更新光标信息面板 */
+    let info = `屏幕: (${mx}, ${my})\n`;
+    if(mx>=dirtyRect.x1&&mx<dirtyRect.x2&&my>=dirtyRect.y1&&my<dirtyRect.y2){
+      const dw=dirtyRect.x2-dirtyRect.x1;
+      const lx=mx-dirtyRect.x1, ly=my-dirtyRect.y1;
+      info += `脏矩形内: local(${lx},${ly}) pfb[${(ly*dw+lx)*4}]\n`;
+      let hitOp=null;
+      for(let i=drawOps.length-1;i>=0;i--){
+        const op=drawOps[i]; if(op.skipDisabled) continue;
+        if(mx>=op.inter.x1&&mx<=op.inter.x2&&my>=op.inter.y1&&my<=op.inter.y2){ hitOp=op; break; }
+      }
+      if(hitOp){
+        const lx2=mx-hitOp.aabb.x1, ly2=my-hitOp.aabb.y1;
+        info += `命中: ${hitOp.id}\n  本地:(`+lx2+`,`+ly2+`)\n  surf.start=(${hitOp.ls.left},${hitOp.ls.top})`;
+      }else{ info += `命中: 无（空白区域）`; }
+    }
+    document.getElementById('info').innerHTML = info;
+  }
+});
+
+canvas.addEventListener('mouseup', ()=>{ dragState=null; });
+canvas.addEventListener('mouseleave', ()=>{ dragState=null; canvas.style.cursor='crosshair'; });
+
+function preset(type){
+  if(type==='full'){ dirtyRect={x1:0,y1:0,x2:800,y2:600}; }
+  else if(type==='cross'){ dirtyRect={x1:30,y1:10,x2:500,y2:150}; }
+  else if(type==='partial'){ dirtyRect={x1:90,y1:50,x2:250,y2:130}; }
+  else if(type==='childLarger'){ dirtyRect={x1:440,y1:0,x2:680,y2:160}; }
+  else if(type==='stack'){ dirtyRect={x1:30,y1:360,x2:450,y2:600}; }
+  doRender();
+}
+
+doRender();
+</script>
+</body>
+</html>

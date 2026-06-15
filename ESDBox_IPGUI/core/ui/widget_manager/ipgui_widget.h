@@ -34,8 +34,6 @@ typedef struct ipgui_scr_ctx ipgui_scr_t;
  */
 typedef struct {
     ipgui_surf_t   * surf;        /* 目标绘制表面（控件本地坐标） */
-    ipgui_aabb_t   * clip;        /* 脏矩形区域（控件本地坐标） */
-    ipgui_aabb_t   * parent_clip; /* 父控件累积裁剪区（控件本地坐标），可空 */
     void           * user_data;   /* 预留扩展数据 */
 } ipgui_widget_render_ctx_t;
 

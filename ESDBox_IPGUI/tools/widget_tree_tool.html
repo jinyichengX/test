@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPGUI 控件树 Hit-Test 可视化工具</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1a1a2e;--panel-bg:#16213e;--card-bg:#0f3460;--accent:#e94560;--accent-hover:#ff6b81;--text:#e0e0e0;--text-dim:#999;--border:#2a2a4a;--slider-track:#333;--success:#4caf50;--warning:#ff9800;--radius:8px}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+.app{display:flex;height:100vh;max-width:1600px;margin:0 auto}
+
+.preview-area{flex:1;display:flex;align-items:center;justify-content:center;background:#dbdbdf;position:relative;min-width:0;overflow:hidden}
+.preview-area canvas{display:block;border:1px solid #bbb;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.control-panel{width:400px;background:var(--panel-bg);display:flex;flex-direction:column;border-left:1px solid var(--border);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--slider-track) transparent}
+.control-panel::-webkit-scrollbar{width:6px}
+.control-panel::-webkit-scrollbar-thumb{background:var(--slider-track);border-radius:3px}
+.panel-header{padding:18px 24px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel-bg);z-index:2}
+.panel-header h1{font-size:18px;font-weight:600;color:var(--accent)}
+.panel-header .sub{font-size:12px;color:var(--text-dim);margin-top:4px}
+.panel-body{padding:10px 24px;display:flex;flex-direction:column;gap:8px}
+
+.cg{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.cg .title{font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.slider-row:last-child{margin-bottom:0}
+.slider-row label{font-size:12px;color:var(--text);white-space:nowrap;min-width:56px}
+.slider-row .range-wrap{flex:1;display:flex;align-items:center;gap:4px}
+.slider-row .val{font-size:11px;color:var(--accent);font-weight:600;min-width:26px;text-align:right}
+.slider-row .unit{font-size:10px;color:var(--text-dim);min-width:12px}
+.slider-row input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:5px;background:var(--slider-track);border-radius:3px;outline:none;cursor:pointer}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--accent);border-radius:50%;cursor:pointer;border:2px solid #fff;box-shadow:0 0 8px rgba(233,69,96,.4)}
+
+.btn-row{display:flex;gap:6px}
+.btn{flex:1;padding:8px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;text-align:center}
+.btn-pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-pri:hover{background:var(--accent-hover)}
+.btn-sec{background:transparent;color:var(--text)}
+.btn-sec:hover{background:rgba(255,255,255,.05)}
+.btn-sel{background:var(--card-bg);color:#fff;border-color:var(--accent)}
+.btn-dan{background:transparent;color:var(--warning);border-color:var(--warning)}
+.btn-dan:hover{background:rgba(255,152,0,.1)}
+
+.toggle-row{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.toggle-row label{font-size:12px;flex:1}
+.toggle-switch{position:relative;width:44px;height:24px;background:var(--slider-track);border-radius:12px;cursor:pointer;transition:background .2s}
+.toggle-switch.active{background:var(--accent)}
+.toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left .2s}
+.toggle-switch.active::after{left:22px}
+
+.tree-node{margin-left:18px;font-size:11px;font-family:monospace;line-height:1.6;white-space:nowrap}
+.tree-node .name{cursor:pointer;padding:1px 4px;border-radius:3px;transition:background .15s}
+.tree-node .name:hover{background:rgba(255,255,255,.06)}
+.tree-node .name.hit{background:var(--accent);color:#fff}
+.tree-node .name.disabled{color:var(--text-dim);text-decoration:line-through}
+.tree-node .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+
+.info-text{font-size:11px;color:var(--text-dim);line-height:1.7;padding:6px 8px;background:rgba(0,0,0,.2);border-radius:4px;font-family:monospace;max-height:140px;overflow-y:auto}
+.info-text b{color:var(--accent)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:8px 20px;border-radius:5px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:1000}
+.toast.show{opacity:1}
+
+@media(max-width:860px){.app{flex-direction:column}.preview-area{height:50vh}.control-panel{width:100%;flex:1}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="preview-area" id="previewArea"><canvas id="canvas"></canvas></div>
+
+<div class="control-panel">
+<div class="panel-header"><h1>控件树 Hit-Test</h1><div class="sub">ipgui_screen_point_on + ipgui_screen_point_on_recurse</div></div>
+<div class="panel-body">
+
+<div class="cg">
+    <div class="title">控件树 Widget Tree</div>
+    <div id="treeView" style="font-size:11px;font-family:monospace;line-height:1.7"></div>
+</div>
+
+<div class="cg">
+    <div class="title">Hit-Test 结果</div>
+    <div class="info-text" id="hitInfo">鼠标移动到画布上查看命中结果</div>
+</div>
+
+<div class="cg" id="cgSelected" style="display:none">
+    <div class="title" id="selTitle">选中控件</div>
+    <div class="slider-row"><label>X</label><div class="range-wrap"><input type="range" id="selX" min="0" max="800" value="0" step="1"><span class="val" id="selXVal">0</span><span class="unit">px</span></div></div>
+    <div class="slider-row"><label>Y</label><div class="range-wrap"><input type="range" id="selY" min="0" max="600" value="0" step="1"><span class="val" id="selYVal">0</span><span class="unit">px</span></div></div>
+    <div class="info-text" id="selInfo"></div>
+</div>
+
+<div class="cg">
+    <div class="title">显示选项</div>
+    <div class="toggle-row"><label>显示 parent_clip (蓝色半透明遮罩)</label><div class="toggle-switch active" id="toggleClip"></div></div>
+    <div class="toggle-row"><label>显示控件边界</label><div class="toggle-switch active" id="toggleBorder"></div></div>
+</div>
+
+<div class="btn-row">
+    <button class="btn btn-dan" id="resetBtn">重置位置</button>
+</div>
+
+</div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================================
+ * IPGUI 控件树 Hit-Test 可视化工具
+ * 模拟 ipgui_screen_point_on / point_on_recurse 的完整行为
+ * ============================================================================ */
+const $=id=>document.getElementById(id);
+
+const canvas=$('canvas'),ctx=canvas.getContext('2d');
+const hitInfo=$('hitInfo'),treeView=$('treeView');
+const cgSelected=$('cgSelected'),selTitle=$('selTitle'),selInfo=$('selInfo');
+const selX=$('selX'),selY=$('selY'),selXVal=$('selXVal'),selYVal=$('selYVal');
+const toggleClip=$('toggleClip'),toggleBorder=$('toggleBorder');
+
+/* ---- 屏幕参数 ---- */
+const SCREEN_W=800, SCREEN_H=600;
+
+/* ---- 控件树（模拟 C 结构体 ipgui_widget_t） ----
+ * 每个 widget: { id, x, y, w, h, color, flags, children[] }
+ * flags: DISABLED=0x0008, INVISIBLE=0x0001
+ * x,y 是相对于父控件的局部坐标
+ * children[] 中的顺序 = Z-order（后面画的在上面）
+ *
+ * 控件树结构:
+ *  Screen(root)
+ *  ├─ Panel A (container, blue)
+ *  │  ├─ Button 1 (green)
+ *  │  ├─ Button 2 (magenta)
+ *  │  └─ Status (cyan)
+ *  ├─ Panel B (container, orange)
+ *  │  ├─ Slider (red)
+ *  │  └─ Content (yellow)
+ *  ├─ Bottom Bar (purple)
+ *  │  ├─ Icon 1 (teal)
+ *  │  ├─ Icon 2 (lime)
+ *  │  └─ Icon 3 (violet)
+ *  └─ Floating Btn (pink, DISABLED, 最上层)
+ */
+const widgetTree = {
+    id:'Screen', x:0, y:0, w:SCREEN_W, h:SCREEN_H, color:'#1a1a2e', flags:0, children:[
+    {
+        id:'Panel A', x:40, y:30, w:340, h:240,color:'#3a7bd5',flags:0,children:[
+            {id:'Button 1', x:15, y:15, w:110, h:55, color:'#4caf50', flags:0,children:[]},
+            {id:'Button 2', x:155,y:15, w:135, h:70, color:'#e040fb',flags:0,children:[]},
+            {id:'Status', x:15, y:90, w:280, h:115, color:'#00bcd4',flags:0,children:[]}
+        ]
+    },{
+        id:'Panel B', x:420, y:30, w:340, h:240,color:'#ff9800',flags:0,children:[
+            {id:'Slider', x:15, y:25, w:290, h:45, color:'#f44336',flags:0,children:[]},
+            {id:'Content', x:15, y:85, w:290, h:110,color:'#ffeb3b',flags:0,children:[]}
+        ]
+    },{
+        id:'Bottom Bar', x:20, y:400, w:760, h:175,color:'#7c4dff',flags:0,children:[
+            {id:'Icon 1', x:15, y:20, w:90, h:115, color:'#009688',flags:0,children:[]},
+            {id:'Icon 2', x:130,y:20, w:90, h:115, color:'#cddc39',flags:0,children:[]},
+            {id:'Icon 3', x:245,y:20, w:90, h:115, color:'#9c27b0',flags:0,children:[]}
+        ]
+    },{
+        id:'Floating Btn', x:250, y:310, w:180, h:55, color:'#e91e63', flags:0x0008 /* DISABLED */,children:[]
+    },
+]};
+
+/* ---- 初始位置快照（用于重置） ---- */
+const initPositions = {};
+(function snap(w, px, py){
+    const ax=(w.x||0)+(px||0), ay=(w.y||0)+(py||0);
+    initPositions[w.id]={x:w.x||0, y:w.y||0};
+    (w.children||[]).forEach(c=>snap(c,ax,ay));
+})(widgetTree, 0, 0);
+
+/* ---- 状态 ---- */
+let hoveredWidget=null;
+let dragWidget=null;
+let dragStartGX=0, dragStartGY=0, dragStartX=0, dragStartY=0;
+
+/* ---- 计算控件绝对坐标（递归累加父控件偏移） ---- */
+function absPos(w, px, py){
+    const ax=(w.x||0)+(px||0), ay=(w.y||0)+(py||0);
+    return {x1:ax, y1:ay, x2:ax+(w.w||0), y2:ay+(w.h||0), ax, ay};
+}
+
+/* ---- 控件树渲染 ---- */
+function drawWidget(w, px, py, parentClip, depth){
+    const abs=absPos(w,px,py);
+    const aabb={start:{x:abs.x1,y:abs.y1}, end:{x:abs.x2,y:abs.y2}};
+
+    /* 与 parent_clip 求交得 visible */
+    let v=aabb;
+    if(parentClip){
+        v={start:{x:Math.max(aabb.start.x,parentClip.start.x), y:Math.max(aabb.start.y,parentClip.start.y)},
+            end:{x:Math.min(aabb.end.x,parentClip.end.x), y:Math.min(aabb.end.y,parentClip.end.y)}};
+        if(v.start.x>=v.end.x||v.start.y>=v.end.y) v=null;
+    }
+
+    /* 再与 screen 求交 */
+    if(v){
+        v={start:{x:Math.max(v.start.x,0),y:Math.max(v.start.y,0)},
+            end:{x:Math.min(v.end.x,SCREEN_W),y:Math.min(v.end.y,SCREEN_H)}};
+        if(v.start.x>=v.end.x||v.start.y>=v.end.y) v=null;
+    }
+
+    if(v && w.flags!==0x0001/* INVISIBLE */){
+        /* 填充颜色 */
+        ctx.fillStyle=w.color||'#888';
+        ctx.globalAlpha=(w.flags&0x0008/*DISABLED*/)?0.35:0.65;
+        ctx.fillRect(v.start.x, v.start.y, v.end.x-v.start.x, v.end.y-v.start.y);
+        ctx.globalAlpha=1;
+
+        /* 控件边界 */
+        if(toggleBorder.classList.contains('active')){
+            ctx.strokeStyle=w.flags&0x0008?'#999':'#fff';
+            ctx.lineWidth=1;
+            ctx.strokeRect(v.start.x+0.5,v.start.y+0.5,v.end.x-v.start.x-1,v.end.y-v.start.y-1);
+        }
+
+        /* 控件名 */
+        if(v.end.x-v.start.x>50 && v.end.y-v.start.y>14){
+            ctx.fillStyle=w.flags&0x0008?'#999':'#fff';
+            ctx.font='bold 10px "Segoe UI",system-ui,sans-serif';
+            const tx=v.start.x+4, ty=Math.min(v.end.y-4, v.start.y+14);
+            if(v.end.y-v.start.y>20) ctx.fillText(w.id, tx, ty);
+        }
+    }
+
+    /* 渲染子控件（子控件在上层） */
+    if(v || w.id==='Screen'){
+        const effClip=v||parentClip||aabb;
+        const clipForChildren = w.flags===0x0002/*OVERFLOW_VISIBLE*/? parentClip : effClip;
+        (w.children||[]).forEach(c=>drawWidget(c, abs.ax, abs.ay, clipForChildren, depth+1));
+    }
+}
+
+/* ---- parent_clip 遮罩 ---- */
+function drawClipOverlay(){
+    if(!toggleClip.classList.contains('active')) return;
+    if(!hoveredWidget || hoveredWidget.id==='Screen') return;
+    /* 遍历 hoveredWidget 每个祖先，计算 parent_clip */
+    function findPath(w, target, px, py, path){
+        const ax=(w.x||0)+(px||0), ay=(w.y||0)+(py||0);
+        if(w===target){path.push({ax,ay,w});return true;}
+        for(const c of (w.children||[])){
+            if(findPath(c, target, ax, ay, path)){path.unshift({ax,ay,w:c});return true;}
+        }
+        return false;
+    }
+    const path=[];
+    findPath(widgetTree, hoveredWidget, 0, 0, path);
+
+    ctx.save();
+    ctx.globalAlpha=0.2;
+    for(let i=1;i<path.length;i++){
+        const p=path[i];
+        ctx.fillStyle='#2196f3';
+        ctx.fillRect(p.ax,p.ay,p.w.w,p.w.h);
+    }
+    ctx.globalAlpha=1;
+    ctx.restore();
+}
+
+/* ---- 高亮命中控件 ---- */
+function highlightWidget(w, px, py){
+    const abs=absPos(w,px,py);
+    ctx.save();
+    ctx.strokeStyle='#e94560';
+    ctx.lineWidth=2;
+    ctx.setLineDash([4,2]);
+    ctx.strokeRect(abs.x1+1,abs.y1+1,abs.x2-abs.x1-2,abs.y2-abs.y1-2);
+    ctx.setLineDash([]);
+    ctx.restore();
+}
+
+/* ---- 主渲染 ---- */
+function render(){
+    ctx.clearRect(0,0,SCREEN_W,SCREEN_H);
+    /* 棋盘格背景 */
+    for(let y=0;y<SCREEN_H;y+=8){
+        for(let x=0;x<SCREEN_W;x+=8){
+            ctx.fillStyle=((x^y)&8)?'#f0f0f0':'#e2e2e2';
+            ctx.fillRect(x,y,8,8);
+        }
+    }
+    drawWidget(widgetTree, 0, 0, null, 0);
+    drawClipOverlay();
+    if(hoveredWidget) highlightWidget(findAbsPath(hoveredWidget));
+    updateTreeHighlight();
+}
+function findAbsPath(target){
+    function walk(w,px,py){
+        if(w===target) return {ax:(w.x||0)+(px||0), ay:(w.y||0)+(py||0)};
+        const ax=(w.x||0)+(px||0), ay=(w.y||0)+(py||0);
+        for(const c of (w.children||0)){
+            const r=walk(c,ax,ay); if(r) return r;
+        }
+        return null;
+    }
+    return walk(widgetTree,0,0);
+}
+
+/* ---- 控件树视图 ---- */
+function buildTreeHTML(w,depth,parentAx,parentAy){
+    const ax=(w.x||0)+(parentAx||0), ay=(w.y||0)+(parentAy||0);
+    const flagBadges=[];
+    if(w.flags&0x0001) flagBadges.push('INVISIBLE');
+    if(w.flags&0x0008) flagBadges.push('DISABLED');
+    if(w.flags&0x0002) flagBadges.push('OVERFLOW');
+    let cls='';
+    if(hoveredWidget===w) cls='hit';
+    if(w.flags&0x0008) cls+=' disabled';
+    let html='<div class="tree-node">'
+        +'<span class="name '+cls+'" data-id="'+w.id+'"><span class="swatch" style="background:'+w.color+'"></span>'
+        +w.id+'  <span style="color:var(--text-dim);font-size:10px">('+w.w+'×'+w.h+')'
+        +' 全局('+ax+','+ay+')</span>';
+    if(flagBadges.length) html+=' <span style="color:var(--warning);font-size:9px">['+flagBadges.join(',')+']</span>';
+    html+='</span></div>';
+    for(const c of (w.children||[])){
+        html+=buildTreeHTML(c,depth+1,ax,ay);
+    }
+    return html;
+}
+function updateTreeHighlight(){
+    treeView.innerHTML=buildTreeHTML(widgetTree,0,0,0);
+    treeView.querySelectorAll('.name').forEach(el=>{
+        el.addEventListener('click',()=>{
+            const id=el.dataset.id;
+            const w=findWidget(widgetTree,id);
+            if(w && !(w.flags&0x0008)){
+                hoveredWidget=w; selectWidget(w); render();
+            }
+        });
+    });
+}
+function findWidget(root,id){
+    if(root.id===id)return root;
+    for(const c of (root.children||[])){const r=findWidget(c,id);if(r)return r;}
+    return null;
+}
+
+/* ---- ipgui_screen_point_on 完整模拟 ---- */
+
+/* point_in_aabb */
+function pointInAABB(x,y,aabb){
+    return x>=aabb.start.x && x<aabb.end.x && y>=aabb.start.y && y<aabb.end.y;
+}
+
+/* aabb_overlap: 返回0=有交集, 非0=无交集 */
+function aabbOverlap(out, a, b){
+    out.start={x:Math.max(a.start.x,b.start.x), y:Math.max(a.start.y,b.start.y)};
+    out.end  ={x:Math.min(a.end.x,b.end.x),   y:Math.min(a.end.y,b.end.y)};
+    return (out.start.x>=out.end.x||out.start.y>=out.end.y)?1:0;
+}
+
+/* get_abs_pos: 累加父控件偏移得到全局坐标 */
+function getAbsPos(widget){
+    function calc(w){
+        if(w._parentRef){
+            const pa=calc(w._parentRef);
+            return {start:{x:pa.start.x+(w.x||0), y:pa.start.y+(w.y||0)},
+                    end:{x:pa.start.x+(w.x||0)+(w.w||0), y:pa.start.y+(w.y||0)+(w.h||0)}};
+        }
+        return {start:{x:w.x||0, y:w.y||0}, end:{x:(w.x||0)+(w.w||0), y:(w.y||0)+(w.h||0)}};
+    }
+    return calc(widget);
+}
+
+/* ipgui_screen_point_on_recurse
+ * Z-order: first_child->sib_prev 是最后画的（最上层）
+ * children[] 按插入顺序，最后面的在最上层 */
+function pointOnRecurse(root, x, y, parentClip){
+    const children=root.children||[];
+    if(!children.length) return null;
+
+    /* 遍历 children[]: 最后一个 = Z-order最上层 = first_child->sib_prev */
+    for(let i=children.length-1; i>=0; i--){
+        const w=children[i];
+
+        /* 跳过 DISABLED */
+        if(w.flags & 0x0008) continue;
+
+        const aabb=getAbsPos(w);
+
+        /* 与 parent_clip 求交 */
+        let visible;
+        if(parentClip){
+            const inter={};
+            if(aabbOverlap(inter, aabb, parentClip) !== 0) continue;
+            visible=inter;
+        }else{
+            visible=aabb;
+        }
+
+        /* 点是否在可见区域内 */
+        if(!pointInAABB(x, y, visible)) continue;
+
+        /* 优先问子控件（子控件在父控件之上） */
+        const hit = pointOnRecurse(w, x, y, visible);
+        if(hit) return hit;
+
+        /* 子控件无人认领，返回当前控件 */
+        return w;
+    }
+    return null;
+}
+
+/* ipgui_screen_point_on */
+function screenPointOn(x, y){
+    if(x<0||x>=SCREEN_W||y<0||y>=SCREEN_H) return null;
+    const screenAABB={start:{x:0,y:0},end:{x:SCREEN_W,y:SCREEN_H}};
+    return pointOnRecurse(widgetTree, x, y, screenAABB);
+}
+
+/* ---- 构建 _parentRef 引用链 ---- */
+(function buildParentRef(w, parent){
+    w._parentRef=parent;
+    (w.children||[]).forEach(c=>buildParentRef(c,w));
+})(widgetTree, null);
+
+/* ---- 拖动 ---- */
+canvas.addEventListener('mousedown',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=Math.round(e.clientX-rect.left), my=Math.round(e.clientY-rect.top);
+    const hit=screenPointOn(mx, my);
+    if(hit && hit.id!=='Screen'){
+        dragWidget=hit;
+        dragStartGX=mx; dragStartGY=my;
+        dragStartX=hit.x||0; dragStartY=hit.y||0;
+        canvas.style.cursor='grabbing';
+        hoveredWidget=hit;
+        selectWidget(hit);
+        render();
+        e.preventDefault();
+    }
+});
+canvas.addEventListener('mousemove',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=Math.round(e.clientX-rect.left), my=Math.round(e.clientY-rect.top);
+    if(dragWidget){
+        let nx=dragStartX + (mx - dragStartGX);
+        let ny=dragStartY + (my - dragStartGY);
+        nx=Math.max(0, Math.min(SCREEN_W - (dragWidget.w||10), nx));
+        ny=Math.max(0, Math.min(SCREEN_H - (dragWidget.h||10), ny));
+        dragWidget.x=nx; dragWidget.y=ny;
+        selX.value=nx; selY.value=ny;
+        selXVal.textContent=nx; selYVal.textContent=ny;
+        updateSelInfo();
+        render();
+        return;
+    }
+    const hit=screenPointOn(mx, my);
+    if(hit!==hoveredWidget){
+        hoveredWidget=hit;
+        updateHitInfo(hit, mx, my);
+        canvas.style.cursor=hit&&hit.id!=='Screen'?'grab':'default';
+        render();
+    }
+});
+canvas.addEventListener('mouseup',()=>{
+    if(dragWidget){
+        dragWidget=null;
+        canvas.style.cursor=hoveredWidget&&hoveredWidget.id!=='Screen'?'grab':'default';
+    }
+});
+canvas.addEventListener('mouseleave',()=>{
+    if(dragWidget){dragWidget=null;}
+    canvas.style.cursor='default';
+});
+
+/* ---- 选中控件面板 ---- */
+function selectWidget(w){
+    if(!w || w.id==='Screen'){cgSelected.style.display='none';return;}
+    cgSelected.style.display='';
+    selTitle.textContent=w.id+' (选中控件)';
+    selInfo.textContent='颜色: '+w.color+'  尺寸: '+w.w+'×'+w.h
+        +(w.flags&0x0008?'  [DISABLED]':'')
+        +(w.flags&0x0001?'  [INVISIBLE]':'');
+    selX.value=w.x||0; selY.value=w.y||0;
+    selXVal.textContent=w.x||0; selYVal.textContent=w.y||0;
+}
+function updateSelInfo(){
+    if(!dragWidget)return;
+    selInfo.textContent='颜色: '+dragWidget.color+'  尺寸: '+dragWidget.w+'×'+dragWidget.h
+        +(dragWidget.flags&0x0008?'  [DISABLED]':'')
+        +(dragWidget.flags&0x0001?'  [DISABLED]':'');
+}
+
+[selX,selY].forEach(el=>el.addEventListener('input',()=>{
+    selXVal.textContent=selX.value; selYVal.textContent=selY.value;
+    if(hoveredWidget && hoveredWidget.id!=='Screen'){
+        hoveredWidget.x=parseInt(selX.value); hoveredWidget.y=parseInt(selY.value);
+        render();
+    }
+}));
+
+/* ---- Hit 信息 ---- */
+function updateHitInfo(hit, mx, my){
+    if(!hit){
+        hitInfo.textContent='鼠标位置: ('+mx+', '+my+')\n命中: 无 (屏幕空白区域)';
+        cgSelected.style.display='none';
+    }else if(hit.id==='Screen'){
+        hitInfo.textContent='鼠标位置: ('+mx+', '+my+')\n命中: Screen (根)\n根控件不参与拖动';
+        cgSelected.style.display='none';
+    }else{
+        const abs=getAbsPos(hit);
+        hitInfo.textContent='鼠标位置: ('+mx+', '+my+')\n'
+            +'命中控件: '+hit.id+'\n'
+            +'局部坐标: ('+hit.x+', '+hit.y+')  尺寸: '+hit.w+'×'+hit.h+'\n'
+            +'全局AABB: {'+abs.start.x+','+abs.start.y+'  →  '+abs.end.x+','+abs.end.y+'}'
+            +(hit.flags&0x0008?'\n[DISABLED — 不响应点击]':'');
+        selectWidget(hit);
+    }
+}
+
+/* ---- 显示选项切换 ---- */
+toggleClip.addEventListener('click',()=>{toggleClip.classList.toggle('active');render();});
+toggleBorder.addEventListener('click',()=>{toggleBorder.classList.toggle('active');render();});
+
+/* ---- 重置 ---- */
+$('resetBtn').addEventListener('click',()=>{
+    (function restore(w){
+        const p=initPositions[w.id];
+        if(p){w.x=p.x; w.y=p.y;}
+        (w.children||[]).forEach(c=>restore(c));
+    })(widgetTree);
+    hoveredWidget=null;
+    cgSelected.style.display='none';
+    hitInfo.textContent='鼠标移动到画布上查看命中结果';
+    canvas.style.cursor='default';
+    render();
+});
+
+/* ---- 初始化 ---- */
+function init(){
+    canvas.width=SCREEN_W; canvas.height=SCREEN_H;
+    canvas.style.width=SCREEN_W+'px'; canvas.style.height=SCREEN_H+'px';
+    updateTreeHighlight();
+    render();
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

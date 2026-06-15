@@ -50,6 +50,13 @@ typedef struct ipgui_scr_ctx{
 
     /* offline partial framebuffer */
     ipgui_pfb_t            pfb;
+
+    /* Background color or render callback 
+     * if render callback is NULL, then use bg_color
+     */
+    ipgui_color_t          bg_color;
+
+    void (* render_bg)(ipgui_scr_t * scr);
 }ipgui_scr_t;
 
 extern __IPGUI_API__ ipgui_err_t ipgui_screen_init(
