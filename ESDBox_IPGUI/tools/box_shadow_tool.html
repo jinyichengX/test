@@ -22,6 +22,7 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
 .preview-area {
     flex: 1; display: flex; align-items: center; justify-content: center;
     background: #e8ecf1; position: relative; min-width: 0;
+    overflow: auto;
 }
 .preview-area::before {
     content: ''; position: absolute; inset: 0;
@@ -30,14 +31,19 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
         linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
     background-size: 40px 40px; pointer-events: none;
 }
+.preview-zoom-wrap {
+    flex-shrink: 0;
+}
+/* CSS 盒子本体（正确的矢量渲染，用作 canvas 截图源） */
 .preview-box {
     width: 200px; height: 200px; background: #ffffff; border-radius: 16px;
-    position: relative;
     transition: box-shadow 0.15s ease, border-radius 0.15s ease, width 0.1s ease, height 0.1s ease;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     font-size: 14px; color: #bbb; letter-spacing: 1px; user-select: none;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
-.preview-box .label { text-align: center; line-height: 1.6; }
+.preview-box .label { text-align: center; line-height: 1.6; pointer-events: none; }
 .preview-box .label .icon { font-size: 32px; display: block; margin-bottom: 4px; }
 
 /* 面板 */
@@ -56,7 +62,6 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
 .panel-header .sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
 .panel-body { padding: 12px 24px; display: flex; flex-direction: column; gap: 8px; }
 
-/* 控件组 */
 .control-group { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
 .control-group .group-title {
     font-size: 13px; font-weight: 600; color: var(--text-dim); text-transform: uppercase;
@@ -68,18 +73,15 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
 .control-group .group-title .enable-badge { background: var(--success); color: #fff; }
 .control-group .group-title .enable-badge.off { background: #555; color: #999; }
 .control-group.disabled .group-content { opacity: 0.35; pointer-events: none; }
-.control-group.disabled .toggle-row   { opacity: 0.5;  } /* dim the toggle too, but keep it clickable */
+.control-group.disabled .toggle-row   { opacity: 0.5; }
 
-/* 滑块 */
 .slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
 .slider-row:last-child { margin-bottom: 0; }
 .slider-row label { font-size: 12px; color: var(--text); white-space: nowrap; min-width: 68px; }
 .slider-row .range-wrap { flex: 1; display: flex; align-items: center; gap: 4px; }
 .slider-row .range-wrap .val { font-size: 11px; color: var(--accent); font-weight: 600; min-width: 24px; text-align: right; }
 .slider-row .range-wrap .unit { font-size: 10px; color: var(--text-dim); min-width: 12px; }
-.slider-row .range-wrap .stepper {
-    display: flex; gap: 1px; margin-left: 2px;
-}
+.slider-row .range-wrap .stepper { display: flex; gap: 1px; margin-left: 2px; }
 .slider-row .range-wrap .stepper button {
     width: 18px; height: 18px; padding: 0; border: 1px solid var(--border);
     border-radius: 3px; background: rgba(255,255,255,0.04); color: var(--text);
@@ -99,7 +101,6 @@ input[type="range"]::-webkit-slider-thumb {
 }
 input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: var(--accent); border-radius: 50%; border: 2px solid #fff; }
 
-/* 颜色 */
 .color-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
 .color-row label { font-size: 12px; min-width: 68px; }
 .color-row input[type="color"] {
@@ -108,7 +109,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
 }
 .color-row .hex-val { font-size: 12px; color: var(--text); font-family: 'Cascadia Code', monospace; }
 
-/* 开关 */
 .toggle-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
 .toggle-row label { font-size: 12px; }
 .toggle-switch {
@@ -122,7 +122,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
 }
 .toggle-switch.active::after { left: 22px; }
 
-/* CSS 输出 */
 .css-output-wrap {
     background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--radius);
     padding: 10px 14px; position: relative;
@@ -140,7 +139,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
 .copy-btn:hover { background: var(--accent); border-color: var(--accent); }
 .copy-btn.copied { background: var(--success); border-color: var(--success); }
 
-/* 预设 */
 .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 2px; }
 .preset-btn {
     background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 5px;
@@ -149,7 +147,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
 }
 .preset-btn:hover { background: var(--card-bg); border-color: var(--accent); }
 
-/* 按钮 */
 .btn-row { display: flex; gap: 6px; }
 .btn {
     flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 5px;
@@ -162,7 +159,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
 .btn-danger { background: transparent; color: var(--warning); border-color: var(--warning); }
 .btn-danger:hover { background: rgba(255,152,0,0.1); }
 
-/* Toast */
 .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
     background: var(--success); color: #fff; padding: 8px 20px; border-radius: 5px;
@@ -171,7 +167,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
 }
 .toast.show { opacity: 1; }
 
-/* 弹窗 */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 999; }
 .modal-overlay.show { display: flex; }
 .modal { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 90%; max-width: 400px; }
@@ -207,13 +202,16 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
 <body>
 
 <div class="app">
-    <div class="preview-area"><div class="preview-box" id="previewBox"><span class="label"><span class="icon">◻</span>BOX</span></div></div>
+    <div class="preview-area">
+        <div class="preview-zoom-wrap" id="zoomWrap">
+            <div class="preview-box" id="previewBox"><span class="label"><span class="icon">&#x25FB;</span>BOX</span></div>
+        </div>
+    </div>
 
     <div class="control-panel">
         <div class="panel-header"><h1>Box-Shadow 工具</h1><div class="sub">CSS3 内外阴影可视化调节</div></div>
 
         <div class="panel-body">
-            <!-- 外阴影 Outset -->
             <div class="control-group" id="outsetGroup">
                 <div class="group-title">外阴影 Outset <span class="enable-badge" id="outsetBadge">ON</span></div>
                 <div class="toggle-row">
@@ -221,16 +219,15 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
                     <div class="toggle-switch active" id="outsetEnable"></div>
                 </div>
                 <div class="group-content">
-                    <div class="slider-row"><label>水平 H</label><div class="range-wrap"><input type="range" id="oh" min="-200" max="200" value="8" step="1"><span class="val" id="ohVal">8</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>垂直 V</label><div class="range-wrap"><input type="range" id="ov" min="-200" max="200" value="8" step="1"><span class="val" id="ovVal">8</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>模糊 Blur</label><div class="range-wrap"><input type="range" id="ob" min="0" max="200" value="16" step="1"><span class="val" id="obVal">16</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>扩散 Spread</label><div class="range-wrap"><input type="range" id="os" min="-100" max="100" value="0" step="1"><span class="val" id="osVal">0</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>水平 H</label><div class="range-wrap"><input type="range" id="oh" min="-200" max="200" value="8"><span class="val" id="ohVal">8</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>垂直 V</label><div class="range-wrap"><input type="range" id="ov" min="-200" max="200" value="8"><span class="val" id="ovVal">8</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>模糊 Blur</label><div class="range-wrap"><input type="range" id="ob" min="0" max="200" value="16"><span class="val" id="obVal">16</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>扩散 Spread</label><div class="range-wrap"><input type="range" id="os" min="-100" max="100" value="0"><span class="val" id="osVal">0</span><span class="unit">px</span></div></div>
                     <div class="color-row"><label>颜色</label><input type="color" id="oc" value="#000000"><span class="hex-val" id="ocHex">#000000</span></div>
-                    <div class="slider-row"><label>不透明度</label><div class="range-wrap"><input type="range" id="oo" min="0" max="100" value="30" step="1"><span class="val" id="ooVal">30</span><span class="unit">%</span></div></div>
+                    <div class="slider-row"><label>不透明度</label><div class="range-wrap"><input type="range" id="oo" min="0" max="100" value="30"><span class="val" id="ooVal">30</span><span class="unit">%</span></div></div>
                 </div>
             </div>
 
-            <!-- 内阴影 Inset -->
             <div class="control-group disabled" id="insetGroup">
                 <div class="group-title">内阴影 Inset <span class="enable-badge off" id="insetBadge">OFF</span></div>
                 <div class="toggle-row">
@@ -238,30 +235,29 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
                     <div class="toggle-switch" id="insetEnable"></div>
                 </div>
                 <div class="group-content">
-                    <div class="slider-row"><label>水平 H</label><div class="range-wrap"><input type="range" id="ih" min="-200" max="200" value="0" step="1"><span class="val" id="ihVal">0</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>垂直 V</label><div class="range-wrap"><input type="range" id="iv" min="-200" max="200" value="2" step="1"><span class="val" id="ivVal">2</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>模糊 Blur</label><div class="range-wrap"><input type="range" id="ib" min="0" max="200" value="4" step="1"><span class="val" id="ibVal">4</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>扩散 Spread</label><div class="range-wrap"><input type="range" id="is" min="-100" max="100" value="0" step="1"><span class="val" id="isVal">0</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>水平 H</label><div class="range-wrap"><input type="range" id="ih" min="-200" max="200" value="0"><span class="val" id="ihVal">0</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>垂直 V</label><div class="range-wrap"><input type="range" id="iv" min="-200" max="200" value="2"><span class="val" id="ivVal">2</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>模糊 Blur</label><div class="range-wrap"><input type="range" id="ib" min="0" max="200" value="4"><span class="val" id="ibVal">4</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>扩散 Spread</label><div class="range-wrap"><input type="range" id="is" min="-100" max="100" value="0"><span class="val" id="isVal">0</span><span class="unit">px</span></div></div>
                     <div class="color-row"><label>颜色</label><input type="color" id="ic" value="#000000"><span class="hex-val" id="icHex">#000000</span></div>
-                    <div class="slider-row"><label>不透明度</label><div class="range-wrap"><input type="range" id="io" min="0" max="100" value="20" step="1"><span class="val" id="ioVal">20</span><span class="unit">%</span></div></div>
+                    <div class="slider-row"><label>不透明度</label><div class="range-wrap"><input type="range" id="io" min="0" max="100" value="20"><span class="val" id="ioVal">20</span><span class="unit">%</span></div></div>
                 </div>
             </div>
 
-            <!-- 盒子本体 -->
             <div class="control-group">
                 <div class="group-title">盒子 Box</div>
                 <div class="group-content">
                     <div class="color-row"><label>背景色</label><input type="color" id="boxBg" value="#ffffff"><span class="hex-val" id="boxBgHex">#FFFFFF</span></div>
-                    <div class="slider-row"><label>宽度 W</label><div class="range-wrap"><input type="range" id="boxW" min="50" max="600" value="200" step="1"><span class="val" id="boxWVal">200</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>高度 H</label><div class="range-wrap"><input type="range" id="boxH" min="50" max="600" value="200" step="1"><span class="val" id="boxHVal">200</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>圆角 TL</label><div class="range-wrap"><input type="range" id="radiusTL" min="0" max="200" value="16" step="1"><span class="val" id="rTLVal">16</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>圆角 TR</label><div class="range-wrap"><input type="range" id="radiusTR" min="0" max="200" value="16" step="1"><span class="val" id="rTRVal">16</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>圆角 BL</label><div class="range-wrap"><input type="range" id="radiusBL" min="0" max="200" value="16" step="1"><span class="val" id="rBLVal">16</span><span class="unit">px</span></div></div>
-                    <div class="slider-row"><label>圆角 BR</label><div class="range-wrap"><input type="range" id="radiusBR" min="0" max="200" value="16" step="1"><span class="val" id="rBRVal">16</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>宽度 W</label><div class="range-wrap"><input type="range" id="boxW" min="50" max="600" value="200"><span class="val" id="boxWVal">200</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>高度 H</label><div class="range-wrap"><input type="range" id="boxH" min="50" max="600" value="200"><span class="val" id="boxHVal">200</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>圆角 TL</label><div class="range-wrap"><input type="range" id="radiusTL" min="0" max="200" value="16"><span class="val" id="rTLVal">16</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>圆角 TR</label><div class="range-wrap"><input type="range" id="radiusTR" min="0" max="200" value="16"><span class="val" id="rTRVal">16</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>圆角 BL</label><div class="range-wrap"><input type="range" id="radiusBL" min="0" max="200" value="16"><span class="val" id="rBLVal">16</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>圆角 BR</label><div class="range-wrap"><input type="range" id="radiusBR" min="0" max="200" value="16"><span class="val" id="rBRVal">16</span><span class="unit">px</span></div></div>
+                    <div class="slider-row"><label>不透明度</label><div class="range-wrap"><input type="range" id="boxOp" min="0" max="100" value="100"><span class="val" id="boxOpVal">100</span><span class="unit">%</span></div></div>
                 </div>
             </div>
 
-            <!-- CSS -->
             <div class="control-group">
                 <div class="group-title">CSS 代码</div>
                 <div class="group-content">
@@ -273,7 +269,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
                 </div>
             </div>
 
-            <!-- 预设 -->
             <div class="control-group">
                 <div class="group-title">预设效果</div>
                 <div class="group-content"><div class="preset-grid" id="presetGrid"></div></div>
@@ -303,9 +298,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: v
 </div>
 
 <script>
-/* ============================================================
- * Box-Shadow 可视化工具 — 双阴影独立控制
- * ============================================================ */
 const $ = id => document.getElementById(id);
 
 /* ---- 外阴影 DOM ---- */
@@ -323,8 +315,8 @@ const ih=$('ih'),iv=$('iv'),ib=$('ib'),is_=$('is'),ic=$('ic'),io=$('io');
 const ihVal=$('ihVal'),ivVal=$('ivVal'),ibVal=$('ibVal'),isVal=$('isVal'),icHex=$('icHex'),ioVal=$('ioVal');
 
 /* ---- 盒子 DOM ---- */
-const previewBox=$('previewBox');
-const boxBg=$('boxBg'),boxBgHex=$('boxBgHex');
+const previewBox   = $('previewBox');
+const boxBg=$('boxBg'),boxBgHex=$('boxBgHex'),boxOp=$('boxOp'),boxOpVal=$('boxOpVal');
 const boxW=$('boxW'),boxH=$('boxH'),radiusTL=$('radiusTL'),radiusTR=$('radiusTR'),radiusBL=$('radiusBL'),radiusBR=$('radiusBR');
 const boxWVal=$('boxWVal'),boxHVal=$('boxHVal'),rTLVal=$('rTLVal'),rTRVal=$('rTRVal'),rBLVal=$('rBLVal'),rBRVal=$('rBRVal');
 
@@ -350,7 +342,6 @@ function shadowStr(h,v,b,s,c,o,inset) {
     return `${h}px ${v}px ${b}px ${s}px ${hexToRgba(c,o)}${inset?' inset':''}`;
 }
 
-/* ---- 预设库 — 双阴影格式 ---- */
 const BUILTIN_PRESETS = [
     { name:'Material 1',   oh:0,ov:1,ob:3,os:1,oc:'#000000',oo:20, ih:0,iv:0,ib:0,is:0,ic:'#000000',io:0, enO:true, enI:false },
     { name:'Material 2',   oh:0,ov:3,ob:6,os:2,oc:'#000000',oo:23, ih:0,iv:0,ib:0,is:0,ic:'#000000',io:0, enO:true, enI:false },
@@ -370,19 +361,17 @@ const BUILTIN_PRESETS = [
     { name:'Colored',      oh:0,ov:8,ob:20,os:0,oc:'#e94560',oo:40, ih:0,iv:0,ib:0,is:0,ic:'#000000',io:0, enO:true, enI:false },
 ];
 
-/* ---- getParams ---- */
 function getParams() {
     return {
         oh:parseInt(oh.value),ov:parseInt(ov.value),ob:parseInt(ob.value),os:parseInt(os.value),oc:oc.value,oo:parseInt(oo.value),
         ih:parseInt(ih.value),iv:parseInt(iv.value),ib:parseInt(ib.value),is:parseInt(is_.value),ic:ic.value,io:parseInt(io.value),
         enO:enOutset, enI:enInset,
-        bgc:boxBg.value,
+        bgc:boxBg.value, bgo:parseInt(boxOp.value),
         bw:parseInt(boxW.value),bh:parseInt(boxH.value),
         rtl:parseInt(radiusTL.value),rtr:parseInt(radiusTR.value),rbl:parseInt(radiusBL.value),rbr:parseInt(radiusBR.value),
     };
 }
 
-/* ---- setParams ---- */
 function setParams(p) {
     oh.value=p.oh;ohVal.textContent=p.oh; ov.value=p.ov;ovVal.textContent=p.ov;
     ob.value=p.ob;obVal.textContent=p.ob; os.value=p.os;osVal.textContent=p.os;
@@ -396,6 +385,7 @@ function setParams(p) {
     if(p.enI!=null){enInset=!!p.enI;updateEnable(insetEnable,insetBadge,insetGroup,enInset);}
 
     if(p.bgc!=null){boxBg.value=p.bgc;boxBgHex.textContent=p.bgc.toUpperCase();}
+    if(p.bgo!=null){boxOp.value=p.bgo;boxOpVal.textContent=p.bgo;}
     if(p.bw!=null){boxW.value=p.bw;boxWVal.textContent=p.bw;}
     if(p.bh!=null){boxH.value=p.bh;boxHVal.textContent=p.bh;}
     if(p.rtl!=null){radiusTL.value=p.rtl;rTLVal.textContent=p.rtl;}
@@ -406,19 +396,25 @@ function setParams(p) {
     updateShadow();
 }
 
-/* ---- 启用/关闭 ---- */
 function updateEnable(sw,badge,grp,on) {
     if(on){sw.classList.add('active');badge.textContent='ON';badge.classList.remove('off');grp.classList.remove('disabled');}
     else  {sw.classList.remove('active');badge.textContent='OFF';badge.classList.add('off');grp.classList.add('disabled');}
 }
 
-/* ---- buildCssText ---- */
 function buildCssText() {
     const p=getParams(), parts=[];
     if(p.enO) parts.push(shadowStr(p.oh,p.ov,p.ob,p.os,p.oc,p.oo,false));
     if(p.enI) parts.push(shadowStr(p.ih,p.iv,p.ib,p.is,p.ic,p.io,true));
-    const css = parts.length ? parts.join(',\n') + ';' : 'none;';
-    return css;
+    return parts.length ? parts.join(',\n') + ';' : 'none;';
+}
+
+/* 渲染用的 box-shadow：零阴影用透明值代替 none，强制 GPU 抗锯齿 */
+function buildRenderShadow() {
+    const p=getParams(), parts=[];
+    if(p.enO) parts.push(shadowStr(p.oh,p.ov,p.ob,p.os,p.oc,p.oo,false));
+    if(p.enI) parts.push(shadowStr(p.ih,p.iv,p.ib,p.is,p.ic,p.io,true));
+    if (!parts.length) return '0 0 0 0 transparent';
+    return parts.join(',');
 }
 
 function buildSimpleCss(p) {
@@ -428,34 +424,35 @@ function buildSimpleCss(p) {
     return parts.length ? parts.join(' , ') : 'none';
 }
 
-/* ---- updateBox ---- */
+/* ---- updateBox: 更新 CSS 盒子和标签 ---- */
 function updateBox() {
-    const w=parseInt(boxW.value),h=parseInt(boxH.value);
+    const w=parseInt(boxW.value),h=parseInt(boxH.value),op=parseInt(boxOp.value);
     const rtl=parseInt(radiusTL.value),rtr=parseInt(radiusTR.value),rbl=parseInt(radiusBL.value),rbr=parseInt(radiusBR.value);
     const maxR=Math.min(w,h)>>1,clamp=r=>Math.max(0,Math.min(r,maxR));
     previewBox.style.width=w+'px'; previewBox.style.height=h+'px';
-    previewBox.style.background=boxBg.value;
-    previewBox.style.borderRadius=`${clamp(rtl)}px ${clamp(rtr)}px ${clamp(rbr)}px ${clamp(rbl)}px`;
-    boxWVal.textContent=w;boxHVal.textContent=h;
-    boxBgHex.textContent=boxBg.value.toUpperCase();
-    /* 根据背景亮度自动调整标签文字颜色 */
     const hex=boxBg.value.slice(1);
     const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+    if (op >= 100) previewBox.style.background = boxBg.value;
+    else            previewBox.style.background = `rgba(${r},${g},${b},${(op/100).toFixed(2)})`;
+    previewBox.style.borderRadius=`${clamp(rtl)}px ${clamp(rtr)}px ${clamp(rbr)}px ${clamp(rbl)}px`;
+    boxWVal.textContent=w;boxHVal.textContent=h;boxOpVal.textContent=op;
+    boxBgHex.textContent=boxBg.value.toUpperCase();
     const lum=(0.299*r+0.587*g+0.114*b)/255;
     previewBox.style.color=lum>0.6?'#555':'#ddd';
     rTLVal.textContent=clamp(rtl);rTRVal.textContent=clamp(rtr);rBLVal.textContent=clamp(rbl);rBRVal.textContent=clamp(rbr);
 }
 
 function updateShadow() {
-    const css=buildCssText();
-    previewBox.style.boxShadow=css.replace(';','');
-    cssOutput.textContent=css;
+    previewBox.style.boxShadow = buildRenderShadow();
+    cssOutput.textContent = buildCssText();
 }
 
+/* ---- updateAll ---- */
 function updateAll() {
     const p=getParams();
     ohVal.textContent=p.oh;ovVal.textContent=p.ov;obVal.textContent=p.ob;osVal.textContent=p.os;ocHex.textContent=p.oc.toUpperCase();ooVal.textContent=p.oo;
     ihVal.textContent=p.ih;ivVal.textContent=p.iv;ibVal.textContent=p.ib;isVal.textContent=p.is;icHex.textContent=p.ic.toUpperCase();ioVal.textContent=p.io;
+    boxOpVal.textContent=parseInt(boxOp.value);
     updateBox(); updateShadow();
 }
 
@@ -470,7 +467,7 @@ function copyCss(){
     .catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('CSS 已复制');});
 }
 
-/* ---- 预设渲染 ---- */
+/* ---- 预设 ---- */
 function renderPresets(){
     const all=[...BUILTIN_PRESETS,...savedPresets.map((p,i)=>({...p,_idx:i,_custom:true}))];
     presetGrid.innerHTML='';
@@ -487,7 +484,6 @@ function renderPresets(){
     });
 }
 
-/* ---- 保存/管理 ---- */
 function openSaveModal(){presetNameInput.value='';savedPresetsList.style.display='none';modalTitle.textContent='保存自定义预设';modalConfirm.textContent='保存';saveModal.classList.add('show');}
 function openManageModal(){presetNameInput.value='';modalTitle.textContent='我的预设';modalConfirm.textContent='关闭';renderSavedList();savedPresetsList.style.display=savedPresets.length?'flex':'none';saveModal.classList.add('show');}
 
@@ -517,13 +513,13 @@ function resetAll(){
     setParams({
         oh:8,ov:8,ob:16,os:0,oc:'#000000',oo:30, enO:true,
         ih:0,iv:2,ib:4,is:0,ic:'#000000',io:20, enI:false,
-        bgc:'#ffffff', bw:200,bh:200,rtl:16,rtr:16,rbl:16,rbr:16
+        bgc:'#ffffff', bgo:100, bw:200,bh:200,rtl:16,rtr:16,rbl:16,rbr:16
     });
     showToast('已重置');
 }
 
 /* ---- 事件 ---- */
-[oh,ov,ob,os,oo, ih,iv,ib,is_,io, boxW,boxH,radiusTL,radiusTR,radiusBL,radiusBR].forEach(el=>el.addEventListener('input',updateAll));
+[oh,ov,ob,os,oo, ih,iv,ib,is_,io, boxW,boxH,radiusTL,radiusTR,radiusBL,radiusBR, boxOp].forEach(el=>el.addEventListener('input',updateAll));
 oc.addEventListener('input',()=>{ocHex.textContent=oc.value.toUpperCase();updateShadow();});
 ic.addEventListener('input',()=>{icHex.textContent=ic.value.toUpperCase();updateShadow();});
 boxBg.addEventListener('input',updateAll);
@@ -547,10 +543,9 @@ function injectSteppers() {
         if (!rng) return;
         const stepper = document.createElement('span');
         stepper.className = 'stepper';
-        stepper.innerHTML = '<button data-dir="-1">−</button><button data-dir="1">+</button>';
+        stepper.innerHTML = '<button data-dir="-1">&#x2212;</button><button data-dir="1">+</button>';
         wrap.appendChild(stepper);
     });
-    // event delegation
     document.querySelector('.control-panel').addEventListener('click', e => {
         const btn = e.target.closest('.stepper button');
         if (!btn) return;

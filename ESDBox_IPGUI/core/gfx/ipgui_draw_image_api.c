@@ -114,7 +114,7 @@ __IPGUI_API__ void ipgui_draw_image_in_rect(
             scaled_w = tw;
             scaled_h = th;
         } else {
-            int width_is_limiting = ((s64_t)tw * ih <= (s64_t)th * iw);
+            s32_t width_is_limiting = ((s64_t)tw * ih <= (s64_t)th * iw);
 
             if (fit == IPGUI_IMG_FIT_FIT) {
                 if (width_is_limiting) {

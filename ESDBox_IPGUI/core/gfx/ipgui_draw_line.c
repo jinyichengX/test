@@ -36,7 +36,7 @@ __IPGUI_API__ void ipgui_draw_line_classic(
     if (0 != ipgui_aabb_overlap(&draw, &draw, &self))
         return;
 
-    char flat;
+    s8_t flat;
     ipgui_coord_t x1 = line->start.x;
     ipgui_coord_t y1 = line->start.y;
     ipgui_coord_t x2 = line->end.x;
