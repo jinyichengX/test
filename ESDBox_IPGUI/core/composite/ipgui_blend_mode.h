@@ -3,8 +3,9 @@
 
 typedef enum {
     IPGUI_BLEND_NORMAL,
-    IPGUI_BLEND_ADD,
-    IPGUI_BLEND_MULTIPLY,
+    IPGUI_BLEND_DODGE, /* 颜色减淡 */
+
+    IPGUI_BLEND_MAX,
 }ipgui_blend_mode_t;
 
 #endif 

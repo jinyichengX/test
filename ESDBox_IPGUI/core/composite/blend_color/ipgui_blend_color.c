@@ -573,9 +573,9 @@ ipgui_color_t ipgui_color_premultiply(ipgui_color_t * color)
     ipgui_color_t res;
 
 	u8_t ca = color->a;
-    u8_t cr = (u8_t)((color->r * ca) >> 8);
-    u8_t cg = (u8_t)((color->g * ca) >> 8);
-    u8_t cb = (u8_t)((color->b * ca) >> 8);
+    u8_t cr = (u8_t)(((u32_t)color->r * ca + 128) >> 8);
+    u8_t cg = (u8_t)(((u32_t)color->g * ca + 128) >> 8);
+    u8_t cb = (u8_t)(((u32_t)color->b * ca + 128) >> 8);
     
 	IPGUI_COLOR_SET_R(res, cr);
 	IPGUI_COLOR_SET_G(res, cg);
@@ -592,7 +592,7 @@ ipgui_color_t ipgui_color_combine_opacity(ipgui_color_t * color, u8_t opacity)
     IPGUI_COLOR_SET_R(res, color->r);
 	IPGUI_COLOR_SET_G(res, color->g);
 	IPGUI_COLOR_SET_B(res, color->b);
-	IPGUI_COLOR_SET_A(res, (u8_t)((color->a * opacity) >> 8));
+	IPGUI_COLOR_SET_A(res, (u8_t)(((u32_t)color->a * opacity + 128) >> 8));
 
 	return res;
 }
@@ -602,10 +602,10 @@ ipgui_color_t ipgui_color_combine_opacity_and_premultiply(
 {
     ipgui_color_t res;
 
-	u8_t ca = (u8_t)((color->a * opacity) >> 8);
-    u8_t cr = (u8_t)((color->r * ca) >> 8);
-    u8_t cg = (u8_t)((color->g * ca) >> 8);
-    u8_t cb = (u8_t)((color->b * ca) >> 8);
+	u8_t ca = (u8_t)(((u32_t)color->a * opacity + 128) >> 8);
+    u8_t cr = (u8_t)(((u32_t)color->r * ca + 128) >> 8);
+    u8_t cg = (u8_t)(((u32_t)color->g * ca + 128) >> 8);
+    u8_t cb = (u8_t)(((u32_t)color->b * ca + 128) >> 8);
 
 	IPGUI_COLOR_SET_R(res, cr);
 	IPGUI_COLOR_SET_G(res, cg);
@@ -777,7 +777,7 @@ __IPGUI_API__ void ipgui_blend_color(
             if (mask_val > 2) {
                 /* mix mask and opacity */
                 mask_opacity_combined =
-                    (u8_t)(((u32_t)opacity * mask_val + 127) >> 8);
+                    (u8_t)(((u32_t)opacity * mask_val + 128) >> 8);
                 
                 premult = ipgui_color_combine_opacity_and_premultiply(
                     &color, mask_opacity_combined);

@@ -1,6 +1,4 @@
-﻿
-
-// #include "ipgui_queue.h"
+﻿// #include "ipgui_queue.h"
 // #include "ipgui_timer.h"
 // #include "ipgui_list.h"
 // #include "SDL.h"
@@ -53,7 +51,8 @@
 // #include <stdio.h>
 // #include <stdlib.h>
 // #undef main
-
+// ipgui_image_data_t wave_img;
+// ipgui_scr_t main_screen;
 // int test_bmp(const s8_t * path, ipgui_img_dsc_t * image);
 
 // void clear_fucking_screen(ipgui_scr_t * scr)
@@ -251,7 +250,7 @@
 //     ipgui_image_data_t img_data;
 //     img_data.pixmap = img_dsc.pixmap;
 //     img_data.px_size = img_dsc.stride / img_dsc.w;
-//     img_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
+//     img_data.fmt = IPGUI_IMG_FMT_BGR888;
 //     img_data.stride = img_dsc.stride;
 //     img_data.w = img_dsc.w;
 //     img_data.h = img_dsc.h;
@@ -265,7 +264,7 @@
 //     ipgui_image_data_t img2_data;
 //     img2_data.pixmap = img2_dsc.pixmap;
 //     img2_data.px_size = img2_dsc.stride / img2_dsc.w;
-//     img2_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
+//     img2_data.fmt = IPGUI_IMG_FMT_BGR888;
 //     img2_data.stride = img2_dsc.stride;
 //     img2_data.w = img2_dsc.w;
 //     img2_data.h = img2_dsc.h;
@@ -279,13 +278,13 @@
 //     ipgui_image_data_t img3_data;
 //     img3_data.pixmap = img3_dsc.pixmap;
 //     img3_data.px_size = img3_dsc.stride / img3_dsc.w;
-//     img3_data.fmt = IPGUI_IMG_FMT_BGR888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
+//     img3_data.fmt = IPGUI_IMG_FMT_BGR888;
 //     img3_data.stride = img3_dsc.stride;
 //     img3_data.w = img3_dsc.w;
 //     img3_data.h = img3_dsc.h;
 
 //     ipgui_img_dsc_t img4_dsc;
-//     if(0 != test_bmp("M:/test/ESDBox_IPGUI/core/image/decoder/material/bmp/hellokitty2.bmp", &img4_dsc))
+//     if(0 != test_bmp("M:/test/ESDBox_IPGUI/widget/src/wave.bmp", &img4_dsc))
 //     {
 //         printf("Failed to load bitmap image, please run the program at the main.c page\n");
 //         return -1;
@@ -293,7 +292,7 @@
 //     ipgui_image_data_t img4_data;
 //     img4_data.pixmap = img4_dsc.pixmap;
 //     img4_data.px_size = img4_dsc.stride / img4_dsc.w;
-//     img4_data.fmt = IPGUI_IMG_FMT_BGRA8888;//鍙互鏀规垚L8鎴栬€匧A88鎴栬€匯GB565璇曡瘯锛岃櫧鐒惰繖涔堟敼閫昏緫涓婁笉瀵癸紝浣嗘槸鏈夋晥鏋?
+//     img4_data.fmt = IPGUI_IMG_FMT_BGRA8888;
 //     img4_data.stride = img4_dsc.stride;
 //     img4_data.w = img4_dsc.w;
 //     img4_data.h = img4_dsc.h;
@@ -521,7 +520,7 @@
 //     static u32_t degree1 = 0;
 //     float sx = 0.5;
 //     float sy = 0.5;
-    
+
 //     while(1) {
 // #if RENDER_MODE == 1
 //         for (int y = 0; y < sdl_scr->drv->yreso; y ++) {
@@ -531,10 +530,10 @@
 // #elif RENDER_MODE == 3
 
 // #endif
-
+// #define BG_COLOR IPGUI_COLOR_WHITE
 // #if RENDER_MODE == 1
 //                 ipgui_color_t * color = (ipgui_color_t *)offline_buffer;
-//                 IPGUI_COLOR_SET((*color), 255, IPGUI_COLOR_WHITE);
+//                 IPGUI_COLOR_SET((*color), 255, BG_COLOR);
 //                 surf1.surf.start.x = x;
 //                 surf1.surf.start.y = y;
 //                 surf1.surf.end.x = x;
@@ -543,7 +542,7 @@
 //                 ipgui_color_t * color;
 //                 for (int i = 0; i < sdl_scr->drv->xreso; i++) {
 //                     color = (ipgui_color_t *)offline_buffer + i;
-//                     IPGUI_COLOR_SET((*color), 255, IPGUI_COLOR_WHITE);
+//                     IPGUI_COLOR_SET((*color), 255, BG_COLOR);
 //                 }
 //                 surf1.surf.start.x = 0;
 //                 surf1.surf.start.y = y;
@@ -552,7 +551,7 @@
 // #elif RENDER_MODE == 3
 //                 ipgui_color_t * row0 = (ipgui_color_t *)offline_buffer;
 //                 for (int i = 0; i < sdl_scr.drv->xreso; i ++) {
-//                     IPGUI_COLOR_SET(row0[i], 255, IPGUI_COLOR_WHITE);
+//                     IPGUI_COLOR_SET(row0[i], 255, BG_COLOR);
 //                 }
 //                 for (int y = 1; y < sdl_scr.drv->yreso; y ++) {
 //                     memcpy(offline_buffer + y * surf1.stride, offline_buffer, surf1.stride);
@@ -595,7 +594,7 @@
 //                 anchor1.x = 200;
 //                 anchor1.y = 200;
 //                 ipgui_draw_image( 
-//                     &surf1,
+//                     &surf1,       //杩欎釜鍑芥暟甯﹀彉鎹㈠弬鏁版椂鍙敮鎸丷GB888鏍煎紡鐨勫浘鍍忥紝闇€瑕佷紭鍖?
 //                     NULL,
 //                     &img2_data,
 //                     &trans.pivot,
@@ -669,22 +668,23 @@
 //                 ipgui_img_geo_trans_t trans1;
 
 //                 ipgui_point_t pivot2;
-//                 pivot2.x = img4_data.w / 2;
-//                 pivot2.y = img4_data.h / 2;
+//                 pivot2.x = 0;
+//                 pivot2.y = 0;
 //                 ipgui_image_trans_init(&trans1);
 //                 ipgui_image_trans_pivot(&trans1, pivot2);
 //                 ipgui_image_trans_scale(&trans1, sx, sy);
 //                 ipgui_image_trans_rotate_degree(&trans1, degree1);
 //                 ipgui_point_t anchor2;
-//                 anchor2.x = 400;
-//                 anchor2.y = 240;
+//                 anchor2.x = 0;
+//                 anchor2.y = 0;
 //                 ipgui_draw_image(
 //                     &surf1,
 //                     NULL,
 //                     &img4_data,
 //                     &trans1.pivot,
 //                     &anchor2,
-//                     (ipgui_trans_mat_t *)&trans1.mat,
+//                     NULL,
+//                     // (ipgui_trans_mat_t *)&trans1.mat,
 //                     &img4_style
 //                 );
 

@@ -41,9 +41,6 @@ typedef enum {
     IPGUI_IMG_FMT_RGBA8888, /* 内存顺序: R[7:0]G[7:0]B[7:0]A[7:0] */
     IPGUI_IMG_FMT_BGRA8888, /* 内存顺序: B[7:0]G[7:0]R[7:0]A[7:0] */
 
-    /* pattle */
-    IPGUI_IMG_FMT_I8,       /* 调色板索引图 */
-
     IPGUI_IMG_FMT_MAX,
 }ipgui_image_fomat_t;
 

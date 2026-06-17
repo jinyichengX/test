@@ -23,8 +23,8 @@ void widget2_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ct
     dash_img.h = img4_dsc.h;
     
     ipgui_coord_t ori_x, ori_y;
-    ori_x = 90;
-    ori_y = 290;
+    ori_x = 102;
+    ori_y = 282;
 
     ipgui_image_draw_style_t draw_style;
     draw_style.blend_mode = IPGUI_BLEND_NORMAL;
@@ -37,8 +37,8 @@ void widget2_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ct
     pivot2.y = dash_img.h / 2 + 130;
 
     ipgui_point_t anchor;
-    anchor.x = 90;
-    anchor.y = 290;
+    anchor.x = ori_x;
+    anchor.y = ori_y;
     for (s32_t i = 0; i < 90; i ++)
     {
         ipgui_image_trans_init(&trans1);
