@@ -47,7 +47,7 @@ IPGUI_HEADER_BEGIN  _______________MARKER_______________
 // #define IPGUI_LINE_CAP_DEFAULT       0 //0: butt, 1: round, 2: square
 
 #define IPGUI_GRADIENT_LUT_EN 0 /* the LUT need 64KB memory */
-#define IPGUI_GRADIENT_STOP_MAX 5 /* at least 2 */
+#define IPGUI_GRADIENT_STOP_MAX 15 /* at least 2 */
 
 #ifndef IPGUI_ENDIAN_LITTLE
 #define IPGUI_ENDIAN_LITTLE 1 /* must be 0 or 1,0: big endian, 1: little endian */

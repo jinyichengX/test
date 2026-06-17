@@ -193,7 +193,7 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect_slice(
     surf.pix_size = pfb->pix_size;
 
     if (scr->render_bg) {
-        scr->render_bg(scr);
+        scr->render_bg(scr, &surf);
     } else {
         /* 填充背景色 */
         ipgui_blend_color(
@@ -276,6 +276,8 @@ __IPGUI_API__ void ipgui_screen_render(ipgui_scr_t * scr)
 
     /* reset dirty rect manager */
     ipgui_dirty_rect_mgr_reset(&scr->dirty);
+
+    scr->drv->flush(scr);
 }
 
 /*

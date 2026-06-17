@@ -56,7 +56,7 @@ typedef struct ipgui_scr_ctx{
      */
     ipgui_color_t          bg_color;
 
-    void (* render_bg)(ipgui_scr_t * scr);
+    void (* render_bg)(ipgui_scr_t * scr, ipgui_surf_t * surf);
 }ipgui_scr_t;
 
 extern __IPGUI_API__ ipgui_err_t ipgui_screen_init(
@@ -90,5 +90,7 @@ extern __IPGUI_API__ void        ipgui_screen_flush(
 extern __IPGUI_API__ void        ipgui_screen_handle_widget_event(
                                         ipgui_scr_t        * scr, 
                                         ipgui_widget_evt_t * evt);
+
+extern __IPGUI_API__ void        ipgui_screen_render(ipgui_scr_t * scr);
 
 #endif

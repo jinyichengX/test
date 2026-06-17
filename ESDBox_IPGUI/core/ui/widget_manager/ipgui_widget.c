@@ -4,6 +4,8 @@
 
 #include "ipgui_screen.h"
 
+extern ipgui_scr_t main_screen;
+
 /* create widget */
 __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent)
 {
@@ -29,6 +31,7 @@ __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent)
         // ipgui_widget_mark_dirty();
     } else {   
         /* it is a detached widget, leave it */;
+        ipgui_widget_link_set_parent(&widget->link, &main_screen.tree.root);
     }
     
     /* init event handler and render callback */
@@ -95,7 +98,7 @@ __IPGUI_API__ void ipgui_widget_abs_pos(ipgui_widget_t * widget, ipgui_aabb_t * 
     /* 沿着树向上追溯，累加所有父控件的坐标偏移 */
     struct widget_link_t * _link = &widget->link;
     ipgui_widget_t * parent;
-    while (_link->parent) {
+    while (_link->parent && (IPGUI_NO == ipgui_widget_link_is_root(_link->parent))) {
         parent = ipgui_container_of(_link->parent, ipgui_widget_t, link);
         
         abs_x += parent->x;
@@ -126,7 +129,7 @@ __IPGUI_API__ void ipgui_widget_local_to_global(
 
     struct widget_link_t * _link = &widget->link;
     ipgui_widget_t * parent;
-    while (_link->parent && !ipgui_widget_link_is_root(_link->parent)) {
+    while (_link->parent && (IPGUI_NO == ipgui_widget_link_is_root(_link->parent))) {
         parent = ipgui_container_of(_link->parent, ipgui_widget_t, link);
         
         out->start.x += parent->x;

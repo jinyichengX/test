@@ -46,13 +46,13 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_l8(const u8_t *a, const u8_t
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32768) >> 16);
+    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32512) / 65025);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_l8(const u8_t *a, const u8_t *b, u8_t d, u8_t *out)
 {
     u32_t id = 255 - d;
-    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) >> 8);
+    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) / 255);
 }
 
 /* LA88  (2 字节：L A) */
@@ -63,15 +63,15 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_la88(const u8_t *a, const u8
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32768) >> 16);
-    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32768) >> 16);
+    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32512) / 65025);
+    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32512) / 65025);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_la88(const u8_t *a, const u8_t *b, u8_t d, u8_t *out)
 {
     u32_t id = 255 - d;
-    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) >> 8);
-    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) >> 8);
+    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) / 255);
+    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) / 255);
 }
 
 /* RGB565  (LE: byte[0]=G[2:0]B[4:0], byte[1]=R[4:0]G[5:3]) */
@@ -92,9 +92,9 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_rgb565(const u8_t *a, const 
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    u8_t Ro = (u8_t)((aR * w1 + bR * w2 + cR * w3 + dR * w4 + 32768) >> 16);
-    u8_t Go = (u8_t)((aG * w1 + bG * w2 + cG * w3 + dG * w4 + 32768) >> 16);
-    u8_t Bo = (u8_t)((aB * w1 + bB * w2 + cB * w3 + dB * w4 + 32768) >> 16);
+    u8_t Ro = (u8_t)((aR * w1 + bR * w2 + cR * w3 + dR * w4 + 32512) / 65025);
+    u8_t Go = (u8_t)((aG * w1 + bG * w2 + cG * w3 + dG * w4 + 32512) / 65025);
+    u8_t Bo = (u8_t)((aB * w1 + bB * w2 + cB * w3 + dB * w4 + 32512) / 65025);
     u8_t R5 = Ro >> 3, G6 = Go >> 2, B5 = Bo >> 3;
     out[0] = (u8_t)(((G6 & 0x07) << 5) | B5);
     out[1] = (u8_t)((R5 << 3) | (G6 >> 3));
@@ -110,9 +110,9 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_rgb565(const u8_t *a, const u8
     u32_t aR = (pa >> 11) << 3, aG = ((pa >> 5) & 0x3F) << 2, aB = (pa & 0x1F) << 3;
     u32_t bR = (pb >> 11) << 3, bG = ((pb >> 5) & 0x3F) << 2, bB = (pb & 0x1F) << 3;
     u32_t id = 255 - d;
-    u8_t Ro = (u8_t)((aR * id + bR * d + 128) >> 8);
-    u8_t Go = (u8_t)((aG * id + bG * d + 128) >> 8);
-    u8_t Bo = (u8_t)((aB * id + bB * d + 128) >> 8);
+    u8_t Ro = (u8_t)((aR * id + bR * d + 128) / 255);
+    u8_t Go = (u8_t)((aG * id + bG * d + 128) / 255);
+    u8_t Bo = (u8_t)((aB * id + bB * d + 128) / 255);
     u8_t R5 = Ro >> 3, G6 = Go >> 2, B5 = Bo >> 3;
     out[0] = (u8_t)(((G6 & 0x07) << 5) | B5);
     out[1] = (u8_t)((R5 << 3) | (G6 >> 3));
@@ -136,9 +136,9 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_bgr565(const u8_t *a, const 
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    u8_t Bo = (u8_t)((aB * w1 + bB * w2 + cB * w3 + dB * w4 + 32768) >> 16);
-    u8_t Go = (u8_t)((aG * w1 + bG * w2 + cG * w3 + dG * w4 + 32768) >> 16);
-    u8_t Ro = (u8_t)((aR * w1 + bR * w2 + cR * w3 + dR * w4 + 32768) >> 16);
+    u8_t Bo = (u8_t)((aB * w1 + bB * w2 + cB * w3 + dB * w4 + 32512) / 65025);
+    u8_t Go = (u8_t)((aG * w1 + bG * w2 + cG * w3 + dG * w4 + 32512) / 65025);
+    u8_t Ro = (u8_t)((aR * w1 + bR * w2 + cR * w3 + dR * w4 + 32512) / 65025);
     u8_t B5 = Bo >> 3, G6 = Go >> 2, R5 = Ro >> 3;
     out[0] = (u8_t)(((G6 & 0x07) << 5) | R5);
     out[1] = (u8_t)((B5 << 3) | (G6 >> 3));
@@ -154,9 +154,9 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_bgr565(const u8_t *a, const u8
     u32_t aB = (pa >> 11) << 3, aG = ((pa >> 5) & 0x3F) << 2, aR = (pa & 0x1F) << 3;
     u32_t bB = (pb >> 11) << 3, bG = ((pb >> 5) & 0x3F) << 2, bR = (pb & 0x1F) << 3;
     u32_t id = 255 - d;
-    u8_t Bo = (u8_t)((aB * id + bB * d + 128) >> 8);
-    u8_t Go = (u8_t)((aG * id + bG * d + 128) >> 8);
-    u8_t Ro = (u8_t)((aR * id + bR * d + 128) >> 8);
+    u8_t Bo = (u8_t)((aB * id + bB * d + 128) / 255);
+    u8_t Go = (u8_t)((aG * id + bG * d + 128) / 255);
+    u8_t Ro = (u8_t)((aR * id + bR * d + 128) / 255);
     u8_t B5 = Bo >> 3, G6 = Go >> 2, R5 = Ro >> 3;
     out[0] = (u8_t)(((G6 & 0x07) << 5) | R5);
     out[1] = (u8_t)((B5 << 3) | (G6 >> 3));
@@ -170,17 +170,17 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_rgb888(const u8_t *a, const 
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32768) >> 16);
-    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32768) >> 16);
-    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32768) >> 16);
+    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32512) / 65025);
+    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32512) / 65025);
+    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32512) / 65025);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_rgb888(const u8_t *a, const u8_t *b, u8_t d, u8_t *out)
 {
     u32_t id = 255 - d;
-    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) >> 8);
-    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) >> 8);
-    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) >> 8);
+    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) / 255);
+    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) / 255);
+    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) / 255);
 }
 
 /* BGR888  (3 字节：B G R) */
@@ -191,17 +191,17 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_bgr888(const u8_t *a, const 
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32768) >> 16);
-    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32768) >> 16);
-    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32768) >> 16);
+    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32512) / 65025);
+    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32512) / 65025);
+    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32512) / 65025);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_bgr888(const u8_t *a, const u8_t *b, u8_t d, u8_t *out)
 {
     u32_t id = 255 - d;
-    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) >> 8);
-    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) >> 8);
-    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) >> 8);
+    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) / 255);
+    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) / 255);
+    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) / 255);
 }
 
 /* ARGB8888  (4 字节，LE: B G R A) */
@@ -212,19 +212,19 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_argb8888(const u8_t *a, cons
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32768) >> 16);
-    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32768) >> 16);
-    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32768) >> 16);
-    out[3] = (u8_t)(((u32_t)a[3] * w1 + (u32_t)b[3] * w2 + (u32_t)c[3] * w3 + (u32_t)d[3] * w4 + 32768) >> 16);
+    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32512) / 65025);
+    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32512) / 65025);
+    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32512) / 65025);
+    out[3] = (u8_t)(((u32_t)a[3] * w1 + (u32_t)b[3] * w2 + (u32_t)c[3] * w3 + (u32_t)d[3] * w4 + 32512) / 65025);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_argb8888(const u8_t *a, const u8_t *b, u8_t d, u8_t *out)
 {
     u32_t id = 255 - d;
-    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) >> 8);
-    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) >> 8);
-    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) >> 8);
-    out[3] = (u8_t)(((u32_t)a[3] * id + (u32_t)b[3] * d + 128) >> 8);
+    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) / 255);
+    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) / 255);
+    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) / 255);
+    out[3] = (u8_t)(((u32_t)a[3] * id + (u32_t)b[3] * d + 128) / 255);
 }
 
 /* ABGR8888  (4 字节，LE: R G B A) */
@@ -235,19 +235,19 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_abgr8888(const u8_t *a, cons
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32768) >> 16);
-    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32768) >> 16);
-    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32768) >> 16);
-    out[3] = (u8_t)(((u32_t)a[3] * w1 + (u32_t)b[3] * w2 + (u32_t)c[3] * w3 + (u32_t)d[3] * w4 + 32768) >> 16);
+    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32512) / 65025);
+    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32512) / 65025);
+    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32512) / 65025);
+    out[3] = (u8_t)(((u32_t)a[3] * w1 + (u32_t)b[3] * w2 + (u32_t)c[3] * w3 + (u32_t)d[3] * w4 + 32512) / 65025);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_abgr8888(const u8_t *a, const u8_t *b, u8_t d, u8_t *out)
 {
     u32_t id = 255 - d;
-    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) >> 8);
-    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) >> 8);
-    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) >> 8);
-    out[3] = (u8_t)(((u32_t)a[3] * id + (u32_t)b[3] * d + 128) >> 8);
+    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) / 255);
+    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) / 255);
+    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) / 255);
+    out[3] = (u8_t)(((u32_t)a[3] * id + (u32_t)b[3] * d + 128) / 255);
 }
 
 /* RGBA8888  (4 字节，LE: R G B A) */
@@ -258,19 +258,19 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_rgba8888(const u8_t *a, cons
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32768) >> 16);
-    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32768) >> 16);
-    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32768) >> 16);
-    out[3] = (u8_t)(((u32_t)a[3] * w1 + (u32_t)b[3] * w2 + (u32_t)c[3] * w3 + (u32_t)d[3] * w4 + 32768) >> 16);
+    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32512) / 65025);
+    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32512) / 65025);
+    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32512) / 65025);
+    out[3] = (u8_t)(((u32_t)a[3] * w1 + (u32_t)b[3] * w2 + (u32_t)c[3] * w3 + (u32_t)d[3] * w4 + 32512) / 65025);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_rgba8888(const u8_t *a, const u8_t *b, u8_t d, u8_t *out)
 {
     u32_t id = 255 - d;
-    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) >> 8);
-    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) >> 8);
-    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) >> 8);
-    out[3] = (u8_t)(((u32_t)a[3] * id + (u32_t)b[3] * d + 128) >> 8);
+    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) / 255);
+    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) / 255);
+    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) / 255);
+    out[3] = (u8_t)(((u32_t)a[3] * id + (u32_t)b[3] * d + 128) / 255);
 }
 
 /* BGRA8888  (4 字节，LE: B G R A) */
@@ -281,19 +281,19 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_bilinear_bgra8888(const u8_t *a, cons
     u32_t w2 = hd * (255 - vd);
     u32_t w3 = vd * (255 - hd);
     u32_t w4 = hd * vd;
-    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32768) >> 16);
-    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32768) >> 16);
-    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32768) >> 16);
-    out[3] = (u8_t)(((u32_t)a[3] * w1 + (u32_t)b[3] * w2 + (u32_t)c[3] * w3 + (u32_t)d[3] * w4 + 32768) >> 16);
+    out[0] = (u8_t)(((u32_t)a[0] * w1 + (u32_t)b[0] * w2 + (u32_t)c[0] * w3 + (u32_t)d[0] * w4 + 32512) / 65025);
+    out[1] = (u8_t)(((u32_t)a[1] * w1 + (u32_t)b[1] * w2 + (u32_t)c[1] * w3 + (u32_t)d[1] * w4 + 32512) / 65025);
+    out[2] = (u8_t)(((u32_t)a[2] * w1 + (u32_t)b[2] * w2 + (u32_t)c[2] * w3 + (u32_t)d[2] * w4 + 32512) / 65025);
+    out[3] = (u8_t)(((u32_t)a[3] * w1 + (u32_t)b[3] * w2 + (u32_t)c[3] * w3 + (u32_t)d[3] * w4 + 32512) / 65025);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void pix_linear_bgra8888(const u8_t *a, const u8_t *b, u8_t d, u8_t *out)
 {
     u32_t id = 255 - d;
-    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) >> 8);
-    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) >> 8);
-    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) >> 8);
-    out[3] = (u8_t)(((u32_t)a[3] * id + (u32_t)b[3] * d + 128) >> 8);
+    out[0] = (u8_t)(((u32_t)a[0] * id + (u32_t)b[0] * d + 128) / 255);
+    out[1] = (u8_t)(((u32_t)a[1] * id + (u32_t)b[1] * d + 128) / 255);
+    out[2] = (u8_t)(((u32_t)a[2] * id + (u32_t)b[2] * d + 128) / 255);
+    out[3] = (u8_t)(((u32_t)a[3] * id + (u32_t)b[3] * d + 128) / 255);
 }
 
 /* 索引表 */

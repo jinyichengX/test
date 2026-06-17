@@ -595,7 +595,7 @@
 //                 anchor1.x = 200;
 //                 anchor1.y = 200;
 //                 ipgui_draw_image( 
-//                     &surf1,       //杩欎釜鍑芥暟甯﹀彉鎹㈠弬鏁版椂鍙敮鎸丷GB888鏍煎紡鐨勫浘鍍忥紝闇€瑕佷紭鍖?
+//                     &surf1,
 //                     NULL,
 //                     &img2_data,
 //                     &trans.pivot,
@@ -678,7 +678,7 @@
 //                 ipgui_point_t anchor2;
 //                 anchor2.x = 400;
 //                 anchor2.y = 240;
-//                 ipgui_draw_image(//杩欎釜鍑芥暟甯﹀彉鎹㈠弬鏁版椂鍙敮鎸丷GB888鏍煎紡鐨勫浘鍍忥紝闇€瑕佷紭鍖?
+//                 ipgui_draw_image(
 //                     &surf1,
 //                     NULL,
 //                     &img4_data,

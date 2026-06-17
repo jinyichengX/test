@@ -1,4 +1,4 @@
-#include "ipgui_blend_image.h"
+﻿#include "ipgui_blend_image.h"
 
 typedef void (* img_px_blend_func_t)(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode);
 
@@ -7,6 +7,9 @@ typedef void (* img_px_blend_func_t)(const u8_t * src, u8_t * dst, u8_t alpha, i
 #define MASK_G      0x07e0U   
 #define MASK_MUL_RB 0x3e07c0U 
 #define MASK_MUL_G  0x1f800U  
+
+/* 无除法精确 floor(x/255): (x + 1 + x>>8) >> 8, 仅移位+加法, 比原 >>8 (÷256) 精确 */
+#define DIV_255(x) (((x) + 1 + ((x) >> 8)) >> 8)
 
 #if USE_INV_TABLE == 1
 extern const u16_t g_inv_tbl[256];
@@ -68,9 +71,9 @@ static void blend_l8_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_bl
     (void)blend_mode;
     u32_t ia = 255 - alpha;
     u8_t l = *src;
-    dst[0] = (u8_t)(((u32_t)l * alpha + (u32_t)dst[0] * ia) >> 8);
-    dst[1] = (u8_t)(((u32_t)l * alpha + (u32_t)dst[1] * ia) >> 8);
-    dst[2] = (u8_t)(((u32_t)l * alpha + (u32_t)dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255((u32_t)l * alpha + (u32_t)dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255((u32_t)l * alpha + (u32_t)dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255((u32_t)l * alpha + (u32_t)dst[2] * ia));
 }
 
 static void blend_l8_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -78,9 +81,9 @@ static void blend_l8_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_bl
     (void)blend_mode;
     u32_t ia = 255 - alpha;
     u8_t l = *src;
-    dst[0] = (u8_t)(((u32_t)l * alpha + (u32_t)dst[0] * ia) >> 8);
-    dst[1] = (u8_t)(((u32_t)l * alpha + (u32_t)dst[1] * ia) >> 8);
-    dst[2] = (u8_t)(((u32_t)l * alpha + (u32_t)dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255((u32_t)l * alpha + (u32_t)dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255((u32_t)l * alpha + (u32_t)dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255((u32_t)l * alpha + (u32_t)dst[2] * ia));
 }
 
 static void blend_l8_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -95,10 +98,11 @@ static void blend_l8_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_
 #endif
     u8_t l = *src;
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)l * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)l * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)l * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -124,10 +128,11 @@ static void blend_l8_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_
 #endif
     u8_t l = *src;
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)l * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)l * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)l * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -153,10 +158,11 @@ static void blend_l8_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_
 #endif
     u8_t l = *src;
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)l * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)l * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)l * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -182,10 +188,11 @@ static void blend_l8_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_
 #endif
     u8_t l = *src;
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)l * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)l * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)l * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)l * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -206,49 +213,49 @@ static void blend_l8_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_
 /* 以下 LA88 系列逻辑类似 L8，但提取源 Alpha */
 static void blend_la88_2_rgb565(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
-    u8_t combined_a = (u8_t)((u32_t)src[1] * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)src[1] * alpha));
     blend_l8_2_rgb565(src, dst, combined_a, blend_mode);
 }
 
 static void blend_la88_2_bgr565(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
-    u8_t combined_a = (u8_t)((u32_t)src[1] * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)src[1] * alpha));
     blend_l8_2_bgr565(src, dst, combined_a, blend_mode);
 }
 
 static void blend_la88_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
-    u8_t combined_a = (u8_t)((u32_t)src[1] * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)src[1] * alpha));
     blend_l8_2_rgb888(src, dst, combined_a, blend_mode);
 }
 
 static void blend_la88_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
-    u8_t combined_a = (u8_t)((u32_t)src[1] * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)src[1] * alpha));
     blend_l8_2_bgr888(src, dst, combined_a, blend_mode);
 }
 
 static void blend_la88_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
-    u8_t combined_a = (u8_t)((u32_t)src[1] * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)src[1] * alpha));
     blend_l8_2_argb8888(src, dst, combined_a, blend_mode);
 }
 
 static void blend_la88_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
-    u8_t combined_a = (u8_t)((u32_t)src[1] * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)src[1] * alpha));
     blend_l8_2_abgr8888(src, dst, combined_a, blend_mode);
 }
 
 static void blend_la88_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
-    u8_t combined_a = (u8_t)((u32_t)src[1] * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)src[1] * alpha));
     blend_l8_2_rgba8888(src, dst, combined_a, blend_mode);
 }
 
 static void blend_la88_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
-    u8_t combined_a = (u8_t)((u32_t)src[1] * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)src[1] * alpha));
     blend_l8_2_bgra8888(src, dst, combined_a, blend_mode);
 }
 
@@ -308,9 +315,9 @@ static void blend_rgb565_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ipgu
 #endif
     u32_t ia = 255 - alpha;
     u8_t r = (fg >> 11) << 3; u8_t g = ((fg >> 5) & 0x3F) << 2; u8_t b = (fg & 0x1F) << 3;
-    dst[0] = (u8_t)((r * alpha + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((g * alpha + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((b * alpha + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(r * alpha + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(g * alpha + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(b * alpha + dst[2] * ia));
 }
 
 static void blend_rgb565_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -323,9 +330,9 @@ static void blend_rgb565_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgu
 #endif
     u32_t ia = 255 - alpha;
     u8_t r = (fg >> 11) << 3; u8_t g = ((fg >> 5) & 0x3F) << 2; u8_t b = (fg & 0x1F) << 3;
-    dst[0] = (u8_t)((b * alpha + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((g * alpha + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((r * alpha + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(b * alpha + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(g * alpha + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(r * alpha + dst[2] * ia));
 }
 
 static void blend_rgb565_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -345,10 +352,11 @@ static void blend_rgb565_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     da = (cr >> 24) & 0xff; dr = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; db = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)r * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)g * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)b * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)r * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)g * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)b * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -379,10 +387,11 @@ static void blend_rgb565_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     da = (cr >> 24) & 0xff; db = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; dr = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)r * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)g * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)b * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)r * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)g * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)b * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -413,10 +422,11 @@ static void blend_rgb565_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     dr = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)r * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)g * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)b * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)r * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)g * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)b * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -447,10 +457,11 @@ static void blend_rgb565_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     db = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)r * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)g * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)b * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)r * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)g * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)b * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -521,9 +532,9 @@ static void blend_bgr565_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ipgu
 #endif
     u32_t ia = 255 - alpha;
     u8_t b = (fg >> 11) << 3; u8_t g = ((fg >> 5) & 0x3F) << 2; u8_t r = (fg & 0x1F) << 3;
-    dst[0] = (u8_t)((r * alpha + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((g * alpha + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((b * alpha + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(r * alpha + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(g * alpha + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(b * alpha + dst[2] * ia));
 }
 
 static void blend_bgr565_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -536,9 +547,9 @@ static void blend_bgr565_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgu
 #endif
     u32_t ia = 255 - alpha;
     u8_t b = (fg >> 11) << 3; u8_t g = ((fg >> 5) & 0x3F) << 2; u8_t r = (fg & 0x1F) << 3;
-    dst[0] = (u8_t)((b * alpha + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((g * alpha + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((r * alpha + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(b * alpha + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(g * alpha + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(r * alpha + dst[2] * ia));
 }
 
 static void blend_bgr565_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -558,10 +569,11 @@ static void blend_bgr565_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     da = (cr >> 24) & 0xff; dr = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; db = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)r * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)g * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)b * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)r * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)g * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)b * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -592,10 +604,11 @@ static void blend_bgr565_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     da = (cr >> 24) & 0xff; db = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; dr = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)r * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)g * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)b * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)r * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)g * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)b * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -626,10 +639,11 @@ static void blend_bgr565_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     dr = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)r * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)g * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)b * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)r * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)g * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)b * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -660,10 +674,11 @@ static void blend_bgr565_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     db = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)r * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)g * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)b * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)r * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)g * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)b * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -727,18 +742,18 @@ static void blend_rgb888_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ipgu
 {
     (void)blend_mode;
     u32_t ia = 255 - alpha;
-    dst[0] = (u8_t)((src[0] * alpha + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((src[1] * alpha + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((src[2] * alpha + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(src[0] * alpha + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(src[1] * alpha + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(src[2] * alpha + dst[2] * ia));
 }
 
 static void blend_rgb888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
     (void)blend_mode;
     u32_t ia = 255 - alpha;
-    dst[0] = (u8_t)((src[2] * alpha + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((src[1] * alpha + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((src[0] * alpha + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(src[2] * alpha + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(src[1] * alpha + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(src[0] * alpha + dst[2] * ia));
 }
 
 static void blend_rgb888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -752,10 +767,11 @@ static void blend_rgb888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     da = (cr >> 24) & 0xff; dr = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; db = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)src[0] * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)src[1] * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)src[2] * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)src[0] * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)src[1] * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)src[2] * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -780,10 +796,11 @@ static void blend_rgb888_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     da = (cr >> 24) & 0xff; db = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; dr = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)src[0] * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)src[1] * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)src[2] * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)src[0] * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)src[1] * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)src[2] * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -808,10 +825,11 @@ static void blend_rgb888_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     dr = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)src[0] * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)src[1] * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)src[2] * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)src[0] * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)src[1] * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)src[2] * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -836,10 +854,11 @@ static void blend_rgb888_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     db = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)src[0] * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)src[1] * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)src[2] * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)src[0] * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)src[1] * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)src[2] * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -903,18 +922,18 @@ static void blend_bgr888_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ipgu
 {
     (void)blend_mode;
     u32_t ia = 255 - alpha;
-    dst[0] = (u8_t)((src[2] * alpha + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((src[1] * alpha + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((src[0] * alpha + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(src[2] * alpha + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(src[1] * alpha + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(src[0] * alpha + dst[2] * ia));
 }
 
 static void blend_bgr888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
 {
     (void)blend_mode;
     u32_t ia = 255 - alpha;
-    dst[0] = (u8_t)((src[0] * alpha + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((src[1] * alpha + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((src[2] * alpha + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(src[0] * alpha + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(src[1] * alpha + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(src[2] * alpha + dst[2] * ia));
 }
 
 static void blend_bgr888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -928,10 +947,11 @@ static void blend_bgr888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     da = (cr >> 24) & 0xff; dr = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; db = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -955,10 +975,11 @@ static void blend_bgr888_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     da = (cr >> 24) & 0xff; db = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; dr = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -982,10 +1003,11 @@ static void blend_bgr888_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     dr = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1009,10 +1031,11 @@ static void blend_bgr888_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, ip
     db = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - alpha;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * alpha >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * alpha >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * alpha >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * alpha);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * alpha);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * alpha);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1038,7 +1061,7 @@ static void blend_argb8888_2_rgb565(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sa = (fv >> 24) & 0xff; sr = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sb = fv & 0xff;
 #endif
-    u8_t combined_a = (u8_t)((u32_t)sa * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)sa * alpha));
     u32_t a6 = (combined_a + 2) >> 2; u32_t ia6 = 64 - a6;
 #if IPGUI_ENDIAN_LITTLE == 1
     u32_t bg = *(u16_t *)dst;
@@ -1064,7 +1087,7 @@ static void blend_argb8888_2_bgr565(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sa = (fv >> 24) & 0xff; sr = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sb = fv & 0xff;
 #endif
-    u8_t combined_a = (u8_t)((u32_t)sa * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)sa * alpha));
     u32_t a6 = (combined_a + 2) >> 2; u32_t ia6 = 64 - a6;
 #if IPGUI_ENDIAN_LITTLE == 1
     u32_t bg = *(u16_t *)dst;
@@ -1090,11 +1113,11 @@ static void blend_argb8888_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sa = (fv >> 24) & 0xff; sr = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sb = fv & 0xff;
 #endif
-    u32_t combined_a = (u32_t)sa * alpha >> 8;
+    u32_t combined_a = DIV_255((u32_t)sa * alpha);
     u32_t ia = 255 - combined_a;
-    dst[0] = (u8_t)((sr * combined_a + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((sg * combined_a + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((sb * combined_a + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(sr * combined_a + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(sg * combined_a + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(sb * combined_a + dst[2] * ia));
 }
 
 static void blend_argb8888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -1105,11 +1128,11 @@ static void blend_argb8888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sa = (fv >> 24) & 0xff; sr = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sb = fv & 0xff;
 #endif
-    u32_t combined_a = (u32_t)sa * alpha >> 8;
+    u32_t combined_a = DIV_255((u32_t)sa * alpha);
     u32_t ia = 255 - combined_a;
-    dst[0] = (u8_t)((sb * combined_a + dst[0] * ia) >> 8);
-    dst[1] = (u8_t)((sg * combined_a + dst[1] * ia) >> 8);
-    dst[2] = (u8_t)((sr * combined_a + dst[2] * ia) >> 8);
+    dst[0] = (u8_t)(DIV_255(sb * combined_a + dst[0] * ia));
+    dst[1] = (u8_t)(DIV_255(sg * combined_a + dst[1] * ia));
+    dst[2] = (u8_t)(DIV_255(sr * combined_a + dst[2] * ia));
 }
 
 static void blend_argb8888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode)
@@ -1120,7 +1143,7 @@ static void blend_argb8888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sa = (fv >> 24) & 0xff; sr = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sb = fv & 0xff;
 #endif
-    u32_t combined_a = (u32_t)sa * alpha >> 8;
+    u32_t combined_a = DIV_255((u32_t)sa * alpha);
     u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
 #if IPGUI_ENDIAN_LITTLE == 1
     da = cr & 0xff; dr = (cr >> 8) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 24) & 0xff;
@@ -1128,10 +1151,11 @@ static void blend_argb8888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, 
     da = (cr >> 24) & 0xff; dr = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; db = cr & 0xff;
 #endif
     u32_t ia2 = 255 - combined_a;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * combined_a >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * combined_a >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * combined_a >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * combined_a);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * combined_a);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * combined_a);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1153,7 +1177,7 @@ static void blend_argb8888_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sa = (fv >> 24) & 0xff; sr = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sb = fv & 0xff;
 #endif
-    u32_t combined_a = (u32_t)sa * alpha >> 8;
+    u32_t combined_a = DIV_255((u32_t)sa * alpha);
     u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
 #if IPGUI_ENDIAN_LITTLE == 1
     da = cr & 0xff; db = (cr >> 8) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 24) & 0xff;
@@ -1161,10 +1185,11 @@ static void blend_argb8888_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, 
     da = (cr >> 24) & 0xff; db = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; dr = cr & 0xff;
 #endif
     u32_t ia2 = 255 - combined_a;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * combined_a >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * combined_a >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * combined_a >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * combined_a);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * combined_a);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * combined_a);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1186,7 +1211,7 @@ static void blend_argb8888_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sa = (fv >> 24) & 0xff; sr = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sb = fv & 0xff;
 #endif
-    u32_t combined_a = (u32_t)sa * alpha >> 8;
+    u32_t combined_a = DIV_255((u32_t)sa * alpha);
     u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
 #if IPGUI_ENDIAN_LITTLE == 1
     dr = cr & 0xff; dg = (cr >> 8) & 0xff; db = (cr >> 16) & 0xff; da = (cr >> 24) & 0xff;
@@ -1194,10 +1219,11 @@ static void blend_argb8888_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, 
     dr = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - combined_a;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * combined_a >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * combined_a >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * combined_a >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * combined_a);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * combined_a);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * combined_a);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1219,7 +1245,7 @@ static void blend_argb8888_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sa = (fv >> 24) & 0xff; sr = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sb = fv & 0xff;
 #endif
-    u32_t combined_a = (u32_t)sa * alpha >> 8;
+    u32_t combined_a = DIV_255((u32_t)sa * alpha);
     u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
 #if IPGUI_ENDIAN_LITTLE == 1
     db = cr & 0xff; dg = (cr >> 8) & 0xff; dr = (cr >> 16) & 0xff; da = (cr >> 24) & 0xff;
@@ -1227,10 +1253,11 @@ static void blend_argb8888_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, 
     db = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
     u32_t ia2 = 255 - combined_a;
-    u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * combined_a >> 8);
-    u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * combined_a >> 8);
-    u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * combined_a >> 8);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * combined_a);
+    u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * combined_a);
+    u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * combined_a);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1257,7 +1284,7 @@ static void blend_abgr8888_2_rgb565(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sa = (fv >> 24) & 0xff; sb = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sr = fv & 0xff;
 #endif
-    u8_t combined_a = (u8_t)((u32_t)sa * alpha >> 8);
+    u8_t combined_a = (u8_t)(DIV_255((u32_t)sa * alpha));
     u32_t a6 = (combined_a + 2) >> 2; u32_t ia6 = 64 - a6;
 #if IPGUI_ENDIAN_LITTLE == 1
     u32_t bg = *(u16_t *)dst;
@@ -1284,7 +1311,7 @@ static void blend_abgr8888_2_bgr565(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sa = (fv >> 24) & 0xff; sb = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sr = fv & 0xff;
 #endif
-    u8_t ca = (u8_t)((u32_t)sa * alpha >> 8); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
+    u8_t ca = (u8_t)(DIV_255((u32_t)sa * alpha)); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
 #if IPGUI_ENDIAN_LITTLE == 1
     u32_t bg = *(u16_t *)dst;
 #else
@@ -1308,8 +1335,8 @@ static void blend_abgr8888_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sa = (fv >> 24) & 0xff; sb = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sr = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t ia = 255 - ca;
-    dst[0] = (u8_t)((sr * ca + dst[0] * ia) >> 8); dst[1] = (u8_t)((sg * ca + dst[1] * ia) >> 8); dst[2] = (u8_t)((sb * ca + dst[2] * ia) >> 8);
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t ia = 255 - ca;
+    dst[0] = (u8_t)(DIV_255(sr * ca + dst[0] * ia)); dst[1] = (u8_t)(DIV_255(sg * ca + dst[1] * ia)); dst[2] = (u8_t)(DIV_255(sb * ca + dst[2] * ia));
 }
 
 static void blend_abgr8888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode) {
@@ -1319,8 +1346,8 @@ static void blend_abgr8888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sa = (fv >> 24) & 0xff; sb = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sr = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t ia = 255 - ca;
-    dst[0] = (u8_t)((sb * ca + dst[0] * ia) >> 8); dst[1] = (u8_t)((sg * ca + dst[1] * ia) >> 8); dst[2] = (u8_t)((sr * ca + dst[2] * ia) >> 8);
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t ia = 255 - ca;
+    dst[0] = (u8_t)(DIV_255(sb * ca + dst[0] * ia)); dst[1] = (u8_t)(DIV_255(sg * ca + dst[1] * ia)); dst[2] = (u8_t)(DIV_255(sr * ca + dst[2] * ia));
 }
 
 static void blend_abgr8888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode) {
@@ -1330,15 +1357,15 @@ static void blend_abgr8888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sa = (fv >> 24) & 0xff; sb = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sr = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8;
+    u32_t ca = DIV_255((u32_t)sa * alpha);
     u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
 #if IPGUI_ENDIAN_LITTLE == 1
     da = cr & 0xff; dr = (cr >> 8) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 24) & 0xff;
 #else
     da = (cr >> 24) & 0xff; dr = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; db = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1359,14 +1386,14 @@ static void blend_abgr8888_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sa = (fv >> 24) & 0xff; sb = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sr = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
 #if IPGUI_ENDIAN_LITTLE == 1
     da = cr & 0xff; db = (cr >> 8) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 24) & 0xff;
 #else
     da = (cr >> 24) & 0xff; db = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; dr = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1387,14 +1414,14 @@ static void blend_abgr8888_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sa = (fv >> 24) & 0xff; sb = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sr = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
 #if IPGUI_ENDIAN_LITTLE == 1
     dr = cr & 0xff; dg = (cr >> 8) & 0xff; db = (cr >> 16) & 0xff; da = (cr >> 24) & 0xff;
 #else
     dr = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1415,14 +1442,14 @@ static void blend_abgr8888_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sa = (fv >> 24) & 0xff; sb = (fv >> 16) & 0xff; sg = (fv >> 8) & 0xff; sr = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
 #if IPGUI_ENDIAN_LITTLE == 1
     db = cr & 0xff; dg = (cr >> 8) & 0xff; dr = (cr >> 16) & 0xff; da = (cr >> 24) & 0xff;
 #else
     db = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1448,7 +1475,7 @@ static void blend_rgba8888_2_rgb565(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sr = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sb = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u8_t ca = (u8_t)((u32_t)sa * alpha >> 8); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
+    u8_t ca = (u8_t)(DIV_255((u32_t)sa * alpha)); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
 #if IPGUI_ENDIAN_LITTLE == 1
     u32_t bg = *(u16_t *)dst;
 #else
@@ -1473,7 +1500,7 @@ static void blend_rgba8888_2_bgr565(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sr = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sb = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u8_t ca = (u8_t)((u32_t)sa * alpha >> 8); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
+    u8_t ca = (u8_t)(DIV_255((u32_t)sa * alpha)); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
 #if IPGUI_ENDIAN_LITTLE == 1
     u32_t bg = *(u16_t *)dst;
 #else
@@ -1497,8 +1524,8 @@ static void blend_rgba8888_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sr = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sb = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t ia = 255 - ca;
-    dst[0] = (u8_t)((sr * ca + dst[0] * ia) >> 8); dst[1] = (u8_t)((sg * ca + dst[1] * ia) >> 8); dst[2] = (u8_t)((sb * ca + dst[2] * ia) >> 8);
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t ia = 255 - ca;
+    dst[0] = (u8_t)(DIV_255(sr * ca + dst[0] * ia)); dst[1] = (u8_t)(DIV_255(sg * ca + dst[1] * ia)); dst[2] = (u8_t)(DIV_255(sb * ca + dst[2] * ia));
 }
 
 static void blend_rgba8888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode) {
@@ -1508,8 +1535,8 @@ static void blend_rgba8888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sr = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sb = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t ia = 255 - ca;
-    dst[0] = (u8_t)((sb * ca + dst[0] * ia) >> 8); dst[1] = (u8_t)((sg * ca + dst[1] * ia) >> 8); dst[2] = (u8_t)((sr * ca + dst[2] * ia) >> 8);
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t ia = 255 - ca;
+    dst[0] = (u8_t)(DIV_255(sb * ca + dst[0] * ia)); dst[1] = (u8_t)(DIV_255(sg * ca + dst[1] * ia)); dst[2] = (u8_t)(DIV_255(sr * ca + dst[2] * ia));
 }
 
 static void blend_rgba8888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode) {
@@ -1519,14 +1546,14 @@ static void blend_rgba8888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sr = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sb = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
 #if IPGUI_ENDIAN_LITTLE == 1
     da = cr & 0xff; dr = (cr >> 8) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 24) & 0xff;
 #else
     da = (cr >> 24) & 0xff; dr = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; db = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1547,14 +1574,14 @@ static void blend_rgba8888_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sr = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sb = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
 #if IPGUI_ENDIAN_LITTLE == 1
     da = cr & 0xff; db = (cr >> 8) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 24) & 0xff;
 #else
     da = (cr >> 24) & 0xff; db = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; dr = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1575,14 +1602,14 @@ static void blend_rgba8888_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sr = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sb = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
 #if IPGUI_ENDIAN_LITTLE == 1
     dr = cr & 0xff; dg = (cr >> 8) & 0xff; db = (cr >> 16) & 0xff; da = (cr >> 24) & 0xff;
 #else
     dr = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1603,14 +1630,14 @@ static void blend_rgba8888_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sr = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sb = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
 #if IPGUI_ENDIAN_LITTLE == 1
     db = cr & 0xff; dg = (cr >> 8) & 0xff; dr = (cr >> 16) & 0xff; da = (cr >> 24) & 0xff;
 #else
     db = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1635,7 +1662,7 @@ static void blend_bgra8888_2_rgb565(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sb = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sr = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u8_t ca = (u8_t)((u32_t)sa * alpha >> 8); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
+    u8_t ca = (u8_t)(DIV_255((u32_t)sa * alpha)); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
 #if IPGUI_ENDIAN_LITTLE == 1
     u32_t bg = *(u16_t *)dst;
 #else
@@ -1659,7 +1686,7 @@ static void blend_bgra8888_2_bgr565(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sb = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sr = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u8_t ca = (u8_t)((u32_t)sa * alpha >> 8); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
+    u8_t ca = (u8_t)(DIV_255((u32_t)sa * alpha)); u32_t a6 = (ca + 2) >> 2; u32_t ia6 = 64 - a6;
 #if IPGUI_ENDIAN_LITTLE == 1
     u32_t bg = *(u16_t *)dst;
 #else
@@ -1683,8 +1710,8 @@ static void blend_bgra8888_2_rgb888(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sb = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sr = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t ia = 255 - ca;
-    dst[0] = (u8_t)((sr * ca + dst[0] * ia) >> 8); dst[1] = (u8_t)((sg * ca + dst[1] * ia) >> 8); dst[2] = (u8_t)((sb * ca + dst[2] * ia) >> 8);
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t ia = 255 - ca;
+    dst[0] = (u8_t)(DIV_255(sr * ca + dst[0] * ia)); dst[1] = (u8_t)(DIV_255(sg * ca + dst[1] * ia)); dst[2] = (u8_t)(DIV_255(sb * ca + dst[2] * ia));
 }
 
 static void blend_bgra8888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode) {
@@ -1694,8 +1721,8 @@ static void blend_bgra8888_2_bgr888(const u8_t * src, u8_t * dst, u8_t alpha, ip
 #else
     sb = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sr = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t ia = 255 - ca;
-    dst[0] = (u8_t)((sb * ca + dst[0] * ia) >> 8); dst[1] = (u8_t)((sg * ca + dst[1] * ia) >> 8); dst[2] = (u8_t)((sr * ca + dst[2] * ia) >> 8);
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t ia = 255 - ca;
+    dst[0] = (u8_t)(DIV_255(sb * ca + dst[0] * ia)); dst[1] = (u8_t)(DIV_255(sg * ca + dst[1] * ia)); dst[2] = (u8_t)(DIV_255(sr * ca + dst[2] * ia));
 }
 
 static void blend_bgra8888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode) {
@@ -1705,14 +1732,14 @@ static void blend_bgra8888_2_argb8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sb = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sr = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
 #if IPGUI_ENDIAN_LITTLE == 1
     da = cr & 0xff; dr = (cr >> 8) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 24) & 0xff;
 #else
     da = (cr >> 24) & 0xff; dr = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; db = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1733,14 +1760,14 @@ static void blend_bgra8888_2_abgr8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sb = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sr = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
 #if IPGUI_ENDIAN_LITTLE == 1
     da = cr & 0xff; db = (cr >> 8) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 24) & 0xff;
 #else
     da = (cr >> 24) & 0xff; db = (cr >> 16) & 0xff; dg = (cr >> 8) & 0xff; dr = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1761,14 +1788,15 @@ static void blend_bgra8888_2_rgba8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sb = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sr = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, dr, dg, db;
 #if IPGUI_ENDIAN_LITTLE == 1
     dr = cr & 0xff; dg = (cr >> 8) & 0xff; db = (cr >> 16) & 0xff; da = (cr >> 24) & 0xff;
 #else
     dr = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; db = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t bg_w = DIV_255(da * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
@@ -1789,14 +1817,14 @@ static void blend_bgra8888_2_bgra8888(const u8_t * src, u8_t * dst, u8_t alpha, 
 #else
     sb = (fv >> 24) & 0xff; sg = (fv >> 16) & 0xff; sr = (fv >> 8) & 0xff; sa = fv & 0xff;
 #endif
-    u32_t ca = (u32_t)sa * alpha >> 8; u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
+    u32_t ca = DIV_255((u32_t)sa * alpha); u32_t cr = *(u32_t *)dst; u32_t da, db, dg, dr;
 #if IPGUI_ENDIAN_LITTLE == 1
     db = cr & 0xff; dg = (cr >> 8) & 0xff; dr = (cr >> 16) & 0xff; da = (cr >> 24) & 0xff;
 #else
     db = (cr >> 24) & 0xff; dg = (cr >> 16) & 0xff; dr = (cr >> 8) & 0xff; da = cr & 0xff;
 #endif
-    u32_t ia2 = 255 - ca; u32_t a12 = 255 - (((255 - da) * ia2) >> 8);
-    u32_t r12 = ((dr * da * ia2) >> 16) + ((u32_t)sr * ca >> 8); u32_t g12 = ((dg * da * ia2) >> 16) + ((u32_t)sg * ca >> 8); u32_t b12 = ((db * da * ia2) >> 16) + ((u32_t)sb * ca >> 8);
+    u32_t ia2 = 255 - ca; u32_t bg_w = DIV_255(da * ia2); u32_t a12 = 255 - DIV_255((255 - da) * ia2);
+    u32_t r12 = DIV_255(dr * bg_w) + DIV_255((u32_t)sr * ca); u32_t g12 = DIV_255(dg * bg_w) + DIV_255((u32_t)sg * ca); u32_t b12 = DIV_255(db * bg_w) + DIV_255((u32_t)sb * ca);
 #if USE_INV_TABLE == 1
     r12 = (r12 * g_inv_tbl[a12]) >> 8; g12 = (g12 * g_inv_tbl[a12]) >> 8; b12 = (b12 * g_inv_tbl[a12]) >> 8;
 #else
