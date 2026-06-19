@@ -10,15 +10,21 @@
 #include "ipgui_conf.h"
 #include "ipgui_widget.h"
 
+/* 中间状态 */
 typedef struct {
-    // 指针设备状态
+    /* 指针事件状态 */
     ipgui_input_evt_type_t last_state;
-    ipgui_widget_t* grabbed;     /* 当前抓取的控件（按下后锁定，直到释放） */
+    ipgui_input_evt_type_t current_state;
+
+    ipgui_widget_t * grabbed;     /* 当前抓取的控件（按下后锁定，直到鼠标释放才置0） */
+    ipgui_coord_t first_pressed_x;              /* 本次按压起点全局X坐标（PRESS释放前不动） */
+    ipgui_coord_t first_pressed_y;              /* 本次按压起点全局Y坐标 */
     ipgui_coord_t last_pressed_x;               /* 上次按下的全局X坐标 */
     ipgui_coord_t last_pressed_y;               /* 上次按下的全局Y坐标 */
-    
+    ipgui_coord_t cur_x;                /* 当前指针全局X坐标 */
+    ipgui_coord_t cur_y;                /* 当前指针全局Y坐标 */
 
-    // 按键设备状态
+    /* 按键设备状态 */
     u32_t key_press_start_time;         // 按键按下开始时间戳
     bool key_long_press_triggered;      // 按键长按是否已经触发
 } converter_state_t;
@@ -31,7 +37,7 @@ typedef struct {
 
 typedef struct {
     struct list_head       node;
-    ipgui_scr_t            scr;
+    ipgui_scr_t          * scr;
 }ipgui_scr_node_t;
 
 typedef struct {
@@ -39,7 +45,6 @@ typedef struct {
     u32_t                  input_src_id;
     u32_t                  scr_id;
     u8_t                   used;
-    u8_t                   conv_state_idx;
 }map_node_t;
 
 typedef struct {
@@ -67,8 +72,8 @@ typedef struct {
     ipgui_input_src_evt_t  input_evt_pool[EVENT_POOL_SIZE];
 
     /* input event convert default callback and default input source states */
-    convert_event_cb_t     convert_event_cb;
-    converter_state_t      converter_states[INPUT_SRC_MAX * SCREEN_MAX];
+    convert_event_cb_t     convert_event_cb[INPUT_SRC_MAX][SCREEN_MAX];
+    converter_state_t      converter_states[INPUT_SRC_MAX][SCREEN_MAX];
 }ipgui_input_dispatcher_t;
 
 extern __IPGUI_API__ void ipgui_input_dispatcher_init(ipgui_input_dispatcher_t * dispatcher);

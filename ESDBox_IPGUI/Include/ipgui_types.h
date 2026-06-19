@@ -62,6 +62,7 @@ typedef enum
     IPGUI_ERR_READ_INPUT_SRC_EVT_ERR,
     IPGUI_ERR_INVALID_ID,
 
+    IPGUI_ERR_INVALID_PFB_PIX_FMT,
 }ipgui_err_t;
 
 typedef enum {

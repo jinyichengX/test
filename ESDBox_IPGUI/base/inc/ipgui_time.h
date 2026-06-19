@@ -2,8 +2,6 @@
 #define IPGUI_TIME_H
 #include "ipgui_utils.h"
 
-IPGUI_HEADER_BEGIN  _______________MARKER_______________
-
 #include "ipgui_conf.h"
 #include "ipgui_types.h"
 
@@ -16,6 +14,6 @@ extern __IPGUI_API__ ipgui_tick_t ipgui_sec2tick(unsigned int unSecs);
 extern __IPGUI_API__ void ipgui_tick_inc(void);
 
 extern __IPGUI_API__ ipgui_tick_t ipgui_tick_passed_last(void);
-IPGUI_HEADER_END    _______________MARKER_______________
-
+extern ipgui_tick_t ipgui_sys_tick;
+extern ipgui_tick_t ipgui_sys_tick_last;
 #endif

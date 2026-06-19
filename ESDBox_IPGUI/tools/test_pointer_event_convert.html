@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IPGUI 事件系统模拟器</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#2d2d2d; font-family:Consolas,monospace; color:#ddd; display:flex; flex-direction:column; align-items:center; padding:12px; min-height:100vh; }
+h1 { font-size:18px; color:#fff; margin-bottom:8px; }
+#wrap { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+#screen { border:2px solid #555; cursor:crosshair; background:#fff; }
+#panel { width:360px; display:flex; flex-direction:column; gap:8px; }
+#state { background:#1e1e1e; border-radius:6px; padding:10px; font-size:12px; line-height:1.7; }
+#state span.label { color:#888; }
+#state span.val { color:#4ec9b0; font-weight:bold; }
+#log { background:#1e1e1e; border-radius:6px; padding:8px; flex:1; min-height:200px; max-height:320px; overflow-y:auto; font-size:11px; line-height:1.6; }
+#log .pressed { color:#ffa500; }
+#log .released { color:#4ec9b0; }
+#log .hover { color:#888; }
+#legend { background:#1e1e1e; border-radius:6px; padding:10px; font-size:11px; line-height:1.6; }
+.legend-dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+button { padding:6px 14px; border:none; border-radius:4px; cursor:pointer; font-size:12px; }
+#btnClear { background:#444; color:#ddd; }
+#btnClear:hover { background:#555; }
+</style>
+</head>
+<body>
+
+<h1>IPGUI 事件系统模拟器 &mdash; 800x480</h1>
+
+<div id="wrap">
+  <canvas id="screen" width="800" height="480"></canvas>
+
+  <div id="panel">
+    <div id="state">
+      <div><span class="label">last_state: </span><span class="val" id="vLast">NONE</span></div>
+      <div><span class="label">cur_state:  </span><span class="val" id="vCurr">NONE</span></div>
+      <div><span class="label">grabbed:   </span><span class="val" id="vGrab">NULL</span></div>
+      <div><span class="label">first:     </span><span class="val" id="vFirst">(0, 0)</span></div>
+      <div><span class="label">last:      </span><span class="val" id="vLastP">(0, 0)</span></div>
+      <div><span class="label">cur:       </span><span class="val" id="vCurP">(0, 0)</span></div>
+      <div><span class="label">鼠标:      </span><span class="val" id="vMouse">(0, 0)</span></div>
+    </div>
+
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button id="btnClear">清空日志</button>
+      <span style="font-size:10px;color:#888;">日志数: <span id="logCount">0</span></span>
+    </div>
+
+    <div id="log"></div>
+
+    <div id="legend">
+      <div><span class="legend-dot" style="background:#ffa500"></span> PRESSED（按压）</div>
+      <div><span class="legend-dot" style="background:#4ec9b0"></span> RELEASED（释放）</div>
+      <div><span class="legend-dot" style="background:#888"></span> HOVER（悬停）</div>
+      <div style="margin-top:6px;color:#888;font-size:10px;">
+      操作: 点击=按压 拖动=持续按压 松开=释放 移动=悬停
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======================== 控件定义 ========================
+const widgets = [
+  { id:'W1', name:'矩形A', x:80,  y:80,  w:220, h:160, color:'#4a90d9' },
+  { id:'W2', name:'矩形B', x:420, y:200, w:200, h:140, color:'#e05555' },
+];
+
+// ======================== 状态机（对应 converter_state_t） ========================
+let last_state  = 'NONE';   // 上一状态
+let curr_state  = 'NONE';   // 当前状态
+let grabbed     = null;     // 抓取的控件
+let first_x = 0, first_y = 0;
+let last_x  = 0, last_y  = 0;
+let cur_x   = 0, cur_y   = 0;
+let mouse_x = 0, mouse_y = 0;
+let mouseDown = false;
+
+// ======================== 画布 ========================
+const canvas = document.getElementById('screen');
+const ctx    = canvas.getContext('2d');
+
+function drawAll(hoverTarget) {
+  ctx.clearRect(0, 0, 800, 480);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 800, 480);
+
+  for (const w of widgets) {
+    const isHover = (hoverTarget && hoverTarget.id === w.id);
+    const isGrab  = (grabbed && grabbed.id === w.id);
+    ctx.fillStyle = w.color;
+    ctx.fillRect(w.x, w.y, w.w, w.h);
+
+    // 边框: grabbed=粗绿, hover=蓝虚线, 默认=暗灰
+    if (isGrab) {
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([]);
+    } else if (isHover) {
+      ctx.strokeStyle = '#3399ff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+    } else {
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([]);
+    }
+    ctx.strokeRect(w.x, w.y, w.w, w.h);
+    ctx.setLineDash([]);
+
+    // 标签
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px Consolas,monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(w.name, w.x + w.w/2, w.y + w.h/2);
+
+    // 坐标标注
+    ctx.font = '10px Consolas,monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText(`(${w.x},${w.y}) ${w.w}x${w.h}`, w.x + w.w/2, w.y + w.h/2 + 20);
+  }
+
+  // 鼠标十字
+  ctx.strokeStyle = '#ff0000';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 2]);
+  ctx.beginPath();
+  ctx.moveTo(mouse_x, 0); ctx.lineTo(mouse_x, 480);
+  ctx.moveTo(0, mouse_y); ctx.lineTo(800, mouse_y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ======================== hit-test ========================
+function hitTest(x, y) {
+  for (let i = widgets.length - 1; i >= 0; i--) {
+    const w = widgets[i];
+    if (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h) {
+      return w;
+    }
+  }
+  return null;
+}
+
+// ======================== 日志 ========================
+const logDiv = document.getElementById('log');
+let logEntries = [];
+
+function addLog(cls, text) {
+  const time = new Date().toLocaleTimeString('zh-CN', { hour12:false, hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:2 });
+  logEntries.push({ cls, time, text });
+  if (logEntries.length > 200) logEntries.shift();
+  renderLog();
+}
+
+function renderLog() {
+  logDiv.innerHTML = logEntries.map(e =>
+    `<div><span style="color:#666">[${e.time}]</span> <span class="${e.cls}">${e.text}</span></div>`
+  ).join('');
+  logDiv.scrollTop = logDiv.scrollHeight;
+  document.getElementById('logCount').textContent = logEntries.length;
+}
+
+// ======================== 状态面板更新 ========================
+function updatePanel(hoverTarget) {
+  document.getElementById('vLast').textContent  = last_state;
+  document.getElementById('vCurr').textContent  = curr_state;
+  document.getElementById('vGrab').textContent  = grabbed ? grabbed.name : 'NULL';
+  document.getElementById('vFirst').textContent = `(${first_x}, ${first_y})`;
+  document.getElementById('vLastP').textContent = `(${last_x}, ${last_y})`;
+  document.getElementById('vCurP').textContent  = `(${cur_x}, ${cur_y})`;
+  document.getElementById('vMouse').textContent = `(${mouse_x}, ${mouse_y})`;
+  drawAll(hoverTarget);
+}
+
+// ======================== 核心: 事件转换器（对应 ipgui_default_event_converter） ========================
+function dispatchEvent(evtType, x, y) {
+  const old_cur_x = cur_x;
+  const old_cur_y = cur_y;
+
+  cur_x   = x; cur_y = y;
+  mouse_x = x; mouse_y = y;
+
+  let hoverTarget = null;
+  let eventEmitted = null;
+
+  if (evtType === 'PRESS') {
+    // ---- PRESS 分支 ----
+    last_state = curr_state;
+    curr_state = 'PRESS';
+
+    if (last_state === 'PRESS') {
+      // 连续按压: 保存旧坐标作为 last，复用 grabbed
+      last_x = old_cur_x;
+      last_y = old_cur_y;
+
+      const target = grabbed;
+      if (target) {
+        eventEmitted = {
+          type:'PRESSED', target:target,
+          cur: { x:cur_x - target.x, y:cur_y - target.y },
+          first: { x:first_x - target.x, y:first_y - target.y },
+          last: { x:last_x - target.x, y:last_y - target.y },
+          delta: { x:cur_x - last_x, y:cur_y - last_y },
+        };
+        addLog('pressed',
+          `PRESSED | target=${target.name} | 本地=(${eventEmitted.cur.x},${eventEmitted.cur.y}) first=(${eventEmitted.first.x},${eventEmitted.first.y}) last=(${eventEmitted.last.x},${eventEmitted.last.y}) 位移=(${eventEmitted.delta.x},${eventEmitted.delta.y})`
+        );
+      } else {
+        addLog('pressed', 'PRESSED | grabbed=NULL (异常)');
+      }
+    } else {
+      // 首次按压: 初始化所有坐标, hit-test
+      first_x = cur_x; first_y = cur_y;
+      last_x  = cur_x; last_y  = cur_y;
+
+      const target = hitTest(cur_x, cur_y);
+      if (!target) {
+        addLog('pressed', 'PRESS | hit-test 失败 → 无控件');
+        updatePanel(null);
+        return;
+      }
+      grabbed = target;
+
+      eventEmitted = {
+        type:'PRESSED', target:target,
+        cur: { x:cur_x - target.x, y:cur_y - target.y },
+        first: { x:first_x - target.x, y:first_y - target.y },
+        last: { x:last_x - target.x, y:last_y - target.y },
+        delta: { x:0, y:0 },
+      };
+      addLog('pressed',
+        `PRESSED(首) | target=${target.name} | 本地=(${eventEmitted.cur.x},${eventEmitted.cur.y}) first=(${eventEmitted.first.x},${eventEmitted.first.y}) last=(${eventEmitted.last.x},${eventEmitted.last.y})`
+      );
+    }
+
+    hoverTarget = grabbed;
+
+  } else {
+    // ---- RELEASE 分支 (对应 C 代码 case IPGUI_INPUT_SRC_EVENT_POINTER_RELEASE) ----
+    const saved_last = curr_state; // 在修改 curr_state 前保存
+
+    let hover_flag = 0;
+    if (saved_last !== 'PRESS') {
+      hover_flag = 1;
+    }
+
+    last_state = curr_state;
+    curr_state = 'RELEASE';
+
+    if (hover_flag === 1) {
+      // HOVER: last_state 不是 PRESS → 悬停
+      const target = hitTest(cur_x, cur_y);
+      if (!target) {
+        addLog('hover', 'HOVER | hit-test 失败 → 无控件');
+        hoverTarget = null;
+      } else {
+        hoverTarget = target;
+        eventEmitted = {
+          type:'HOVER', target:target,
+          local: { x:cur_x - target.x, y:cur_y - target.y },
+        };
+        addLog('hover',
+          `HOVER | target=${target.name} | 本地=(${eventEmitted.local.x},${eventEmitted.local.y})`
+        );
+      }
+    } else {
+      // RELEASED: last_state == PRESS → 释放
+      const target = grabbed;
+      if (target) {
+        const totalDelta = Math.abs(cur_x - first_x) + Math.abs(cur_y - first_y);
+        eventEmitted = {
+          type:'RELEASED', target:target,
+          cur: { x:cur_x - target.x, y:cur_y - target.y },
+          first: { x:first_x - target.x, y:first_y - target.y },
+          totalDelta: totalDelta,
+          verdict: totalDelta < 6 ? 'CLICK' : 'DRAG',
+        };
+        addLog('released',
+          `RELEASED | target=${target.name} | 位置=(${eventEmitted.cur.x},${eventEmitted.cur.y}) first=(${eventEmitted.first.x},${eventEmitted.first.y}) 总位移=${totalDelta}px → ${eventEmitted.verdict}`
+        );
+      } else {
+        addLog('released', 'RELEASED | grabbed=NULL | 无目标');
+      }
+    }
+
+    grabbed = null;
+  }
+
+  updatePanel(hoverTarget);
+  return eventEmitted;
+}
+
+// ======================== 事件绑定 ========================
+canvas.addEventListener('mousedown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = 800 / rect.width;
+  const scaleY = 480 / rect.height;
+  const x = Math.round((e.clientX - rect.left) * scaleX);
+  const y = Math.round((e.clientY - rect.top) * scaleY);
+  mouseDown = true;
+  dispatchEvent('PRESS', x, y);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = 800 / rect.width;
+  const scaleY = 480 / rect.height;
+  const x = Math.round((e.clientX - rect.left) * scaleX);
+  const y = Math.round((e.clientY - rect.top) * scaleY);
+
+  if (mouseDown) {
+    // 按下时移动 → 连续按压 (PRESS)
+    dispatchEvent('PRESS', x, y);
+  } else {
+    // 未按下移动 → 悬停 (RELEASE → HOVER)
+    dispatchEvent('RELEASE', x, y);
+  }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = 800 / rect.width;
+  const scaleY = 480 / rect.height;
+  const x = Math.round((e.clientX - rect.left) * scaleX);
+  const y = Math.round((e.clientY - rect.top) * scaleY);
+  mouseDown = false;
+  dispatchEvent('RELEASE', x, y);
+});
+
+canvas.addEventListener('mouseleave', () => {
+  mouseDown = false;
+});
+
+// ======================== 初始绘制 ========================
+drawAll(null);
+
+// 清空日志按钮
+document.getElementById('btnClear').addEventListener('click', () => {
+  logEntries = [];
+  renderLog();
+});
+</script>
+
+</body>
+</html>

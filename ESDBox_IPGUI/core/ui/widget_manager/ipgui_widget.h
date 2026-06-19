@@ -61,6 +61,9 @@ typedef struct ipgui_widget
     /* ---- 标志位 ---- */
     u32_t                  flags;
 
+    /* ---- 控件名称（调试用） ---- */
+    const char           * name;
+
     /* ---- 回调函数 ---- */
     void (*render)       (struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx);
 

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IPGUI 全套管线模拟器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;font-family:Consolas,monospace;color:#ddd;display:flex;flex-direction:column;align-items:center;padding:10px;min-height:100vh}
+h1{font-size:16px;color:#fff;margin-bottom:6px}
+#wrap{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#screen{border:3px solid #444;cursor:crosshair}
+#panel{width:380px;display:flex;flex-direction:column;gap:8px;font-size:11px}
+#tree,#state,#log{background:#16213e;border-radius:5px;padding:8px;overflow-y:auto}
+#tree{max-height:200px;line-height:1.6}
+#tree .root{color:#888}
+#tree .w{color:#ccc;padding-left:4px}
+#tree .w.disabled{color:#666;text-decoration:line-through}
+#tree .w.overflow .mark{color:#f1c40f}
+#state{line-height:1.7}
+#state .label{color:#7f8c8d}
+#state .val{color:#4ec9b0;font-weight:bold}
+#state .val.warn{color:#e74c3c}
+#log{flex:1;min-height:120px;max-height:250px;line-height:1.5}
+#log .e_pressed{color:#ffa500}
+#log .e_released{color:#4ec9b0}
+#log .e_hover{color:#888}
+#log .e_err{color:#e74c3c}
+#log .e_conv{color:#888;font-size:10px}
+#legend{background:#16213e;border-radius:5px;padding:8px;font-size:10px;line-height:1.5;display:flex;flex-wrap:wrap;gap:8px}
+.ld{display:flex;align-items:center;gap:4px}
+.ld .dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.ld .d2{width:8px;height:0;flex-shrink:0}
+.btn-row{display:flex;gap:6px}
+button{padding:5px 12px;border:none;border-radius:3px;cursor:pointer;font-size:10px;background:#34495e;color:#ddd}
+button:hover{background:#2c3e50}
+</style>
+</head>
+<body>
+<h1>IPGUI 全套管线模拟 &mdash; 800x480 | 19个控件, 4层嵌套</h1>
+<div id="wrap">
+  <canvas id="screen" width="800" height="480"></canvas>
+  <div id="panel">
+    <div class="btn-row">
+      <button id="btnClear">清空日志</button>
+      <button id="btnStep" style="display:none">单步</button>
+      <span style="font-size:10px;color:#888;margin-left:auto">日志: <span id="logCount">0</span></span>
+    </div>
+    <div id="tree"></div>
+    <div id="state"></div>
+    <div id="log"></div>
+    <div id="legend">
+      <div class="ld"><span class="dot" style="background:#00ff00"></span> grabbed</div>
+      <div class="ld"><span class="dot" style="background:#3399ff"></span> hover</div>
+      <div class="ld"><span class="dot" style="background:#f1c40f"></span>溢出可见</div>
+      <div class="ld"><span class="d2" style="border-bottom:1px dashed #666;width:12px"></span> disabled</div>
+      <div class="ld"><span class="dot" style="background:#ff0000;width:6px;height:6px;border-radius:50%"></span> 光标</div>
+    </div>
+  </div>
+</div>
+<script>
+// ==================== AABB 工具 (对应 ipgui_prim.c) ====================
+function pointInAabb(x, y, a) {
+  return x >= a.start.x && x <= a.end.x && y >= a.start.y && y <= a.end.y;
+}
+// 返回 null => 不相交; 否则返回交集 AABB
+function aabbOverlap(a, b) {
+  const sx = Math.max(a.start.x, b.start.x);
+  const sy = Math.max(a.start.y, b.start.y);
+  const ex = Math.min(a.end.x, b.end.x);
+  const ey = Math.min(a.end.y, b.end.y);
+  if (sx > ex || sy > ey) return null; // 无交集
+  return {start:{x:sx,y:sy},end:{x:ex,y:ey}};
+}
+
+// ==================== 控件定义 ====================
+// flags: 0=none, 1=INVISIBLE(渲染), 2=OVERFLOW_VISIBLE, 8=DISABLED(hit-test)
+const FLAG_OVERFLOW = 2, FLAG_DISABLED = 8;
+
+// {id,name,parentId,x,y,w,h,color,flags}
+// parentId: '' = root级, 其他 = 父控件 id
+const widgetDefs = [
+  // root 级 (creation order = Z-order bottom→top)
+  {id:'W1', name:'底部面板',    parentId:'', x:25, y:310, w:750, h:155, color:'rgba(52,152,219,0.18)', flags:0},
+  {id:'W2', name:'左侧面板',    parentId:'', x:35, y:45,  w:240, h:210, color:'rgba(155,89,182,0.20)',  flags:FLAG_OVERFLOW},
+  {id:'W3', name:'子按钮-A1',   parentId:'W2', x:10, y:15,  w:95,  h:38,  color:'#e74c3c', flags:0},
+  {id:'W4', name:'子按钮-A2',   parentId:'W2', x:115,y:60,  w:115, h:48,  color:'#e67e22', flags:0},
+  {id:'W5', name:'溢出子控件',  parentId:'W2', x:200,y:12,  w:85,  h:42,  color:'#f1c40f', flags:0}, // 溢出W2右边界
+  {id:'W6', name:'嵌套容器N',   parentId:'W2', x:20, y:115, w:190, h:80,  color:'rgba(26,188,156,0.22)', flags:0},
+  {id:'W7', name:'孙子按钮-N1', parentId:'W6', x:5,  y:5,   w:65,  h:30,  color:'#2ecc71', flags:0},
+  {id:'W8', name:'孙子按钮-N2', parentId:'W6', x:80, y:5,   w:100, h:30,  color:'#95a5a6', flags:FLAG_DISABLED},
+  {id:'W9', name:'悬浮卡片',    parentId:'', x:190,y:55,  w:260, h:175, color:'rgba(142,68,173,0.22)', flags:0},
+  {id:'W10',name:'卡片按钮-C1', parentId:'W9', x:15, y:20,  w:230, h:38,  color:'#3498db', flags:0},
+  {id:'W11',name:'卡片按钮-C2', parentId:'W9', x:35, y:75,  w:190, h:70,  color:'#2980b9', flags:0},
+  {id:'W12',name:'右上工具栏',  parentId:'', x:510,y:25,  w:270, h:115, color:'rgba(211,84,0,0.22)',   flags:0},
+  {id:'W13',name:'工具-T1',     parentId:'W12',x:10, y:10,  w:115, h:42,  color:'#27ae60', flags:0},
+  {id:'W14',name:'工具-T2',     parentId:'W12',x:10, y:62,  w:115, h:42,  color:'#e74c3c', flags:0},
+  {id:'W15',name:'工具-T3',     parentId:'W12',x:145,y:10,  w:110, h:94,  color:'#8e44ad', flags:0},
+  {id:'W16',name:'右下按钮',    parentId:'', x:560,y:355, w:210, h:75,  color:'rgba(192,57,43,0.55)',  flags:0},
+  {id:'W17',name:'通知弹窗',    parentId:'', x:260,y:370, w:280, h:85,  color:'rgba(243,156,18,0.22)', flags:FLAG_DISABLED},
+  {id:'W18',name:'独立悬浮块',  parentId:'', x:650,y:180, w:130, h:100, color:'rgba(233,30,99,0.22)',  flags:0},
+  {id:'W19',name:'长条按钮',    parentId:'', x:100,y:420, w:400, h:40,  color:'#00bcd4', flags:0},
+];
+
+// 构建树: parent/children
+const widgetMap = {};
+for (const d of widgetDefs) {
+  widgetMap[d.id] = Object.assign({children:[], parent:null}, d);
+}
+for (const d of widgetDefs) {
+  if (d.parentId && widgetMap[d.parentId]) {
+    widgetMap[d.id].parent = widgetMap[d.parentId];
+    widgetMap[d.parentId].children.push(widgetMap[d.id]);
+  }
+}
+// root 节点
+const rootWidgets = widgetDefs.filter(d => !d.parentId).map(d => widgetMap[d.id]);
+const rootNode = {children: rootWidgets};
+
+// ==================== abs_pos (对应 ipgui_widget_abs_pos) ====================
+function absPos(w) {
+  let ax = w.x, ay = w.y;
+  let p = w.parent;
+  while (p) { ax += p.x; ay += p.y; p = p.parent; }
+  return {start:{x:ax,y:ay},end:{x:ax+w.w-1,y:ay+w.h-1}};
+}
+
+// ==================== hit-test (对应 ipgui_screen_point_on + _recurse) ====================
+const SCREEN_BOUNDS = {start:{x:0,y:0},end:{x:799,y:479}};
+
+// 递归: 遍历 children 按 Z-order(逆序=top→bottom)
+function pointOnRecurseChildren(children, x, y, parentClip) {
+  for (let i = children.length - 1; i >= 0; i--) {
+    const w = children[i];
+    if (w.flags & FLAG_DISABLED) continue;
+    const aabb = absPos(w);
+    let visible;
+    if (parentClip) {
+      visible = aabbOverlap(aabb, parentClip);
+      if (!visible) continue; // 无交集, goto _next_sibling
+    } else {
+      visible = aabb;
+    }
+    if (!pointInAabb(x, y, visible)) continue;
+    // 优先递归子控件 (子控件画在上层)
+    if (w.children.length > 0) {
+      const hit = pointOnRecurseChildren(w.children, x, y, visible);
+      if (hit) return hit;
+    }
+    return w; // 无子控件命中, 返回自己
+  }
+  return null;
+}
+
+// 入口 (对应 ipgui_screen_point_on)
+function screenPointOn(x, y) {
+  if (!pointInAabb(x, y, SCREEN_BOUNDS)) return null;
+  return pointOnRecurseChildren(rootNode.children, x, y, SCREEN_BOUNDS);
+}
+
+// ==================== 渲染 ====================
+const canvas = document.getElementById('screen');
+const ctx = canvas.getContext('2d');
+
+let hoverTarget = null; // 当前悬停的控件 (用于渲染高亮)
+let grabbedTarget = null; // converter state
+
+function renderOne(w) {
+  const a = absPos(w);
+  const x = a.start.x, y = a.start.y, ww = w.w, hh = w.h;
+  const disabled = !!(w.flags & FLAG_DISABLED);
+  const overflow = !!(w.flags & FLAG_OVERFLOW);
+
+  // fill
+  ctx.fillStyle = w.color;
+  if (disabled) ctx.globalAlpha = 0.35;
+  ctx.fillRect(x, y, ww, hh);
+  ctx.globalAlpha = 1;
+
+  // border
+  const isGrab = (grabbedTarget && grabbedTarget.id === w.id);
+  const isHover = (hoverTarget && hoverTarget.id === w.id);
+  if (isGrab) { ctx.strokeStyle = '#00ff00'; ctx.lineWidth = 3; ctx.setLineDash([]); }
+  else if (isHover) { ctx.strokeStyle = '#3399ff'; ctx.lineWidth = 2; ctx.setLineDash([4,3]); }
+  else if (disabled) { ctx.strokeStyle = '#666'; ctx.lineWidth = 1; ctx.setLineDash([3,3]); }
+  else if (overflow) { ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 2; ctx.setLineDash([2,4]); }
+  else { ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.setLineDash([]); }
+  ctx.strokeRect(x, y, ww, hh);
+  ctx.setLineDash([]);
+
+  // label
+  ctx.fillStyle = disabled ? '#666' : (isGrab ? '#fff' : '#eee');
+  ctx.font = `${w.parent ? 9 : 10}px Consolas,monospace`;
+  ctx.textAlign = 'center';
+  const lbl = (disabled?'[禁] ':'') + w.name + (overflow?' [溢]':'');
+  ctx.fillText(lbl, x + ww/2, y + hh/2 + 3);
+}
+
+// DFS 递归绘制 (bottom→top, 对应 render_dfs 的遍历顺序)
+function renderDFS(widget, parentClip) {
+  // 按创建顺序 (forward → sib_next → bottom→top)
+  for (const ch of widget.children) {
+    // INVISIBLE 跳过 (本 demo 没有 INVISIBLE)
+    const chClip = parentClip;
+    // 先绘制当前控件
+    renderOne(ch);
+    // 递归子控件 (实际C代码: render widget 后再 recurse children)
+    if (ch.children.length > 0) {
+      let subClip = parentClip;
+      if (!(ch.flags & FLAG_OVERFLOW)) {
+        // non-overflow: 子控件裁剪区 = widget自身AABB ∩ parentClip
+        const chAabb = absPos(ch);
+        if (parentClip) {
+          const c = aabbOverlap(chAabb, parentClip);
+          subClip = c || chAabb;
+        } else {
+          subClip = chAabb;
+        }
+      }
+      renderDFS(ch, subClip);
+    }
+  }
+}
+
+function drawAll() {
+  ctx.clearRect(0, 0, 800, 480);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 800, 480);
+
+  // 网格
+  ctx.strokeStyle = '#f0f0f0';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < 800; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,480); ctx.stroke(); }
+  for (let y = 0; y < 480; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(800,y); ctx.stroke(); }
+
+  renderDFS(rootNode, SCREEN_BOUNDS);
+
+  // 鼠标十字
+  if (mouseX >= 0) {
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 1; ctx.setLineDash([2,2]);
+    ctx.beginPath(); ctx.moveTo(mouseX,0); ctx.lineTo(mouseX,480); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,mouseY); ctx.lineTo(800,mouseY); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ==================== 控件树面板 ====================
+function renderTree() {
+  const div = document.getElementById('tree');
+  const lines = [];
+  function walk(children, depth) {
+    for (const w of children) {
+      const prefix = '  '.repeat(depth) + (depth>0?'└ ':'');
+      const cls = (w.flags & FLAG_DISABLED) ? 'disabled' : (w.flags & FLAG_OVERFLOW) ? 'overflow' : '';
+      const a = absPos(w);
+      lines.push(`<span class="w ${cls}">${prefix}<span class="mark"></span><b>${w.name}</b> (${a.start.x},${a.start.y}) ${w.w}x${w.h}</span>`);
+      walk(w.children, depth + 1);
+    }
+  }
+  walk(rootNode.children, 0);
+  div.innerHTML = lines.join('<br>');
+}
+
+// ==================== 状态面板 ====================
+function updateStatePanel() {
+  document.getElementById('state').innerHTML = `
+    <div><span class="label">last_state: </span><span class="val">${lastState}</span></div>
+    <div><span class="label">cur_state:  </span><span class="val">${currState}</span></div>
+    <div><span class="label">grabbed:   </span><span class="val${grabbed?'':' warn'}">${grabbed?grabbed.name:'NULL'}</span></div>
+    <div><span class="label">first:     </span><span class="val">(${firstX}, ${firstY})</span></div>
+    <div><span class="label">last:      </span><span class="val">(${lastX}, ${lastY})</span></div>
+    <div><span class="label">cur:       </span><span class="val">(${curX}, ${curY})</span></div>
+    <div><span class="label">鼠标:      </span><span class="val">(${mouseX}, ${mouseY})</span></div>
+  `;
+}
+
+// ==================== 日志 ====================
+const logDiv = document.getElementById('log');
+let logEntries = [];
+function addLog(cls, text) {
+  const t = new Date().toLocaleTimeString('zh-CN',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:2});
+  logEntries.push({cls,time:t,text});
+  if (logEntries.length > 300) logEntries.shift();
+  renderLog();
+}
+function renderLog() {
+  logDiv.innerHTML = logEntries.map(e=>`<div><span style="color:#555">[${e.time}]</span> <span class="${e.cls}">${e.text}</span></div>`).join('');
+  logDiv.scrollTop = logDiv.scrollHeight;
+  document.getElementById('logCount').textContent = logEntries.length;
+}
+
+// ==================== 事件转换器 (对应 ipgui_default_event_converter) ====================
+let lastState = 'NONE', currState = 'NONE';
+let grabbed = null;
+let firstX = 0, firstY = 0, lastX = 0, lastY = 0, curX = 0, curY = 0;
+let mouseX = -1, mouseY = -1, mouseDown = false;
+
+function dispatchEvent(evtType, x, y) {
+  const oldCurX = curX, oldCurY = curY;
+  curX = x; curY = y;
+  mouseX = x; mouseY = y;
+
+  let eventEmitted = null;
+
+  if (evtType === 'PRESS') {
+    // ====== PRESS 分支 ======
+    lastState = currState;
+    currState = 'PRESS';
+
+    if (lastState === 'PRESS') {
+      // 连续按压: last=旧cur, cur=新值, 复用 grabbed
+      lastX = oldCurX; lastY = oldCurY;
+      const target = grabbed;
+      if (target) {
+        const a = absPos(target);
+        eventEmitted = {
+          type:'PRESSED', target,
+          local:{x:curX-a.start.x, y:curY-a.start.y},
+          first:{x:firstX-a.start.x, y:firstY-a.start.y},
+          last:{x:lastX-a.start.x, y:lastY-a.start.y},
+          delta:{x:curX-lastX, y:curY-lastY}
+        };
+        addLog('e_pressed',
+          `PRESSED | ${target.name} | 本地=(${eventEmitted.local.x},${eventEmitted.local.y}) first=(${eventEmitted.first.x},${eventEmitted.first.y}) last=(${eventEmitted.last.x},${eventEmitted.last.y}) 位移=(${eventEmitted.delta.x},${eventEmitted.delta.y})`
+        );
+      } else {
+        addLog('e_pressed','PRESSED | grabbed=NULL (异常)');
+      }
+    } else {
+      // 首次按压: first=last=cur, hit-test
+      firstX = curX; firstY = curY;
+      lastX = curX; lastY = curY;
+      const target = screenPointOn(curX, curY);
+      if (!target) {
+        addLog('e_err','PRESS → hit-test失败 (空白区域) → 事件丢弃');
+        grabbed = null; grabbedTarget = null;
+        hoverTarget = null;
+        updateStatePanel(); drawAll();
+        return;
+      }
+      grabbed = target; grabbedTarget = target;
+      const a = absPos(target);
+      eventEmitted = {
+        type:'PRESSED', target,
+        local:{x:curX-a.start.x, y:curY-a.start.y},
+        first:{x:firstX-a.start.x, y:firstY-a.start.y},
+        last:{x:lastX-a.start.x, y:lastY-a.start.y},
+        delta:{x:0,y:0}
+      };
+      addLog('e_pressed',
+        `PRESSED(首) | ${target.name} | 位置=(${eventEmitted.local.x},${eventEmitted.local.y}) first=(${eventEmitted.first.x},${eventEmitted.first.y})`
+      );
+    }
+    hoverTarget = grabbed;
+
+  } else {
+    // ====== RELEASE 分支 ======
+    const savedLast = currState;
+    let hoverFlag = 0;
+    if (savedLast !== 'PRESS') hoverFlag = 1;
+
+    lastState = currState;
+    currState = 'RELEASE';
+
+    if (hoverFlag === 1) {
+      // HOVER: 上次状态不是PRESS → 悬停
+      const target = screenPointOn(curX, curY);
+      if (!target) {
+        addLog('e_hover','HOVER | hit-test失败 (空白区域) → 事件丢弃');
+        hoverTarget = null;
+      } else {
+        hoverTarget = target;
+        const a = absPos(target);
+        eventEmitted = {
+          type:'HOVER', target,
+          local:{x:curX-a.start.x, y:curY-a.start.y}
+        };
+        addLog('e_hover',`HOVER | ${target.name} | 本地=(${eventEmitted.local.x},${eventEmitted.local.y})`);
+      }
+    } else {
+      // RELEASED: 上次状态==PRESS → 释放
+      const target = grabbed;
+      if (target) {
+        const totalD = Math.abs(curX-firstX) + Math.abs(curY-firstY);
+        const verdict = totalD < 6 ? 'CLICK' : 'DRAG';
+        const a = absPos(target);
+        eventEmitted = {
+          type:'RELEASED', target,
+          cur:{x:curX-a.start.x, y:curY-a.start.y},
+          first:{x:firstX-a.start.x, y:firstY-a.start.y},
+          totalDelta:totalD, verdict
+        };
+        addLog('e_released',
+          `RELEASED | ${target.name} | 释放位置=(${eventEmitted.cur.x},${eventEmitted.cur.y}) first=(${eventEmitted.first.x},${eventEmitted.first.y}) 总位移=${totalD}px → ${verdict}`
+        );
+      } else {
+        addLog('e_released','RELEASED | grabbed=NULL | 无目标');
+      }
+      hoverTarget = null;
+    }
+    grabbed = null;
+    grabbedTarget = null;
+  }
+
+  updateStatePanel();
+  drawAll();
+  return eventEmitted;
+}
+
+// ==================== 鼠标事件 ====================
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = 800/rect.width, sy = 480/rect.height;
+  const x = Math.round((e.clientX-rect.left)*sx);
+  const y = Math.round((e.clientY-rect.top)*sy);
+  mouseDown = true;
+  dispatchEvent('PRESS', x, y);
+});
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = 800/rect.width, sy = 480/rect.height;
+  const x = Math.round((e.clientX-rect.left)*sx);
+  const y = Math.round((e.clientY-rect.top)*sy);
+  if (mouseDown) {
+    dispatchEvent('PRESS', x, y);
+  } else {
+    dispatchEvent('RELEASE', x, y);
+  }
+});
+canvas.addEventListener('mouseup', e => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = 800/rect.width, sy = 480/rect.height;
+  const x = Math.round((e.clientX-rect.left)*sx);
+  const y = Math.round((e.clientY-rect.top)*sy);
+  mouseDown = false;
+  dispatchEvent('RELEASE', x, y);
+});
+canvas.addEventListener('mouseleave', () => { mouseDown = false; });
+
+document.getElementById('btnClear').addEventListener('click',()=>{logEntries=[];renderLog();});
+
+// ==================== 初始化 ====================
+renderTree();
+drawAll();
+</script>
+</body>
+</html>

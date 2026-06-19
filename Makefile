@@ -105,6 +105,7 @@ csrc_dir += $(makefile_dir)/ESDBox_IPGUI/base/src\
 			$(makefile_dir)/ESDBox_IPGUI/core/image/show\
 			$(makefile_dir)/ESDBox_IPGUI/core/vector_render\
 			$(makefile_dir)/ESDBox_IPGUI/core/ui/widget_manager\
+			$(makefile_dir)/ESDBox_IPGUI/core/ui\
 			$(makefile_dir)/ESDBox_IPGUI/font/opensans\
 			$(makefile_dir)/ESDBox_IPGUI
 include_dir += $(makefile_dir)/ESDBox_IPGUI/base/inc\
@@ -131,6 +132,7 @@ include_dir += $(makefile_dir)/ESDBox_IPGUI/base/inc\
 			$(makefile_dir)/ESDBox_IPGUI/core/image/show\
 			$(makefile_dir)/ESDBox_IPGUI/core/vector_render\
 			$(makefile_dir)/ESDBox_IPGUI/core/ui/widget_manager\
+			$(makefile_dir)/ESDBox_IPGUI/core/ui\
 			$(makefile_dir)/ESDBox_IPGUI/font/opensans\
 			$(makefile_dir)\
 			$(makefile_dir)/ESDBox_IPGUI/charset

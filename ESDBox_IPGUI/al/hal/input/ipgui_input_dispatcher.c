@@ -2,7 +2,7 @@
 #include "ipgui_memory.h"
 #include "ipgui_debug.h"
 
-static void ipgui_default_event_converter(
+static ipgui_err_t ipgui_default_event_converter(
     void * param,
     ipgui_input_src_evt_t * raw_evt,
     ipgui_widget_evt_t * widget_evt);
@@ -108,7 +108,11 @@ __IPGUI_API__ void ipgui_input_dispatcher_init(ipgui_input_dispatcher_t * dispat
     list_head_init(&(dispatcher->screen_list));
 
     /* set default event convert function */
-    dispatcher->convert_event_cb = ipgui_default_event_converter;
+    for (i = 0; i < INPUT_SRC_MAX; i ++) {
+        for (s32_t j = 0; j < SCREEN_MAX; j ++) {
+            dispatcher->convert_event_cb[i][j] = ipgui_default_event_converter;
+        }
+    }
 }
 
 __IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_register_input_src(
@@ -142,7 +146,7 @@ __IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_register_screen(
         return - 1;
     }
     
-    dispatcher->scr_node_arr[id].scr = * screen;
+    dispatcher->scr_node_arr[id].scr = screen;
     list_head_init(&dispatcher->scr_node_arr[id].node);
     list_add_tail (&dispatcher->scr_node_arr[id].node, &dispatcher->screen_list);
     return id;
@@ -169,9 +173,9 @@ __IPGUI_API__ ipgui_input_src_id_t ipgui_dispatcher_unregister_input_src(
     for (i = 0; i < INPUT_SRC_MAX * SCREEN_MAX; i ++) {
         if (dispatcher->map_arr[i].used &&
             dispatcher->map_arr[i].input_src_id == (u32_t)input_src_id) {
+            ipgui_memset(&dispatcher->converter_states[dispatcher->map_arr[i].input_src_id][dispatcher->map_arr[i].scr_id], 0, sizeof(converter_state_t));
             list_del_init(&dispatcher->map_arr[i].node);
             dispatcher->map_arr[i].used = 0;
-            dispatcher->map_arr[i].conv_state_idx = 0;
         }
     }
 
@@ -207,9 +211,9 @@ __IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_unregister_screen(
     for (i = 0; i < INPUT_SRC_MAX * SCREEN_MAX; i ++) {
         if (dispatcher->map_arr[i].used &&
             dispatcher->map_arr[i].scr_id == (u32_t)screen_id) {
+            ipgui_memset(&dispatcher->converter_states[dispatcher->map_arr[i].input_src_id][dispatcher->map_arr[i].scr_id], 0, sizeof(converter_state_t));
             list_del_init(&dispatcher->map_arr[i].node);
             dispatcher->map_arr[i].used = 0;
-            dispatcher->map_arr[i].conv_state_idx = 0;
         }
     }
 
@@ -235,7 +239,13 @@ __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(
         return IPGUI_ERR_INVALID_ID;
 
     /* 检查这两者的映射表是否已经存在 */
-    
+    for (s32_t i = 0; i < INPUT_SRC_MAX * SCREEN_MAX; i++) {
+        if (dispatcher->map_arr[i].used &&
+            dispatcher->map_arr[i].input_src_id == (u32_t)input_src_id &&
+            dispatcher->map_arr[i].scr_id == (u32_t)screen_id) {
+            return IPGUI_ERR_OK;  /* 已存在，不重复绑定 */
+        }
+    }
 
     for (s32_t i = 0; i < INPUT_SRC_MAX * SCREEN_MAX; i ++) {
         if (dispatcher->map_arr[i].used == 0) {
@@ -244,7 +254,6 @@ __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(
             dispatcher->map_arr[i].used = 1;
             list_head_init(&dispatcher->map_arr[i].node);
             list_add_tail (&dispatcher->map_arr[i].node, &dispatcher->input_src_node_arr[input_src_id].map_list);
-            dispatcher->map_arr[i].conv_state_idx = i;
             return IPGUI_ERR_OK;
         }
     }
@@ -254,8 +263,7 @@ __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(
 
 typedef struct {
     ipgui_input_dispatcher_t * dispatcher;
-    u32_t conv_state_idx;
-    ipgui_scr_id_t scr_id;
+    map_node_t * map_node;
 } param_t;
 
 /* 分发所有事件，更新UI状态 */
@@ -266,7 +274,6 @@ __IPGUI_API__ void ipgui_dispatch_input_event(
 
     ipgui_input_src_evt_t ev;
     ipgui_widget_evt_t widget_evt;
-    u32_t idx;
     struct list_head * pos, * tmp;
     map_node_t * map_node;
     ipgui_scr_node_t * scr_node;
@@ -286,89 +293,160 @@ __IPGUI_API__ void ipgui_dispatch_input_event(
 
             /* input source event to UI event */
             ipgui_memset(&widget_evt, 0, sizeof(widget_evt));
-            if (input_src_node->input_src.convert_event_cb)
-            { /* step1 : use user's convert callback function */    
-                input_src_node->input_src.convert_event_cb(
-                        input_src_node->input_src.priv_data,
-                        &ev,
-                        &widget_evt);
-            } else
-            {   /* step 2 : use default convert function */
-                param_t param;
-                param.dispatcher = dispatcher;
-                param.conv_state_idx = map_node->conv_state_idx;
-                param.scr_id = map_node->scr_id;
-                dispatcher->convert_event_cb(
-                    (void *)&param,
-                    &ev,
-                    &widget_evt);
+
+            if (!dispatcher->convert_event_cb[map_node->input_src_id][map_node->scr_id])
+                continue;
+            
+            /* use convert function */
+            param_t param;
+            param.dispatcher = dispatcher;
+            param.map_node = map_node;
+            if(IPGUI_ERR_OK != dispatcher->convert_event_cb[map_node->input_src_id][map_node->scr_id](
+                (void *)&param,
+                &ev,
+                &widget_evt)) {
+                /* 没有控件可以处理事件，比如点在了屏幕背景上 */
+                continue;
             }
         
             /* handle UI event */
-            ipgui_screen_handle_widget_event(&scr_node->scr, &widget_evt);
+            ipgui_screen_handle_widget_event(scr_node->scr, &widget_evt);
         }
     }
 }
-extern __IPGUI_API__ ipgui_widget_t * ipgui_widget_get_topest_at(
-    struct widget_link_t * root, 
-    ipgui_coord_t x, 
-    ipgui_coord_t y);
+extern __IPGUI_API__ ipgui_widget_t * ipgui_screen_point_on(
+    ipgui_scr_t  * scr,
+    ipgui_coord_t  x,
+    ipgui_coord_t  y);
 
-__IPGUI_STATIC__ void ipgui_default_event_converter(
+/* ok:有控件可以处理事件 nok:没有控件可以处理事件，比如点在了屏幕背景上 */
+__IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
     void * param,
     ipgui_input_src_evt_t * raw_evt,
     ipgui_widget_evt_t * widget_evt)
 {
     param_t * p = (param_t *)param;
 
-    /* get screen */
-    ipgui_scr_t * screen = &(p->dispatcher->scr_node_arr[p->scr_id].scr);
-
+    /* 获取当前屏幕 */
+    ipgui_scr_t * screen = p->dispatcher->scr_node_arr[p->map_node->scr_id].scr;    
     /* 获取当前输入源的状态 */
-    converter_state_t * cur_state = &(p->dispatcher->converter_states[p->conv_state_idx]);
+    converter_state_t * cur_state = &(p->dispatcher->converter_states[p->map_node->input_src_id][p->map_node->scr_id]);
 
     switch (raw_evt->input_src_evt)
     {
         /* pointer pressed */
         case IPGUI_INPUT_SRC_EVENT_POINTER_PRESS:
         {
-            ipgui_coord_t x = raw_evt->evt_info.pointer_pos.x;
-            ipgui_coord_t y = raw_evt->evt_info.pointer_pos.y;
+            ipgui_aabb_t widget_global_aabb;
+
             ipgui_widget_t * target;
+
+            /* 更新当前状态 */
+            cur_state->last_state = cur_state->current_state;
+            cur_state->current_state = IPGUI_INPUT_SRC_EVENT_POINTER_PRESS;
 
             /* hit test */
             if(cur_state->last_state == IPGUI_INPUT_SRC_EVENT_POINTER_PRESS) {
+                cur_state->last_pressed_x = cur_state->cur_x;
+                cur_state->last_pressed_y = cur_state->cur_y;
+                cur_state->cur_x = raw_evt->evt_info.pointer_pos.x;
+                cur_state->cur_y = raw_evt->evt_info.pointer_pos.y;
+
                 target = cur_state->grabbed;
+
+                /* 后处理，主要是填充事件和坐标转化，转化为控件的相对坐标 */
+                widget_evt->target = cur_state->grabbed;
+                widget_evt->type = IPGUI_WIDGET_EVENT_PRESSED;
+                ipgui_widget_abs_pos(widget_evt->target, &widget_global_aabb);
+                widget_evt->evt.pressed_evt.x = cur_state->cur_x - widget_global_aabb.start.x;
+                widget_evt->evt.pressed_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
+                widget_evt->evt.pressed_evt.first_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
+                widget_evt->evt.pressed_evt.first_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
+                widget_evt->evt.pressed_evt.last_press_x = cur_state->last_pressed_x - widget_global_aabb.start.x;
+                widget_evt->evt.pressed_evt.last_press_y = cur_state->last_pressed_y - widget_global_aabb.start.y;
             } else {
-                // target = ipgui_widget_get_topest_at(&screen->tree.root, x, y);
+                cur_state->cur_x = raw_evt->evt_info.pointer_pos.x;
+                cur_state->cur_y = raw_evt->evt_info.pointer_pos.y;
+                cur_state->first_pressed_x = cur_state->cur_x;
+                cur_state->first_pressed_y = cur_state->cur_y;
+                cur_state->last_pressed_x = cur_state->cur_x;
+                cur_state->last_pressed_y = cur_state->cur_y;
+                target = ipgui_screen_point_on(
+                    screen,
+                    cur_state->cur_x,
+                    cur_state->cur_y);
+
                 if (!target) {
                     ipgui_dbg_error("hit test failed\r\n");
-                    return;
+                    return IPGUI_ERR_NOK;
                 }
                 cur_state->grabbed = target;
+
+                /* 后处理，主要是填充事件和坐标转化，转化为控件的相对坐标 */
+                widget_evt->target = cur_state->grabbed;
+                widget_evt->type = IPGUI_WIDGET_EVENT_PRESSED;
+                ipgui_widget_abs_pos(widget_evt->target, &widget_global_aabb);
+                widget_evt->evt.pressed_evt.x = cur_state->cur_x - widget_global_aabb.start.x;
+                widget_evt->evt.pressed_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
+                widget_evt->evt.pressed_evt.first_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
+                widget_evt->evt.pressed_evt.first_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
+                widget_evt->evt.pressed_evt.last_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
+                widget_evt->evt.pressed_evt.last_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
             }
 
-            cur_state->last_pressed_x = x;
-            cur_state->last_pressed_y = y;
-            cur_state->last_state = IPGUI_INPUT_SRC_EVENT_POINTER_PRESS;
-            return;
+            break;
         }
 
         /* pointer released */
         case IPGUI_INPUT_SRC_EVENT_POINTER_RELEASE: 
         {
-            /* handler */
+            ipgui_aabb_t widget_global_aabb;
+            u8_t hover_flag = 0;
 
-            cur_state->last_state = IPGUI_INPUT_SRC_EVENT_POINTER_RELEASE;
-            return;
+            cur_state->last_state = cur_state->current_state;
+            if (cur_state->last_state != IPGUI_INPUT_SRC_EVENT_POINTER_PRESS) {
+                hover_flag = 1;
+            }
+            cur_state->current_state = IPGUI_INPUT_SRC_EVENT_POINTER_RELEASE;
+            cur_state->cur_x = raw_evt->evt_info.pointer_pos.x;
+            cur_state->cur_y = raw_evt->evt_info.pointer_pos.y;
+            
+            /* 后处理，主要是填充事件和坐标转化，转化为控件的相对坐标 */
+            if (hover_flag == 1) {
+                ipgui_widget_t * target = ipgui_screen_point_on(
+                    screen,
+                    raw_evt->evt_info.pointer_pos.x,
+                    raw_evt->evt_info.pointer_pos.y);
+                if (!target) {
+                    ipgui_dbg_error("hit test failed\r\n");
+                    return IPGUI_ERR_NOK;
+                }
+                widget_evt->target = target;
+                widget_evt->type = IPGUI_WIDGET_EVENT_HOVER;
+                ipgui_widget_abs_pos(widget_evt->target, &widget_global_aabb);
+                widget_evt->evt.hover_evt.x = cur_state->cur_x - widget_global_aabb.start.x;
+                widget_evt->evt.hover_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
+            } else {
+                widget_evt->target = cur_state->grabbed;
+                widget_evt->type = IPGUI_WIDGET_EVENT_RELEASED;
+                ipgui_widget_abs_pos(widget_evt->target, &widget_global_aabb);
+                widget_evt->evt.released_evt.x = cur_state->cur_x - widget_global_aabb.start.x;
+                widget_evt->evt.released_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
+                widget_evt->evt.released_evt.first_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
+                widget_evt->evt.released_evt.first_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
+            }
+            cur_state->grabbed = (ipgui_widget_t *)0;/*  必须放在后处理后面，否则不知道在哪个控件中释放了 */
+            break;
         }
 
+        /* 暂时不支持鼠标以外的事件 */
         case IPGUI_INPUT_SRC_EVENT_KEY_DOWN: 
         case IPGUI_INPUT_SRC_EVENT_KEY_UP: 
-            return;
         default:
-            return;
+            return IPGUI_ERR_NOK;
     }
+
+    return IPGUI_ERR_OK;
 }
 
 //测试代码，通过

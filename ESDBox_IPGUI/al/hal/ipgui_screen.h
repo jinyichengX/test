@@ -15,7 +15,6 @@ typedef struct{
     void                  * pri_data;
     ipgui_coord_t           xreso;
     ipgui_coord_t           yreso;
-    ipgui_pix_fmt_t         pix_fmt;
 
     void (* put_pixel)  (
         ipgui_scr_t       * scr,
@@ -49,6 +48,10 @@ typedef struct ipgui_scr_ctx{
     ipgui_dirty_rect_mgr_t dirty;
 
     /* offline partial framebuffer */
+    /* 其中的pix_fmt可以随便定义，
+     * 但是在flush到屏幕时需要正确解析，
+     * 一般建议与物理屏幕的pix_fmt一致
+     */
     ipgui_pfb_t            pfb;
 
     /* Background color or render callback 

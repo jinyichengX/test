@@ -52,6 +52,8 @@ __IPGUI_API__ ipgui_edge_coord_t edge_x_at_y(
 8. ipgui_edge_wdf_mask计算x_halfspan是采用逐点步进试探法，可以改为二倍步进 + 二分缩进法
 9. ipgui_draw_image中插值那一块只支持px_fmt为rgb888的图像，需要增加不同像素的插值函数（已经解决）
 10. 为了保证图片质量，ipgui_draw_image现在只支持二次插值，需要支持一次线性插值
+11. 需要再写一个文件ipgui_draw_icon.c，用于绘制图标因为现在的ipgui_draw_image.c绘制不了，会将L8格式转换为灰度像素
+12. ipgui_draw_box_shadow.c自己重写，需要达到CSS的阴影效果
 
 需要注意的地方
 1. 调用ipgui_draw_image，img_data中的px_size不能大于10，因为在函数中写死了u8_t cr[10];

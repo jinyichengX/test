@@ -37,6 +37,10 @@ __IPGUI_API__ ipgui_err_t ipgui_screen_init(ipgui_scr_t * scr, ipgui_scr_drv_t *
     return IPGUI_ERR_OK;
 }
 
+/* 其中的pix_fmt可以随便定义，
+ * 但是在flush到屏幕时需要正确解析，
+ * 一般建议与物理屏幕的pix_fmt一致
+ */
 __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
     ipgui_scr_t   * scr, 
     u8_t          * buf, 
@@ -74,7 +78,7 @@ __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
         case PIX_FMT_BGR888:   px_size = 4; break;
         case PIX_FMT_RGBA8888:
         case PIX_FMT_BGRA8888: px_size = 4; break;
-        default: break;
+        default: return IPGUI_ERR_INVALID_PFB_PIX_FMT;
     }
 
     scr->pfb.num_pixs = valid_size / px_size;
@@ -389,14 +393,62 @@ __IPGUI_API__ ipgui_widget_t * ipgui_screen_point_on(
 
 __IPGUI_API__ void ipgui_screen_handle_widget_event(ipgui_scr_t * scr, ipgui_widget_evt_t * evt)
 {
-    if (!scr || !evt) return;
+    (void)scr;/* 暂时用不到 */
+    if (!evt) return;
 
-    /* 按 Z-order 逆序遍历控件树（最后绘制的在最上面，最先接收到事件）
-     * 找到第一个包含事件坐标的控件，调用其事件处理回调
-     * 当前为预留框架，待控件事件系统完善后实现完整的事件分发逻辑
+    if (!evt->target) return;
+
+    /* 下面的代码调试用，
+     * 只用于pressed_evt和released_evt和hover_evt这三个事件 
      */
-    (void)scr;
-    (void)evt;
+    
+    // ipgui_aabb_t aabb;
+    // ipgui_widget_abs_pos(evt->target, &aabb);
+
+    // const char * type_str =
+    //     evt->type == IPGUI_WIDGET_EVENT_PRESSED  ? "按压" :
+    //     evt->type == IPGUI_WIDGET_EVENT_RELEASED ? "释放" :
+    //     evt->type == IPGUI_WIDGET_EVENT_HOVER    ? "悬停" : "未知";
+
+    // const char * name = evt->target->name ? evt->target->name : "(无名)";
+
+    // printf("══════════════════════════════════════════\n");
+    // printf("[控件事件] 类型=%s\n", type_str);
+    // printf("  目标控件: %s\n", name);
+    // printf("  控件位置: x=%d y=%d w=%d h=%d\n",
+    //     evt->target->x, evt->target->y, evt->target->w, evt->target->h);
+    // printf("  全局包围盒: (%d,%d) ~ (%d,%d)\n",
+    //     aabb.start.x, aabb.start.y, aabb.end.x, aabb.end.y);
+
+    // switch (evt->type) {
+    // case IPGUI_WIDGET_EVENT_PRESSED:
+    //     printf("  按压坐标: (%d,%d)\n",
+    //         evt->evt.pressed_evt.x, evt->evt.pressed_evt.y);
+    //     printf("  首次按压: (%d,%d)\n",
+    //         evt->evt.pressed_evt.first_press_x, evt->evt.pressed_evt.first_press_y);
+    //     printf("  上次按压: (%d,%d)\n",
+    //         evt->evt.pressed_evt.last_press_x, evt->evt.pressed_evt.last_press_y);
+    //     break;
+    // case IPGUI_WIDGET_EVENT_RELEASED:
+    //     printf("  释放坐标: (%d,%d)\n",
+    //         evt->evt.released_evt.x, evt->evt.released_evt.y);
+    //     printf("  首次按压: (%d,%d)\n",
+    //         evt->evt.released_evt.first_press_x, evt->evt.released_evt.first_press_y);
+    //     break;
+    // case IPGUI_WIDGET_EVENT_HOVER:
+    //     printf("  悬停坐标: (%d,%d)\n",
+    //         evt->evt.hover_evt.x, evt->evt.hover_evt.y);
+    //     break;
+    // default:
+    //     break;
+    // }
+
+    // printf("──────────────────────────────────────────\n");
+
+    /* 直接调用控件的事件回调处理事件 */
+    if (evt->target && evt->target->event_handler) {
+        evt->target->event_handler(evt->target, evt);//event_handler的第一个参数也是多余的可以删掉
+    }
 }
 
 __IPGUI_API__ void ipgui_screen_putpixel(ipgui_scr_t * scr, ipgui_coord_t x, ipgui_coord_t y, u8_t * pix)

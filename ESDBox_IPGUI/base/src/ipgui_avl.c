@@ -440,20 +440,3 @@ avl_node_t * avl_node_delete(avl_node_t * node, avl_t * tree)
 	
 	return node;
 }
-
-#if AVL_DEBUG_PRINT == 1
-#include <stdio.h>
-/* 中序遍历 */
-void avl_subtree_print(avl_node_t *root)
-{
-    if (root == NULL) return;
-    avl_subtree_print(root->lchild);
-    printf("%d ", root->value);
-    avl_subtree_print(root->rchild);
-}
-
-void avl_tree_print(avl_t * tree)
-{
-    avl_subtree_print(tree->root);
-}
-#endif

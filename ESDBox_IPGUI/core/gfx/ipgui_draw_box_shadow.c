@@ -1,145 +1,187 @@
 /*===========================================================================
- * ipgui_draw_box_shadow.c — 盒阴影渲染（掩码法 / SDF 距离场）
+ * ipgui_draw_box_shadow.c — 盒阴影渲染（SDF 距离场 + 高斯 CDF 对称衰减）
  *
- * 设计思路：
- *   传统逐像素 ipgui_draw_pixel 方案在模糊区域需要逐像素调用颜色转换 +
- *   预乘 + 混合流水线，开销极高（每次调用 ~12 次移位/乘法 + 函数调用开销）。
- *   掩码法将阴影渲染分解为两步：
- *     1) 生成灰度掩码（每个像素的 alpha 值）
- *     2) 一次 ipgui_blend_color 调用将掩码混合到目标表面
- *   掩码的每个像素值由圆角矩形的有符号距离场 (SDF) 映射到 alpha：
- *     d = SDF(像素, padding_box + 偏移)
- *     d ≤ 0            → alpha = 0              (padding_box 内部)
- *     0 < d ≤ spread   → alpha = base           (扩散纯色区)
- *     spread < d ≤ spread+blur → cubic ease-out  (模糊过渡区)
- *     d > spread+blur  → alpha = 0              (超出范围)
+ * 对标 CSS box-shadow 的物理过程：
+ *   1. 生成形状的硬边缘 mask（spread 膨胀后的 padding_box）
+ *   2. 对 mask 做二维高斯模糊 → 等价于用 SDF 距离 + CDF(Φ) 查表
+ *   3. 关键：边界两侧对称模糊 —— 内部也衰减，边界处 alpha≈50%
  *
- *   ipgui_draw_pixel 不再被内部渲染管线依赖。
+ * 流程：
+ *   1) dilated_pad = pad + spread（膨胀形状，圆角半径同步增大）
+ *   2) 计算 SDF 到 dilated_pad 边界的距离 d（>0 外部，<0 内部）
+ *   3) d 映射到 [-blur_range, +blur_range] → CDF 查表
+ *      - d ≤ -blur_range → alpha = base_alpha（深处满不透明度）
+ *      - d = 0          → alpha ≈ base_alpha * 0.5（边界50%）
+ *      - d ≥ +blur_range → alpha = 0（外部完全透明）
+ *   4) 生成 mask → 一次 ipgui_blend_color 渲染
  *===========================================================================*/
 
 #include "ipgui_draw_box_shadow.h"
 #include "ipgui_blend_color.h"
-#include "ipgui_prim.h"
-#include <math.h>
+#include "ipgui_memory.h"
 
-/* ---------------------------------------------------------------------------
- * 有符号距离场：点到圆角矩形（4 个独立圆角半径）的距离
+/* -------- Φ(-d/σ) CDF 查找表 --------
+ * idx=0   → d = -3σ → Φ(3)  ≈ 0.9986 → 255
+ * idx=128 → d = 0   → Φ(0)  = 0.5    → 127
+ * idx=255 → d = +3σ → Φ(-3) ≈ 0.0014 →   0
  *
- * 返回值：
- *   d > 0  点在形状外侧，d 为最短距离
- *   d = 0  点在形状边界上
- *   d < 0  点在形状内侧（但阴影不需要，始终 return 0 作 alpha）
- *
- * 区域判定：
- *   四角圆弧区域：点到圆心距离 - 半径
- *   四边直线区域：点到对应边的垂直距离
- *-----------------------------------------------------------------------*/
-static float sd_rounded_box(
-    float px, float py,
-    float x1, float y1, float x2, float y2,
-    float tl_r, float tr_r, float bl_r, float br_r)
+ * 用 Abramowitz & Stegun erf 近似生成，精度 > 1e-6
+ * ------------------------------------ */
+static const u8_t cdf_lut[256] = {
+    255,255,255,255,255,254,254,254,254,254,254,254,254,254,254,254,
+    254,254,254,254,254,253,253,253,253,253,253,253,253,252,252,252,
+    252,252,251,251,251,251,251,250,250,250,249,249,249,248,248,248,
+    247,247,246,246,245,245,244,244,243,243,242,242,241,240,239,239,
+    238,237,236,236,235,234,233,232,231,230,229,228,227,225,224,223,
+    222,220,219,218,216,215,214,212,211,209,207,206,204,202,201,199,
+    197,195,194,192,190,188,186,184,182,180,178,176,173,171,169,167,
+    165,163,160,158,156,153,151,149,146,144,142,139,137,135,132,130,
+    127,125,123,120,118,116,113,111,109,106,104,102, 99, 97, 95, 92,
+     90, 88, 86, 84, 82, 79, 77, 75, 73, 71, 69, 67, 65, 63, 61, 60,
+     58, 56, 54, 53, 51, 49, 48, 46, 44, 43, 41, 40, 39, 37, 36, 35,
+     33, 32, 31, 30, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 19, 18,
+     17, 16, 16, 15, 14, 13, 13, 12, 12, 11, 11, 10, 10,  9,  9,  8,
+      8,  7,  7,  7,  6,  6,  6,  5,  5,  5,  4,  4,  4,  4,  4,  3,
+      3,  3,  3,  3,  2,  2,  2,  2,  2,  2,  2,  2,  1,  1,  1,  1,
+      1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  0,  0,  0,
+};
+
+/* ========================= 整数开平方 ========================= */
+static int isqrt_scaled256(int val)
 {
-    float cx, cy, cr;
+    int x;
+    if (val <= 1) return val * 16;
+    {
+        int shift = 0, t = val;
+        while (t > 0) { t >>= 1; shift++; }
+        x = 1 << (shift / 2);
+    }
+    x = (x + val / x) >> 1;
+    x = (x + val / x) >> 1;
+    x = (x + val / x) >> 1;
+    x = (x + val / x) >> 1;
+    return x << 4;
+}
 
-    /* ---- 左上角 ---- */
+/* ========================= 圆角矩形 SDF =========================
+ * 所有坐标/半径均为定点 scale=256
+ * 返回：距离 × 256（>0 在外部，≤0 在内部）
+ *=================================================================*/
+static int sd_rounded_box_fixed(
+    int px, int py,
+    int x1, int y1, int x2, int y2,
+    int tl_r, int tr_r, int bl_r, int br_r)
+{
+    int dx, dy;
+    long long d2;
+
+    /* 左上角 */
     if (px <= x1 + tl_r && py <= y1 + tl_r) {
-        cx = x1 + tl_r; cy = y1 + tl_r; cr = tl_r;
-        return sqrtf((px - cx) * (px - cx) + (py - cy) * (py - cy)) - cr;
+        dx = px - (x1 + tl_r); dy = py - (y1 + tl_r);
+        d2 = ((long long)dx * dx + (long long)dy * dy) >> 8;
+        return isqrt_scaled256((int)d2) - tl_r;
     }
-    /* ---- 右上角 ---- */
+    /* 右上角 */
     if (px >= x2 - tr_r && py <= y1 + tr_r) {
-        cx = x2 - tr_r; cy = y1 + tr_r; cr = tr_r;
-        return sqrtf((px - cx) * (px - cx) + (py - cy) * (py - cy)) - cr;
+        dx = px - (x2 - tr_r); dy = py - (y1 + tr_r);
+        d2 = ((long long)dx * dx + (long long)dy * dy) >> 8;
+        return isqrt_scaled256((int)d2) - tr_r;
     }
-    /* ---- 左下角 ---- */
+    /* 左下角 */
     if (px <= x1 + bl_r && py >= y2 - bl_r) {
-        cx = x1 + bl_r; cy = y2 - bl_r; cr = bl_r;
-        return sqrtf((px - cx) * (px - cx) + (py - cy) * (py - cy)) - cr;
+        dx = px - (x1 + bl_r); dy = py - (y2 - bl_r);
+        d2 = ((long long)dx * dx + (long long)dy * dy) >> 8;
+        return isqrt_scaled256((int)d2) - bl_r;
     }
-    /* ---- 右下角 ---- */
+    /* 右下角 */
     if (px >= x2 - br_r && py >= y2 - br_r) {
-        cx = x2 - br_r; cy = y2 - br_r; cr = br_r;
-        return sqrtf((px - cx) * (px - cx) + (py - cy) * (py - cy)) - cr;
+        dx = px - (x2 - br_r); dy = py - (y2 - br_r);
+        d2 = ((long long)dx * dx + (long long)dy * dy) >> 8;
+        return isqrt_scaled256((int)d2) - br_r;
     }
 
-    /* ---- 四边直线区域 ---- */
-    float dx = 0.0f, dy = 0.0f;
+    /* 四边直线区域 */
+    dx = 0; dy = 0;
     if      (px < x1) dx = x1 - px;
     else if (px > x2) dx = px - x2;
     if      (py < y1) dy = y1 - py;
     else if (py > y2) dy = py - y2;
-    return sqrtf(dx * dx + dy * dy);
+
+    if (dx == 0) return dy;
+    if (dy == 0) return dx;
+    d2 = ((long long)dx * dx + (long long)dy * dy) >> 8;
+    return isqrt_scaled256((int)d2);
 }
 
-/* ---------------------------------------------------------------------------
- * 生成阴影掩码
+/* ========================= CDF 衰减 =========================
+ * d          : SDF 距离 × 256 (>0外部, <0内部)
+ * blur_range : 模糊半宽（像素），对应 3σ
+ * base       : 最大 alpha
  *
- * 对 shadow_aabb 区域内每个像素计算 SDF 距离，映射为 alpha 值写入 mask。
- * mask 尺寸 = shadow_aabb 尺寸，每像素 1 字节（u8_t）。
- *
- * 参数：
- *   mask         输出掩码缓冲区（调用方分配，w*h 字节）
- *   shadow_aabb  阴影包围盒（已裁剪到 surf 边界后）
- *   pad          padding_box（全局坐标）
- *   tl..br_r     四个圆角半径
- *   spread       扩展量
- *   blur         模糊量
- *   off_x,off_y  偏移量
- *   base_alpha   基准 alpha（shadow_style.color.a * shadow_style.opacity / 256）
- *-----------------------------------------------------------------------*/
+ * 映射：idx = (d + blur_range*256) * 255 / (2 * blur_range * 256)
+ *        d=-br*256 → idx=0   → 255 (满)
+ *        d=0       → idx=128 → 127 (50%)
+ *        d=+br*256 → idx=255 →   0 (零)
+ *===========================================================*/
+static u8_t cdf_falloff(int d, int blur_range, u8_t base)
+{
+    int idx;
+    long long num, den;
+
+    if (d <= -(blur_range << 8)) return base;
+    if (d >=  (blur_range << 8)) return 0;
+
+    /* idx = (d + br*256) * 255 / (br * 512) */
+    num = (long long)d + ((long long)blur_range << 8);
+    num = num * 255LL;
+    den = (long long)blur_range << 9;  /* br * 512 */
+
+    idx = (int)(num / den);
+    if (idx < 0) idx = 0;
+    if (idx > 255) idx = 255;
+
+    return (u8_t)(((u32_t)cdf_lut[idx] * base + 127) >> 8);
+}
+
+/* ========================= 生成阴影掩码 ========================= */
 static void shadow_mask_generate(
     u8_t               *mask,
     const ipgui_aabb_t *shadow_aabb,
-    const ipgui_aabb_t *pad,
+    const ipgui_aabb_t *dilated_pad,
     int tl_r, int tr_r, int bl_r, int br_r,
-    int spread, int blur,
+    int blur_range,
     int off_x, int off_y,
     int base_alpha)
 {
-    const int mw = ipgui_aabb_width(shadow_aabb);
-    const int mh = ipgui_aabb_height(shadow_aabb);
-    const int sx = shadow_aabb->start.x;
-    const int sy = shadow_aabb->start.y;
-    const float total_dist = (float)(spread + blur);
-    const float spread_f   = (float)spread;
-    const float blur_f     = (float)blur;
-    const float ba_f       = (float)base_alpha;
+    const int mw  = ipgui_aabb_width(shadow_aabb);
+    const int mh  = ipgui_aabb_height(shadow_aabb);
+    const int sx  = shadow_aabb->start.x;
+    const int sy  = shadow_aabb->start.y;
 
-    float pad_x1 = (float)pad->start.x + 0.5f;
-    float pad_y1 = (float)pad->start.y + 0.5f;
-    float pad_x2 = (float)pad->end.x   + 0.5f;
-    float pad_y2 = (float)pad->end.y   + 0.5f;
-    float r_tl  = (float)tl_r;
-    float r_tr  = (float)tr_r;
-    float r_bl  = (float)bl_r;
-    float r_br  = (float)br_r;
-    float ox    = (float)off_x;
-    float oy    = (float)off_y;
+    const int pad_x1 = (dilated_pad->start.x << 8) + 128 + (off_x << 8);
+    const int pad_y1 = (dilated_pad->start.y << 8) + 128 + (off_y << 8);
+    const int pad_x2 = (dilated_pad->end.x   << 8) + 128 + (off_x << 8);
+    const int pad_y2 = (dilated_pad->end.y   << 8) + 128 + (off_y << 8);
+
+    const int r_tl = tl_r << 8;
+    const int r_tr = tr_r << 8;
+    const int r_bl = bl_r << 8;
+    const int r_br = br_r << 8;
 
     int x, y;
     for (y = 0; y < mh; y++) {
-        float py = (float)(sy + y) + 0.5f - oy;   /* 像素中心 → shape space */
-
+        int py = ((sy + y) << 8) + 128;
         for (x = 0; x < mw; x++) {
-            float px = (float)(sx + x) + 0.5f - ox;
-            float d  = sd_rounded_box(px, py, pad_x1, pad_y1, pad_x2, pad_y2,
-                                      r_tl, r_tr, r_bl, r_br);
-
-            if (d <= 0.0f)       { mask[y * mw + x] = 0;          continue; }
-            if (d <= spread_f)   { mask[y * mw + x] = base_alpha; continue; }
-            if (d >= total_dist) { mask[y * mw + x] = 0;          continue; }
-
-            /* cubic ease-out: alpha = base * (1 - t)^3,  t ∈ [0, 1] */
-            float t = (d - spread_f) / blur_f;
-            float a = ba_f * (1.0f - t) * (1.0f - t) * (1.0f - t);
-            mask[y * mw + x] = (u8_t)(a + 0.5f);
+            int px = ((sx + x) << 8) + 128;
+            int d  = sd_rounded_box_fixed(px, py,
+                                          pad_x1, pad_y1, pad_x2, pad_y2,
+                                          r_tl, r_tr, r_bl, r_br);
+            mask[y * mw + x] = cdf_falloff(d, blur_range, (u8_t)base_alpha);
         }
     }
 }
 
-/* ---------------------------------------------------------------------------
- * 公开 API
- *-----------------------------------------------------------------------*/
+/* ========================= 公开 API ========================= */
 __IPGUI_API__ void ipgui_draw_box_shadow(
     ipgui_surf_t             *surf,
     ipgui_aabb_t             *clip,
@@ -160,66 +202,68 @@ __IPGUI_API__ void ipgui_draw_box_shadow(
         pad = *box;
     }
 
-    const int pad_w = ipgui_aabb_width(&pad);
-    const int pad_h = ipgui_aabb_height(&pad);
-
-    int blur   = (int)((float)ss->blur * 1.5f);
     int spread = ss->spread;
-    int total  = ss->blur + ss->spread;
+    int blur   = ss->blur;
 
-    /* 无可见阴影 → 直接返回 */
-    if (total <= 0 && blur <= 0 && ss->offset_x == 0 && ss->offset_y == 0)
+    if (blur <= 0 && spread <= 0 && ss->offset_x == 0 && ss->offset_y == 0)
         return;
 
-    /* ---- 圆角半径（裁剪到盒子尺寸的一半）---- */
+    /* blur_range = 3σ，取值 blur × 2 */
+    int blur_range = blur * 2;
+
+    /* ---- 膨胀后的 pad ---- */
+    ipgui_aabb_t dilated_pad = pad;
+    dilated_pad.start.x -= spread;
+    dilated_pad.start.y -= spread;
+    dilated_pad.end.x   += spread;
+    dilated_pad.end.y   += spread;
+
+    /* ---- 圆角半径同步膨胀 ---- */
     int tl_r = 0, tr_r = 0, bl_r = 0, br_r = 0;
     if (style) {
-        int half_max = IPGUI_MIN(pad_w / 2, pad_h / 2);
-        tl_r = IPGUI_MIN(style->left_top_radius,     half_max);
-        tr_r = IPGUI_MIN(style->right_top_radius,    half_max);
-        bl_r = IPGUI_MIN(style->left_bottom_radius,  half_max);
-        br_r = IPGUI_MIN(style->right_bottom_radius, half_max);
+        int dw = ipgui_aabb_width(&dilated_pad);
+        int dh = ipgui_aabb_height(&dilated_pad);
+        int half_max = IPGUI_MIN(dw / 2, dh / 2);
+        tl_r = IPGUI_MIN(style->left_top_radius     + spread, half_max);
+        tr_r = IPGUI_MIN(style->right_top_radius    + spread, half_max);
+        bl_r = IPGUI_MIN(style->left_bottom_radius  + spread, half_max);
+        br_r = IPGUI_MIN(style->right_bottom_radius + spread, half_max);
     }
 
-    /* ---- 阴影包围盒（pad + total + blur 扩展 + offset，然后裁剪到 surf）---- */
-    int sx1 = pad.start.x + ss->offset_x - total - blur;
-    int sy1 = pad.start.y + ss->offset_y - total - blur;
-    int sx2 = pad.end.x   + ss->offset_x + total + blur;
-    int sy2 = pad.end.y   + ss->offset_y + total + blur;
+    /* ---- 阴影包围盒 = dilated_pad ± blur_range + offset ---- */
+    int sx1 = dilated_pad.start.x + ss->offset_x - blur_range;
+    int sy1 = dilated_pad.start.y + ss->offset_y - blur_range;
+    int sx2 = dilated_pad.end.x   + ss->offset_x + blur_range;
+    int sy2 = dilated_pad.end.y   + ss->offset_y + blur_range;
 
     ipgui_aabb_t shadow_aabb = {{sx1, sy1}, {sx2, sy2}};
     {
         ipgui_aabb_t clipped;
         if (0 != ipgui_aabb_overlap(&clipped, &shadow_aabb, clip ? clip : &surf->surf))
-            return;   /* 完全在可见区域外 */
+            return;
         shadow_aabb = clipped;
     }
 
-    /* ---- 分配掩码缓冲区 ---- */
     int mw = ipgui_aabb_width(&shadow_aabb);
     int mh = ipgui_aabb_height(&shadow_aabb);
     if (mw <= 0 || mh <= 0) return;
 
     size_t mask_bytes = (size_t)mw * (size_t)mh;
     u8_t *mask = (u8_t *)ipgui_mem_alloc_def(mask_bytes);
-    if (!mask) return;   /* 分配失败 → 静默跳过阴影 */
+    if (!mask) return;
 
-    /* ---- 基准 alpha = color.a × opacity / 256 ---- */
-    int base_alpha = (int)(((u32_t)ss->color.a * ss->opacity + 127) >> 8);
+    int base_alpha = (int)(((u32_t)IPGUI_COLOR_A(ss->color) * ss->opacity + 127) >> 8);
 
-    /* ---- 生成掩码 ---- */
-    shadow_mask_generate(mask, &shadow_aabb, &pad,
+    shadow_mask_generate(mask, &shadow_aabb, &dilated_pad,
                          tl_r, tr_r, bl_r, br_r,
-                         spread, blur,
+                         blur_range,
                          ss->offset_x, ss->offset_y,
                          base_alpha);
 
-    /* ---- 一次 blend 完成渲染 ---- */
     ipgui_color_t col = ss->color;
-    col.a = 255;   /* 不透明度已编码在掩码中 */
+    IPGUI_COLOR_SET_A(col, 255);
     ipgui_blend_color(surf, clip, &shadow_aabb, col, 255,
                       mask, &shadow_aabb, IPGUI_BLEND_NORMAL);
 
-    /* ---- 释放掩码 ---- */
     ipgui_mem_free_def(mask);
 }

@@ -174,3 +174,21 @@ __IPGUI_API__ void ipgui_widget_mark_dirty(ipgui_widget_t * widget)
     
     ipgui_dirty_rect_add(&scr->dirty, (ipgui_dirty_rect_t *)&dr);
 }
+
+/* 全局坐标转为控件相对坐标系 */
+__IPGUI_API__ __IPGUI_NOT_FOR_USER__ void ipgui_widget_point_to_self(
+    ipgui_widget_t * widget, 
+    ipgui_coord_t g_x, 
+    ipgui_coord_t g_y,
+    ipgui_coord_t * self_x,
+    ipgui_coord_t * self_y)
+{
+    ipgui_aabb_t global_aabb;
+
+    if (!widget || !self_x || !self_y) return;
+
+    ipgui_widget_abs_pos(widget, &global_aabb);
+
+    *self_x = g_x - global_aabb.start.x;
+    *self_y = g_y - global_aabb.start.y;
+}

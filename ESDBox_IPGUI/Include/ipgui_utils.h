@@ -5,6 +5,7 @@
 
 #define _INTERNEL_
 #define __IPGUI_TEST__
+#define __IPGUI_NOT_FOR_USER__
 #define __IPGUI_INIT__
 #define __IPGUI_DEINIT__
 #define __IPGUI_API__

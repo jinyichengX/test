@@ -24,8 +24,8 @@
 
 #include "ipgui_time.h"
 
-static ipgui_tick_t ipgui_sys_tick = 0;
-static ipgui_tick_t ipgui_sys_tick_last = 0;
+ipgui_tick_t ipgui_sys_tick = 0;
+ipgui_tick_t ipgui_sys_tick_last = 0;
 
 #define IPGUI_MILLISECOND_PER_SECOND 1000u
 
