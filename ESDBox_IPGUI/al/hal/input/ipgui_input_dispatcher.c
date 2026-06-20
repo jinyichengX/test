@@ -305,7 +305,7 @@ __IPGUI_API__ void ipgui_dispatch_input_event(
                 (void *)&param,
                 &ev,
                 &widget_evt)) {
-                /* 没有控件可以处理事件，比如点在了屏幕背景上 */
+                /* 没有控件可以处理事件，比如点在了屏幕没有被控件覆盖的空旷区域上 */
                 continue;
             }
         
