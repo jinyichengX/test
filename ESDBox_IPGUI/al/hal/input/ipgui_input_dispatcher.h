@@ -16,17 +16,17 @@ typedef struct {
     ipgui_input_evt_type_t last_state;
     ipgui_input_evt_type_t current_state;
 
-    ipgui_widget_t * grabbed;     /* 当前抓取的控件（按下后锁定，直到鼠标释放才置0） */
-    ipgui_coord_t first_pressed_x;              /* 本次按压起点全局X坐标（PRESS释放前不动） */
-    ipgui_coord_t first_pressed_y;              /* 本次按压起点全局Y坐标 */
-    ipgui_coord_t last_pressed_x;               /* 上次按下的全局X坐标 */
-    ipgui_coord_t last_pressed_y;               /* 上次按下的全局Y坐标 */
-    ipgui_coord_t cur_x;                /* 当前指针全局X坐标 */
-    ipgui_coord_t cur_y;                /* 当前指针全局Y坐标 */
+    ipgui_widget_t       * grabbed;     /* 当前抓取的控件（按下后锁定，直到鼠标释放才置0） */
+    ipgui_coord_t          first_pressed_x;              /* 本次按压起点全局X坐标（PRESS释放前不动） */
+    ipgui_coord_t          first_pressed_y;              /* 本次按压起点全局Y坐标 */
+    ipgui_coord_t          last_pressed_x;               /* 上次按下的全局X坐标 */
+    ipgui_coord_t          last_pressed_y;               /* 上次按下的全局Y坐标 */
+    ipgui_coord_t          cur_x;                /* 当前指针全局X坐标 */
+    ipgui_coord_t          cur_y;                /* 当前指针全局Y坐标 */
 
     /* 按键设备状态 */
-    u32_t key_press_start_time;         // 按键按下开始时间戳
-    bool key_long_press_triggered;      // 按键长按是否已经触发
+    u32_t                  key_press_start_time;         // 按键按下开始时间戳
+    bool                   key_long_press_triggered;      // 按键长按是否已经触发
 } converter_state_t;
 
 typedef struct {
