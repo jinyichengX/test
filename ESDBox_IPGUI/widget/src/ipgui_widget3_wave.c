@@ -26,16 +26,22 @@ void widget3_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ct
     int offset = (int)ipgui_sys_tick % tile_w;
     int x_start = -offset;
 
-    /* 只画 surf 可见范围（screen_render 已裁剪为脏区交集≈800px），
-     * 不再遍历 1600px，大幅降低每帧 tile 绘制量 */
-    int surf_w = ctx->surf->surf.end.x - ctx->surf->surf.start.x;
+    /* PFB 切片兼容：每个切片可能在屏幕的不同水平位置，
+     * 所以要用 surf.start.x/end.x 确定该切片的全局可见范围，
+     * 然后绘制所有与该范围相交的 tile */
+    int slice_start = ctx->surf->surf.start.x;
+    int slice_end   = ctx->surf->surf.end.x;
 
     ipgui_aabb_t target;
     target.start.y = 0;
-    target.end.y = tile_h;  /* 控件本地 y=0，widget3 整体已在屏幕 y=250 */
+    target.end.y = tile_h;
 
     int x;
-    for (x = x_start; x < surf_w; x += tile_w) {
+    for (x = x_start; x < slice_end + tile_w; x += tile_w) {
+        /* 跳过完全在切片左侧的 tile */
+        if (x + tile_w <= slice_start) continue;
+        /* 完全在右侧的 tile 不再画 */
+        if (x >= slice_end) break;
         target.start.x = x;
         target.end.x = x + tile_w;
         ipgui_draw_image_in_rect(

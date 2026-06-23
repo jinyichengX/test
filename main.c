@@ -37,7 +37,7 @@ ipgui_scr_drv_t sdl_drv = {
     .flush       = sdl_flush,
 };
 
-static u8_t main_screen_frame_buf[800 * 4];
+static u8_t main_screen_frame_buf[1 * 4];
 
 void draw_main_screen_backgroud_color(ipgui_scr_t * scr, ipgui_surf_t * surf)
 {
