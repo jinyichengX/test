@@ -1,6 +1,7 @@
 #ifndef IPGUI_STROKER_H
 #define IPGUI_STROKER_H
 
+#include "ipgui_color.h"
 #include "ipgui_prim.h"
 #include "ipgui_math.h"
 #include "ipgui_line_clip.h"

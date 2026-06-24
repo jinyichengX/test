@@ -2,12 +2,10 @@
 #define IPGUI_DRAW_POLYGON_H
 
 #include "ipgui_coord.h"
-#include "ipgui_utils.h"
 #include "ipgui_graphic2.h"
 #include "ipgui_avl.h"
 #include "ipgui_membox.h"
-#include "ipgui_core.h"
-#include "ipgui_blend_color.h"
+#include "ipgui_blend.h"
 
 #ifdef __cplusplus
 extern "C" {

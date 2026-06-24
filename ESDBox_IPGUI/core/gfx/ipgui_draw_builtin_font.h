@@ -1,7 +1,6 @@
 #ifndef IPGUI_DRAW_BUILTIN_FONT_H
 #define IPGUI_DRAW_BUILTIN_FONT_H
 
-#include "ipgui_core.h"
 #include "ipgui_blend.h"
 
 #ifdef __cplusplus

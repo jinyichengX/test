@@ -1,8 +1,6 @@
 #ifndef IPGUI_DRAW_IMAGE_H
 #define IPGUI_DRAW_IMAGE_H
 
-#include "ipgui_box_style.h"
-#include "ipgui_core.h"
 #include "ipgui_blend.h"
 
 typedef struct {

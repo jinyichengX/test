@@ -91,6 +91,7 @@ csrc_dir += $(makefile_dir)/ESDBox_IPGUI/base/src\
 			$(makefile_dir)/ESDBox_IPGUI/al/hal\
 			$(makefile_dir)/ESDBox_IPGUI/al/hal/input\
 			$(makefile_dir)/ESDBox_IPGUI/port/sdl\
+			$(makefile_dir)/ESDBox_IPGUI/core\
 			$(makefile_dir)/ESDBox_IPGUI/core/misc\
 			$(makefile_dir)/ESDBox_IPGUI/charset\
 			$(makefile_dir)/ESDBox_IPGUI/core/gfx\

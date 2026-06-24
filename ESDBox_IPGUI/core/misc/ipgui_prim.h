@@ -2,9 +2,7 @@
 #define IPGUI_PRIM_H
 
 #include "ipgui_coord.h"
-#include "ipgui_color.h"
-
-IPGUI_HEADER_BEGIN _______________MARKER_______________
+#include "ipgui_utils.h"
 
 typedef s32_t ipgui_scoord_t; //it means sub pixel coordinate, 26.6
 
@@ -113,6 +111,5 @@ extern __IPGUI_API__ void ipgui_aabb_expand(ipgui_aabb_t * aabb, ipgui_coord_t e
 extern __IPGUI_API__ int ipgui_aabb_generate_with_rect(ipgui_aabb_t * res, ipgui_rect_t * rect1, ipgui_rect_t * rect2);
 extern __IPGUI_API__ void ipgui_aabb_update_with_point(ipgui_aabb_t * aabb, ipgui_point_t * point);
 extern __IPGUI_API__ int ipgui_aabb_generate_with_points(ipgui_aabb_t * ret_aabb, ipgui_point_t * points, int num);
-IPGUI_HEADER_END   _______________MARKER_______________
 
 #endif

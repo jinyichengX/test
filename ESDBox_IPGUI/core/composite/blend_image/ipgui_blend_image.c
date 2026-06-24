@@ -1,4 +1,5 @@
-﻿#include "ipgui_blend_image.h"
+#include "ipgui_conf.h"
+#include "ipgui_blend_image.h"
 
 typedef void (* img_px_blend_func_t)(const u8_t * src, u8_t * dst, u8_t alpha, ipgui_blend_mode_t blend_mode);
 

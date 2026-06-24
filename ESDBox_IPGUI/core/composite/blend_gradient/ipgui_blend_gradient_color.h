@@ -1,7 +1,6 @@
 #ifndef IPGUI_BLEND_COLOR_GRADIENT_H
 #define IPGUI_BLEND_COLOR_GRADIENT_H
 
-#include "ipgui_conf.h"
 #include "ipgui_gradient_color.h"
 #include "ipgui_core.h"
 #include "ipgui_blend_mode.h"

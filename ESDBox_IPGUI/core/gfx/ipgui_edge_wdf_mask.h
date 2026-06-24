@@ -1,8 +1,6 @@
 #ifndef IPGUI_EDGE_WDF_MASK_H
 #define IPGUI_EDGE_WDF_MASK_H
 
-#include "ipgui_types.h"
-#include "ipgui_coord.h"
 #include "ipgui_color.h"
 #include "ipgui_core.h"
 

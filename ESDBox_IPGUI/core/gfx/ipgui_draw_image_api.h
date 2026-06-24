@@ -2,7 +2,6 @@
 #define IPGUI_DRAW_IMAGE_API_H
 
 #include "ipgui_draw_image.h"
-#include "ipgui_core.h"
 
 /* 图片对齐方式 — 九宫格（在目标矩形内的9点定位）
  * TOP_LEFT      TOP       TOP_RIGHT

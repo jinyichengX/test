@@ -1,10 +1,6 @@
 #ifndef ipgui_draw_line_generic_H
 #define ipgui_draw_line_generic_H
 
-#include "ipgui_core.h"
-#include "ipgui_coord.h"
-#include "ipgui_color.h"
-#include "ipgui_prim.h"
 #include "ipgui_blend.h"
 
 #ifdef __cplusplus

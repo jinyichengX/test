@@ -4,7 +4,6 @@
 #include "ipgui_color.h"
 #include "ipgui_prim.h"
 #include "ipgui_conf.h"
-#include "ipgui_types.h"
 
 #ifdef __cplusplus
 extern "C" {

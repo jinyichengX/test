@@ -2,7 +2,6 @@
 #define IPGUI_DRAW_BOX_BACKGROUND_H
 
 #include "ipgui_box_style.h"
-#include "ipgui_core.h"
 #include "ipgui_blend.h"
 
 #ifdef __cplusplus

@@ -1,8 +1,6 @@
 #ifndef IPGUI_TYPES_H
 #define IPGUI_TYPES_H
 
-#include "ipgui_utils.h"
-
 typedef enum
 {
     IPGUI_ERR_OK                = 0,

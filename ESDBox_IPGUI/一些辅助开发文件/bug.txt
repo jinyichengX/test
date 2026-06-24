@@ -1,0 +1,6 @@
+ESDBox_IPGUI:
+1. 在ipgui_bmp_dec.c中使用test_bmp有bug，看此文件按
+
+Makefile
+1. 修改了头文件后再make不会重编译
+2. 如何使makefile支持自动保存，也就是输入make回车之后，根据makefile规则自动保存已修改的文件，再执行编译

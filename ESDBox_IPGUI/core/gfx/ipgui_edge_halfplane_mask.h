@@ -1,8 +1,6 @@
 #ifndef __ipgui_edge_halfplane_mask_H__
 #define __ipgui_edge_halfplane_mask_H__
 
-#include "ipgui_types.h"
-#include "ipgui_coord.h"
 #include "ipgui_color.h"
 #include "ipgui_core.h"
 

@@ -1,7 +1,6 @@
 #ifndef IPGUI_DRAW_PIXEL_H
 #define IPGUI_DRAW_PIXEL_H
 
-#include "ipgui_core.h"
 #include "ipgui_blend_color.h"
 
 #ifdef __cplusplus

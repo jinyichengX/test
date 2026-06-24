@@ -1,11 +1,7 @@
 #ifndef IPGUI_DEFS_H
 #define IPGUI_DEFS_H
+
 #include "ipgui_utils.h"
-#include "ipgui_types.h"
-
-IPGUI_HEADER_BEGIN  _______________MARKER_______________
-
-#define IPGUI_CAST(t, exp) ((t)(exp))
 
 /* bitmap begin */
 #if defined(IPGUI_BASETYPE_64BIT)
@@ -57,5 +53,4 @@ static inline void __change_bit(unsigned long nr, volatile void * addr)
 /* widget per level capacity */
 #define IPGUI_WIDGET_PER_LEVEL_CAPACITY 30
 
-IPGUI_HEADER_END    _______________MARKER_______________
 #endif

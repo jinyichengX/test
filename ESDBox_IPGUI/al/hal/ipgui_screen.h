@@ -3,6 +3,7 @@
 
 #include "ipgui_utils.h"
 #include "ipgui_coord.h"
+#include "ipgui_color.h"
 #include "ipgui_prim.h"
 #include "ipgui_lcd_pix_fmt.h"
 #include "ipgui_widget_evt.h"

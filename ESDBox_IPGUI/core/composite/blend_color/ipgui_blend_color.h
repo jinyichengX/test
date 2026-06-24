@@ -3,6 +3,7 @@
 
 #include "ipgui_core.h"
 #include "ipgui_utils.h"
+#include "ipgui_color.h"
 #include "ipgui_blend_mode.h"
 
 #ifdef __cplusplus
