@@ -63,18 +63,15 @@ typedef enum
     IPGUI_ERR_INVALID_ID,
 
     IPGUI_ERR_INVALID_PFB_PIX_FMT,
+
+    /* 动画相关 */
+    IPGUI_ERR_ANIM_ALREADY_RUNNING,
 }ipgui_err_t;
 
 typedef enum {
     IPGUI_YES,
     IPGUI_NO
 }ipgui_yes_no_t;
-
-#if defined(IPGUI_BASETYPE_64BIT)
-typedef unsigned int ipgui_tick_t;
-#else
-typedef unsigned int ipgui_tick_t;
-#endif
 
 typedef unsigned int u32_t;
 typedef unsigned short u16_t;
@@ -85,6 +82,16 @@ typedef char s8_t;
 typedef long long s64_t;
 typedef unsigned long long u64_t;
 typedef unsigned long long uintptr_t;//uintptr_t 的大小必须适配当前系统的指针宽度
+
+/* 动画值类型 */
+typedef s32_t ipgui_anim_value_t;
+
+/* 系统时基类型 */
+#if defined(IPGUI_BASETYPE_64BIT)
+typedef u64_t ipgui_tick_t;
+#else
+typedef u32_t ipgui_tick_t;
+#endif
 
 #endif
 
