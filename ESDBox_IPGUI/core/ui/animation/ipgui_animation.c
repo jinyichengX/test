@@ -13,13 +13,14 @@ typedef enum {
 }ipgui_anim_state_t;
 
 typedef struct {
-    struct list_head node;
-    ipgui_anim_dsc_t dsc;
+    struct list_head   node;
+    ipgui_anim_dsc_t   dsc;
     ipgui_anim_state_t state;
-    ipgui_tick_t anim_start_tick; /* animation start tick */
-    ipgui_tick_t duration;        /* t2 - t1 */
-    char forward;                 /* 实时状态，1=正向(t1->t2), 0=反向(t2->t1) */
-    u32_t loop_count_orig;        /* 原始loop_count，start时恢复 */
+    ipgui_tick_t       anim_start_tick; /* animation start tick */
+    ipgui_tick_t       duration;        /* t2 - t1 */
+    u32_t              loop_count_orig; /* 原始loop_count，start时恢复 */
+    ipgui_tick_t       pause_tick;      /* 暂停时刻的时间戳 */
+    char               forward;         /* 实时状态，1=正向(t1->t2), 0=反向(t2->t1) */
 } ipgui_anim_t;
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ 
@@ -80,32 +81,17 @@ __IPGUI_API__ ipgui_anim_t * ipgui_anim_create(const ipgui_anim_dsc_t * dsc)
 
 __IPGUI_API__ ipgui_err_t ipgui_anim_start(ipgui_anim_t * anim)
 {
-    if (!anim) return;
+    if (!anim) return IPGUI_ERR_PARAM;
 
-    /* 检查状态 */
     switch (anim->state) {
         case IPGUI_ANIM_STATE_READY:
-            anim->anim_start_tick = ipgui_tick_now() + anim->dsc.start_delay;
-            anim->forward = (anim->dsc.loop_type != IPGUI_ANIM_LOOP_TYPE_BACKWARD);
-            anim->dsc.loop_count = anim->loop_count_orig;
-            anim_state_set(anim, IPGUI_ANIM_STATE_RUNNING);
-            break;
+            return IPGUI_ERR_ANIM_NOT_RUNNING;
         case IPGUI_ANIM_STATE_RUNNING:
-            return IPGUI_ERR_ANIM_ALREADY_RUNNING;
+            anim->pause_tick = ipgui_tick_now();
+            anim_state_set(anim, IPGUI_ANIM_STATE_PAUSED);
+            return IPGUI_ERR_OK;
         case IPGUI_ANIM_STATE_PAUSED:
             return IPGUI_ERR_ANIM_ALREADY_PAUSED;
-    }
-}
-
-__IPGUI_API__ ipgui_err_t ipgui_anim_pause(ipgui_anim_t * anim)
-{
-    if (!anim) return;
-
-    /* 检查状态 */
-    switch (anim->state) {
-        case IPGUI_ANIM_STATE_READY:    break;
-        case IPGUI_ANIM_STATE_RUNNING:  break;
-        case IPGUI_ANIM_STATE_PAUSED:   break;
     }
 }
 
@@ -113,31 +99,29 @@ __IPGUI_API__ ipgui_err_t ipgui_anim_resume(ipgui_anim_t * anim)
 {
     if (!anim) return;
 
-    /* 检查状态 */
     switch (anim->state) {
-        case IPGUI_ANIM_STATE_READY:    break;
-        case IPGUI_ANIM_STATE_RUNNING:  break;
-        case IPGUI_ANIM_STATE_PAUSED:   break;
+        case IPGUI_ANIM_STATE_READY:
+            return IPGUI_ERR_ANIM_NOT_PAUSED;
+        case IPGUI_ANIM_STATE_RUNNING:
+            return IPGUI_ERR_ANIM_ALREADY_RUNNING;
+        case IPGUI_ANIM_STATE_PAUSED:
+            anim->anim_start_tick += (ipgui_tick_now() - anim->pause_tick);
+            anim_state_set(anim, IPGUI_ANIM_STATE_RUNNING);
+            return IPGUI_ERR_OK;
     }
 }
-
-// __IPGUI_API__ ipgui_err_t ipgui_anim_restart(ipgui_anim_t * anim)
-// {
-//     /* stop and start animation */
-//     ipgui_anim_stop(anim);
-//     ipgui_anim_start(anim);
-// }
 
 __IPGUI_API__ ipgui_err_t ipgui_anim_stop(ipgui_anim_t * anim)
 {
     if (!anim) return;
 
-    /* 检查状态 */
-    switch (anim->state) {
-        case IPGUI_ANIM_STATE_READY:    break;
-        case IPGUI_ANIM_STATE_RUNNING:  break;
-        case IPGUI_ANIM_STATE_PAUSED:   break;
+    if (anim->state == IPGUI_ANIM_STATE_READY) {
+        return IPGUI_ERR_ANIM_NOT_PAUSED_OR_RUNNING;
     }
+
+    anim->dsc.loop_count = anim->loop_count_orig;
+    anim_state_set(anim, IPGUI_ANIM_STATE_READY);
+    return IPGUI_ERR_OK;
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__

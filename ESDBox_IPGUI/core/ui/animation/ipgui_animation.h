@@ -3,6 +3,7 @@
 
 #include "ipgui_time.h"
 
+/* f(t), t ∈ [t1, t2], 纯函数无副作用，返回值由调用方解释 */
 typedef ipgui_anim_value_t (* ipgui_anim_func_t)(ipgui_tick_t t);
 
 typedef enum {
