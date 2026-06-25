@@ -29,7 +29,7 @@
 #include "ipgui_mempool.h"
 #include "ipgui_debug.h"
 
-#define ALIGN_UP(x, align)          ((((unsigned int)(x)) + (align) - 1) & (~((align) - 1)))
+#define ALIGN_UP(x, align)          ((((u32_t)(x)) + (align) - 1) & (~((align) - 1)))
 
 #define BLK_FREE_FLAG_SHIFT          0
 #define BLK_PREV_PHY_FREE_FLAG_SHIFT 1
@@ -63,45 +63,45 @@ static inline void block_prev_phy_mark_free(ipgui_mem_blk_t * blk)
     blk->size |= BLK_PREV_PHY_FREE_FLAG_MASK;
 }
 
-static inline int block_is_free(ipgui_mem_blk_t * blk)
+static inline s32_t block_is_free(ipgui_mem_blk_t * blk)
 {
     return (!!(blk->size & BLK_FREE_FLAG_MASK));
 }
 
-static inline int block_prev_phy_is_free(ipgui_mem_blk_t * blk)
+static inline s32_t block_prev_phy_is_free(ipgui_mem_blk_t * blk)
 {
     return (!!(blk->size & BLK_PREV_PHY_FREE_FLAG_MASK));
 }
 
 static inline ipgui_mem_blk_t * ptr_to_blk(void * p)
 {
-    return (ipgui_mem_blk_t *)((unsigned int)p - ipgui_offset_of(ipgui_mem_blk_t, next));
+    return (ipgui_mem_blk_t *)((u32_t)p - ipgui_offset_of(ipgui_mem_blk_t, next));
 }
 
 static inline void * blk_to_ptr(ipgui_mem_blk_t * blk)
 {
-    return (void *)((unsigned int)blk + ipgui_offset_of(ipgui_mem_blk_t, next));
+    return (void *)((u32_t)blk + ipgui_offset_of(ipgui_mem_blk_t, next));
 }
 
 static inline void * blk_to_size(ipgui_mem_blk_t * blk)
 {
-    return (void *)((unsigned int)blk + ipgui_offset_of(ipgui_mem_blk_t, size));
+    return (void *)((u32_t)blk + ipgui_offset_of(ipgui_mem_blk_t, size));
 }
 
 static ipgui_mem_blk_t * block_next_phy(ipgui_mem_blk_t * blk)
 {
-    return (ipgui_mem_blk_t *)((unsigned int)blk + BLOCK_SIZE(blk));
+    return (ipgui_mem_blk_t *)((u32_t)blk + BLOCK_SIZE(blk));
 }
 
-static inline void set_block_size(ipgui_mem_blk_t * blk, unsigned int size)
+static inline void set_block_size(ipgui_mem_blk_t * blk, u32_t size)
 {
     blk->size = size | (blk->size & BLK_FLAG_MASK);
 }
 
 /* find highest bit set(32 ~ 1) */
-static int generic_fls(unsigned int v)
+static s32_t generic_fls(u32_t v)
 {
-    int ret = 32;
+    s32_t ret = 32;
     if (!v) return 0;
     if (!(v & 0xffff0000u)) { v <<= 16; ret -= 16; }
     if (!(v & 0xff000000u)) { v <<= 8;  ret -= 8;  }
@@ -112,9 +112,9 @@ static int generic_fls(unsigned int v)
 }
 
 /* find lowest bit set(1 ~ 32) */
-static int generic_ffs(unsigned int v)
+static s32_t generic_ffs(u32_t v)
 {
-    int ret = 1;
+    s32_t ret = 1;
     if (!v) return 0;
     if (!(v & 0x0000ffffu)) { ret += 16; v >>= 16; }
     if (!(v & 0x000000ffu)) { ret += 8;  v >>= 8;  }
@@ -156,9 +156,9 @@ static void block_remove(ipgui_mem_blk_t * blk, ipgui_mem_blk_t ** start)
 }
 
 /* mapping size to fl and sl */
-static void mapping_index(unsigned int size, int * fl, int * sl)
+static void mapping_index(u32_t size, s32_t * fl, s32_t * sl)
 {
-    int fl_idx, sl_idx;
+    s32_t fl_idx, sl_idx;
 
     fl_idx = generic_fls(size) - 1;
     sl_idx = (size - (1 << fl_idx)) * SL_BITMAP_WIDTH / (1 << fl_idx);
@@ -172,7 +172,7 @@ static void insert_free_block(ipgui_mem_mng_t * mem, ipgui_mem_blk_t * blk)
 {
     // DBG_ASSERT(block_is_free(blk), "insert free err, blk is used");
 
-    int fl, sl;
+    s32_t fl, sl;
     mapping_index(BLOCK_SIZE(blk), &fl, &sl);
     block_insert(blk, &mem->free[fl][sl]);
 
@@ -183,7 +183,7 @@ static void insert_free_block(ipgui_mem_mng_t * mem, ipgui_mem_blk_t * blk)
 
 static void remove_free_block(ipgui_mem_mng_t * mem, ipgui_mem_blk_t * blk)
 {
-    int fl, sl;
+    s32_t fl, sl;
     mapping_index(BLOCK_SIZE(blk), &fl, &sl);
     block_remove(blk, &mem->free[fl][sl]);
 
@@ -197,34 +197,34 @@ static void remove_free_block(ipgui_mem_mng_t * mem, ipgui_mem_blk_t * blk)
 }
 
 /* at most 4GB memory can be managed */
-int ipgui_mempool_init(ipgui_mem_mng_t * mem, void * start, unsigned int size)
+s32_t ipgui_mempool_init(ipgui_mem_mng_t * mem, void * start, u32_t size)
 {
     // DBG_ASSERT(mem && start, "invalid parameter, mem and start must be valid");
 	if (size == 0) return 0;
-    int valid_size;
-    int fl, sl;
+    s32_t valid_size;
+    s32_t fl, sl;
     ipgui_mem_blk_t * blk;
-    unsigned int pool_start =\
-    ALIGN_UP((unsigned int)start, MEM_ALIGN_SIZE);
+    u32_t pool_start =\
+    ALIGN_UP((u32_t)start, MEM_ALIGN_SIZE);
     pool_start += ipgui_offset_of(ipgui_mem_blk_t, size);
 
     /* check pool size */
-    valid_size = size - (pool_start - (unsigned int)start);
+    valid_size = size - (pool_start - (u32_t)start);
     if (valid_size < BLK_SIZE_MIN) {
         return 1;
     }
 
     /* init management struct */
     mem->fl_bmp = 0;
-    for (int iter = 0; iter < FL_BITMAP_VALID_WIDTH; ++ iter) {
+    for (s32_t iter = 0; iter < FL_BITMAP_VALID_WIDTH; ++ iter) {
         mem->sl_bmp[iter] = 0;
-        for (int idx = 0; idx < SL_BITMAP_WIDTH; ++ idx) {
+        for (s32_t idx = 0; idx < SL_BITMAP_WIDTH; ++ idx) {
             mem->free[iter][idx] = (ipgui_mem_blk_t *)0;
         }
     }
 
     /* insert first whole free block */
-    blk = (ipgui_mem_blk_t *)((unsigned int)pool_start - ipgui_offset_of(ipgui_mem_blk_t, size));
+    blk = (ipgui_mem_blk_t *)((u32_t)pool_start - ipgui_offset_of(ipgui_mem_blk_t, size));
     
     set_block_size(blk, valid_size);
     block_prev_phy_mark_used(blk);
@@ -234,11 +234,11 @@ int ipgui_mempool_init(ipgui_mem_mng_t * mem, void * start, unsigned int size)
     return 0;
 }
 
-static ipgui_mem_blk_t * find_suitbale_block(ipgui_mem_mng_t * mem, int size,
-                                        int * pfl, int * psl)
+static ipgui_mem_blk_t * find_suitbale_block(ipgui_mem_mng_t * mem, s32_t size,
+                                        s32_t * pfl, s32_t * psl)
 {
-    int fl, sl;
-    unsigned int fl_bmp, sl_bmp;
+    s32_t fl, sl;
+    u32_t fl_bmp, sl_bmp;
     ipgui_mem_blk_t * blk = (ipgui_mem_blk_t *)0;
     mapping_index(size, &fl, &sl);
 
@@ -261,17 +261,17 @@ static ipgui_mem_blk_t * find_suitbale_block(ipgui_mem_mng_t * mem, int size,
     return blk;
 }
 
-static void split_block(ipgui_mem_blk_t * blk, int size, ipgui_mem_blk_t ** pnext)
+static void split_block(ipgui_mem_blk_t * blk, s32_t size, ipgui_mem_blk_t ** pnext)
 {
-    * pnext = (ipgui_mem_blk_t *)((unsigned int)blk_to_size(blk) + size);
-    * pnext = (ipgui_mem_blk_t *)((unsigned int)(* pnext) - ipgui_offset_of(ipgui_mem_blk_t, size));
+    * pnext = (ipgui_mem_blk_t *)((u32_t)blk_to_size(blk) + size);
+    * pnext = (ipgui_mem_blk_t *)((u32_t)(* pnext) - ipgui_offset_of(ipgui_mem_blk_t, size));
 }
 
-void * ipgui_mempool_alloc(ipgui_mem_mng_t * mem, unsigned int size)
+void * ipgui_mempool_alloc(ipgui_mem_mng_t * mem, u32_t size)
 {
     void * p;
     ipgui_mem_blk_t * blk;
-    int fl, sl;
+    s32_t fl, sl;
     if (!size) return (void *)0;
 
     /* size needed */
@@ -360,72 +360,3 @@ void ipgui_mempool_free(ipgui_mem_mng_t * mem, void * p)
 
     insert_free_block(mem, blk);
 }
-
-static void memset(void * pv, char v, unsigned int len)
-{   
-    int seg;
-    unsigned int up;
-    char * pe = (char *)pv + len;
-    int vex = 0;
-
-    if( !len || !pv )
-        return;
-
-    /* if length < 8, copy directly */
-    if( len < 8 ){
-        for( int i = 0; i < len; i++ )
-            ((char *)pv)[i] = v;
-        return;
-    }
-
-    /* generate vex */
-    for( int i = 0; i < 4; i++ )
-        vex |= (v << (i * 8));
-    
-    up = ALIGN_UP((unsigned int)pv, 4);
-
-    seg = up - (unsigned int)pv;
-    len -= seg;
-    /* copy unaligned size */
-    while(seg--)
-        ((char *)pv)[seg] = v;
-
-    /* copy aligned size */
-    seg = len / 4;
-    len -= seg * 4;
-    while(seg --)
-        ((int *)up)[seg] = vex;
-
-    /* copy unaligned size */
-    seg = len;
-    while(seg--)
-        (pe - len)[seg] = v;
-}
-
-void * ipgui_mempool_calloc(ipgui_mem_mng_t * mem, unsigned int size)
-{
-    void * p = ipgui_mempool_alloc(mem, size);
-    if (p) {
-        memset(p, 0, size);
-    }
-    return p;
-}
-
-#if 0
-void test_nmem(void)
-{
-    static ipgui_mem_mng_t g_mem;
-    static char g_mem_pool[16 * 1024];
-
-    void * p1, * p2, * p3, * p4;
-    mem_init(&g_mem, (void *)g_mem_pool, sizeof(g_mem_pool));
-    p1 = mem_alloc(&g_mem, 55);
-    p2 = mem_alloc(&g_mem, 480);
-    p3 = mem_alloc(&g_mem, 480);
-    p4 = mem_alloc(&g_mem, 480);
-    mem_free(&g_mem, p3);
-    mem_free(&g_mem, p1);
-    mem_free(&g_mem, p4);
-    mem_free(&g_mem, p2);
-}
-#endif

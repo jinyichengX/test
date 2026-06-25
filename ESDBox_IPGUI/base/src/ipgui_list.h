@@ -4,9 +4,9 @@
 
 /* 当elNET和IPGUI不在同一项目中时，去掉#include "el_nlist.h"，并去掉所有注释 */
 #include "el_nlist.h"
-
+#include "ipgui_types.h"
 #ifndef offsetof
-#define offsetof(TYPE, MEMBER)   ((size_t) &((TYPE *)0)->MEMBER)
+#define offsetof(TYPE, MEMBER)   ((uintptr_t) &((TYPE *)0)->MEMBER)
 #endif
 
 /**
@@ -16,7 +16,7 @@
  * @member:    the name of the member within the struct.
  *
  */
-// #define container_of(ptr, type, member) (type *)((char *)ptr -offsetof(type,member))
+// #define container_of(ptr, type, member) (type *)((s8_t *)ptr -offsetof(type,member))
 
 //  /*
 //   * These are non-NULL pointers that will result in page faults
@@ -424,10 +424,10 @@ static void list_head_init(struct list_head * list)
 // typedef int (*container_val_compare)(void *,void *);
 
 // #ifndef _LISTNODE2CONTAINER
-// #define _LISTNODE2CONTAINER(pnode,off) ((void *)(((size_t)(pnode))-(off)))
+// #define _LISTNODE2CONTAINER(pnode,off) ((void *)(((uintptr_t)(pnode))-(off)))
 // #endif
 // #ifndef _CONTAINER2LISTNODE
-// #define _CONTAINER2LISTNODE(pcont,off) ((struct list_head *)(((size_t)(pcont))+(off)))
+// #define _CONTAINER2LISTNODE(pcont,off) ((struct list_head *)(((uintptr_t)(pcont))+(off)))
 // #endif
 
 // /* 升序/降序插入列表节点（通用方法） */

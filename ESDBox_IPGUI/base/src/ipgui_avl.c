@@ -23,14 +23,13 @@
  */
  
 #include "ipgui_avl.h"
-#include <stdlib.h>
 
 /* avl树初始化 */
-void * avl_init(avl_t * tree, compare vcomp, uint8_t node_off)
+void * avl_init(avl_t * tree, compare vcomp, u8_t node_off)
 {
-    if(( tree == NULL ) || ( vcomp == NULL )) 
-        return NULL;
-    tree->root = NULL;
+    if(( tree == (avl_t *)0 ) || ( vcomp == (compare *)0 )) 
+        return (void *)0;
+    tree->root = (avl_node_t *)0;
     tree->node_off = node_off;
     tree->vcomp = vcomp;
     tree->count = 0;
@@ -42,16 +41,16 @@ void * avl_init(avl_t * tree, compare vcomp, uint8_t node_off)
 static inline void avl_node_init(avl_node_t * node)
 {
     node->height = 1;
-    node->lchild = NULL;
-    node->rchild = NULL;
-    node->parent = NULL;
+    node->lchild = (avl_node_t *)0;
+    node->rchild = (avl_node_t *)0;
+    node->parent = (avl_node_t *)0;
 }
 
 /* 更新树高 */
 static inline void avl_node_height_update(avl_node_t * node)
 {
     int lheight,rheight;
-    if( node == NULL ) return;
+    if( node == (avl_node_t *)0 ) return;
     lheight = AVL_LCHILD_HEIGHT(node);
     rheight = AVL_RCHILD_HEIGHT(node);
     node->height = AVL_MAX(lheight,rheight) + 1;
@@ -61,7 +60,7 @@ static inline void avl_node_height_update(avl_node_t * node)
 avl_node_t * avl_find_first_node(avl_t * tree)
 {
     avl_node_t * node = tree->root;
-    if(node == NULL) return NULL;
+    if(node == (avl_node_t *)0) return (avl_node_t *)0;
     while(node->lchild)
         node = node->lchild;
     return node;
@@ -71,7 +70,7 @@ avl_node_t * avl_find_first_node(avl_t * tree)
 avl_node_t * avl_find_last_node(avl_t * tree)
 {
     avl_node_t * node = tree->root;
-    if(node == NULL) return NULL;
+    if(node == (avl_node_t *)0) return (avl_node_t *)0;
     while(node->rchild)
         node = node->rchild;
     return node;
@@ -80,7 +79,7 @@ avl_node_t * avl_find_last_node(avl_t * tree)
 /* 获取一个节点的后继节点 */
 avl_node_t * avl_next_node(avl_node_t * node)
 {
-	if (node == NULL) return NULL;
+	if (node == (avl_node_t *)0) return (avl_node_t *)0;
 	if (node->rchild) {
 		node = node->rchild;
 		while (node->lchild) 
@@ -90,7 +89,7 @@ avl_node_t * avl_next_node(avl_node_t * node)
 		while (1) {
 			struct avl_node *last = node;
 			node = node->parent;
-			if (node == NULL) break;
+			if (node == (avl_node_t *)0) break;
 			if (node->lchild == last) break;
 		}
 	}
@@ -100,7 +99,7 @@ avl_node_t * avl_next_node(avl_node_t * node)
 /* 获取一个节点的前驱节点 */
 avl_node_t * avl_prev_node(avl_node_t * node)
 {
-	if (node == NULL) return NULL;
+	if (node == (avl_node_t *)0) return (avl_node_t *)0;
 	if (node->lchild) {
 		node = node->lchild;
 		while (node->rchild) 
@@ -110,7 +109,7 @@ avl_node_t * avl_prev_node(avl_node_t * node)
 		while (1) {
 			struct avl_node *last = node;
 			node = node->parent;
-			if (node == NULL) break;
+			if (node == (avl_node_t *)0) break;
 			if (node->rchild == last) break;
 		}
 	}
@@ -124,7 +123,7 @@ void avl_node_exchange_with_l(avl_node_t * node, avl_node_t * lchild)
     lchild->rchild = node;
     lchild->parent = parent;
     node->parent = lchild;
-    node->lchild = NULL;
+    node->lchild = (avl_node_t *)0;
 	if(parent) parent->rchild = lchild;
 }
 
@@ -135,7 +134,7 @@ void avl_node_exchange_with_r(avl_node_t * node, avl_node_t * rchild)
     rchild->lchild = node;
     rchild->parent = parent;
     node->parent = rchild;
-    node->rchild = NULL;
+    node->rchild = (avl_node_t *)0;
 	if(parent) parent->lchild = rchild;
 }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
 
@@ -151,7 +150,7 @@ void avl_node_ratate_right(avl_node_t * node,avl_t * tree)
     if(lchild->rchild)
         lchild->rchild->parent = node;
     lchild->rchild = node;
-    if(parent != NULL){
+    if(parent != (avl_node_t *)0){
         if(parent->lchild == node) parent->lchild = lchild;
         else parent->rchild = lchild;       
     }
@@ -170,7 +169,7 @@ void avl_node_ratate_left(avl_node_t * node, avl_t * tree)
     if(rchild->lchild)
         rchild->lchild->parent = node;
     rchild->lchild = node;
-    if(parent != NULL)
+    if(parent != (avl_node_t *)0)
     {
         if(parent->lchild == node) parent->lchild = rchild;
         else parent->rchild = rchild;
@@ -224,8 +223,8 @@ void avl_right_unbalan_handle(avl_node_t * subtree, avl_t * tree)
 void avl_node_post_height_updata(avl_node_t * start)
 {
     avl_node_t * index = start;
-    if( start == NULL ) return;
-    while(index != NULL)
+    if( start == (avl_node_t *)0 ) return;
+    while(index != (avl_node_t *)0)
     {
         avl_node_height_update(index);
         index = index->parent;
@@ -237,7 +236,7 @@ avl_node_t * avl_node_post_unbalance(avl_node_t * start, avl_t * tree)
 {
     avl_node_t * pos = start;
     int balance_factor = 0;
-    while(NULL != pos)
+    while((avl_node_t *)0 != pos)
     {
         avl_node_height_update(pos);
         balance_factor = AVL_TREE_BLNFCT(pos);
@@ -262,7 +261,7 @@ avl_node_t * avl_node_add_leaf(avl_node_t * node, avl_node_t * parent, avl_node_
 {
     (*pos) = node;
     node->parent = parent;
-    node->lchild = node->rchild = NULL;
+    node->lchild = node->rchild = (avl_node_t *)0;
     node->height = 1;
 	
 	return node;
@@ -273,15 +272,15 @@ avl_node_t * g_avl_node_add(void * node_cont, avl_t * tree)
 {
     int ret;
     avl_node_t ** pos = &(tree->root);
-    avl_node_t * parent = NULL;
+    avl_node_t * parent = (avl_node_t *)0;
     avl_node_t * node_to_bala;
 	avl_node_t * node;
 	void * pos_cont;
-    if(( node_cont == NULL )||( tree == NULL ))
-        return NULL;
+    if(( node_cont == (void *)0 )||( tree == (avl_t *)0 ))
+        return (avl_node_t *)0;
 	node = _AVL_CONTAINER2NODE(node_cont, tree->node_off);
     avl_node_init(node);
-    while(* pos != NULL){
+    while(* pos != (avl_node_t *)0){
 		pos_cont = _AVL_NODE2CONTAINER(* pos, tree->node_off);
         ret = tree->vcomp((void *)pos_cont, (void *)node_cont);
         parent = *pos;
@@ -300,7 +299,7 @@ avl_node_t * g_avl_node_add(void * node_cont, avl_t * tree)
     /* 向上更新树高 */
     avl_node_post_height_updata(node_to_bala);
     tree->count ++;
-    return (*pos != NULL) ? (* pos) : NULL;  
+    return (*pos != (avl_node_t *)0) ? (* pos) : (avl_node_t *)0;  
 }
 
 /* 插入节点 */
@@ -308,12 +307,12 @@ avl_node_t * avl_node_add(avl_node_t * node, avl_t * tree)
 {
     int ret;
     avl_node_t ** pos = &(tree->root);
-    avl_node_t * parent = NULL;
+    avl_node_t * parent = (avl_node_t *)0;
     avl_node_t * node_to_bala;
-    if(( node == NULL )||( tree == NULL ))
-        return NULL;
+    if(( node == (avl_node_t *)0 )||( tree == (avl_t *)0 ))
+        return (avl_node_t *)0;
     avl_node_init(node);
-    while(*pos != NULL){
+    while(*pos != (avl_node_t *)0){
         ret = tree->vcomp((void *)&((*pos)->value), (void *)&(node->value));
         parent = *pos;
         if( ret == -1 ){
@@ -331,7 +330,7 @@ avl_node_t * avl_node_add(avl_node_t * node, avl_t * tree)
     /* 向上更新树高 */
     avl_node_post_height_updata(node_to_bala);
     tree->count ++;
-    return (*pos != NULL) ? (* pos) : NULL;  
+    return (*pos != (avl_node_t *)0) ? (* pos) : (avl_node_t *)0;  
 }
 
 /* 查找节点（通用方法） */
@@ -340,9 +339,9 @@ avl_node_t * g_avl_node_search(void * node_cont, avl_t * tree)
     int ret;
     avl_node_t * pos = tree->root;
 	void * pos_cont;
-    if(( node_cont == NULL )||( tree == NULL ))
-        return NULL;
-    while(pos != NULL){
+    if(( node_cont == (void *)0 )||( tree == (avl_t *)0 ))
+        return (avl_node_t *)0;
+    while(pos != (avl_node_t *)0){
 		pos_cont = _AVL_NODE2CONTAINER(pos, tree->node_off);
         ret = tree->vcomp((void *)pos_cont, (void *)node_cont);
         if( ret == -1 ){
@@ -353,7 +352,7 @@ avl_node_t * g_avl_node_search(void * node_cont, avl_t * tree)
             return pos;
         }
     }
-    return NULL;  
+    return (avl_node_t *)0;  
 }
 
 /* 查找节点 */
@@ -361,9 +360,9 @@ avl_node_t * avl_node_search(avl_node_t * node, avl_t * tree)
 {
     int ret;
     avl_node_t * pos = tree->root;
-    if(( node == NULL )||( tree == NULL ))
-        return NULL;
-    while(pos != NULL){
+    if(( node == (avl_node_t *)0 )||( tree == (avl_t *)0 ))
+        return (avl_node_t *)0;
+    while(pos != (avl_node_t *)0){
         ret = tree->vcomp((void *)&pos->value, (void *)&node->value);
         if( ret == -1 ){
             pos = pos->lchild;
@@ -373,24 +372,24 @@ avl_node_t * avl_node_search(avl_node_t * node, avl_t * tree)
             return pos;
         }
     }
-    return NULL;  
+    return (avl_node_t *)0;  
 }
 
 /* 删除节点（通用方法） */
 avl_node_t * avl_node_delete(avl_node_t * node, avl_t * tree)
 {
-    avl_node_t * parent = NULL;
-    avl_node_t * child = NULL;
-    if( node == NULL )
-        return NULL;
+    avl_node_t * parent = (avl_node_t *)0;
+    avl_node_t * child = (avl_node_t *)0;
+    if( node == (avl_node_t *)0 )
+        return (avl_node_t *)0;
     /* case one：被删除节点有左右孩子节点 */
     if((node->lchild)&&(node->rchild))
     {
 		avl_node_t * old = node;
-		avl_node_t * lchild = NULL;
+		avl_node_t * lchild = (avl_node_t *)0;
         /* 寻找被删除节点的后继节点 */
 		node = node->rchild;
-		while ((lchild = node->lchild) != NULL)
+		while ((lchild = node->lchild) != (avl_node_t *)0)
 			node = lchild;
 		child = node->rchild;
 		parent = node->parent;
@@ -425,7 +424,7 @@ avl_node_t * avl_node_delete(avl_node_t * node, avl_t * tree)
     else
     {
         parent = node->parent;
-        if(node->lchild != NULL) child = node->lchild;
+        if(node->lchild != (avl_node_t *)0) child = node->lchild;
         else child = node->rchild;
         if(child) child->parent = parent;
         

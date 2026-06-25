@@ -90,11 +90,7 @@ typedef unsigned long long uintptr_t;//uintptr_t 的大小必须适配当前系�
 typedef s32_t ipgui_anim_value_t;
 
 /* 系统时基类型 */
-#if defined(IPGUI_BASETYPE_64BIT)
-typedef u64_t ipgui_tick_t;
-#else
-typedef u32_t ipgui_tick_t;
-#endif
+typedef uintptr_t ipgui_tick_t;
 
 #endif
 

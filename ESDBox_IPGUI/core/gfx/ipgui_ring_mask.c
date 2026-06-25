@@ -322,7 +322,7 @@ static void normalize_corner_cache_tick(void)
 static int evict_oldest_cache(void)
 {
     struct list_head * iter;
-    corner_mask_cache_item_t * oldest = NULL;
+    corner_mask_cache_item_t * oldest = (corner_mask_cache_item_t *)0;
 
     list_for_each(iter, &g_out_corner_mask_cache) {
         corner_mask_cache_item_t * item = list_entry(iter, corner_mask_cache_item_t, node);

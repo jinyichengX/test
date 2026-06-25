@@ -28,24 +28,24 @@
 #include "ipgui_time.h"
 #include <math.h>
 
-static ipgui_twhl_mngr_t * kmng1 = NULL;
+static ipgui_twhl_mngr_t * kmng1 = (ipgui_twhl_mngr_t *)0;
 
 #define IPGUI_MACRO_POWER(x,n) __IPGUI_MACRO_START \
-        int temp = x; \
-        for( int i = 0; i < n - 1; i ++) \
+        s32_t temp = x; \
+        for( s32_t i = 0; i < n - 1; i ++) \
             x = x * temp; \
         __IPGUI_MACRO_END
 
 /* find the prime plan */
-__IPGUI_STATIC__ ipgui_err_t ipgui_timer_prime_slove(unsigned int unSlotPowerN, unsigned int * punPrimeX, unsigned int * punPrimeN)
+__IPGUI_STATIC__ ipgui_err_t ipgui_timer_prime_slove(u32_t unSlotPowerN, u32_t * punPrimeX, u32_t * punPrimeN)
 {
-    int x = 2, y, nProduct;
-    int nNeedSz, nTemp = 2147483647;
+    s32_t x = 2, y, nProduct;
+    s32_t nNeedSz, nTemp = 2147483647;
     * punPrimeN = 0xffffffff;
 
     while (x * x < unSlotPowerN)
     {
-        y = (int)ceil(log((double)unSlotPowerN) / log((double)x));
+        y = (s32_t)ceil(log((double)unSlotPowerN) / log((double)x));
         nProduct = x * y;
 #if IPGUI_TMR_WHEEL_ALLOC_MIN
         nNeedSz = IPGUI_TWHL_SZ * y + x * sizeof(struct list_head);
@@ -75,10 +75,10 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_timer_prime_slove(unsigned int unSlotPowerN, 
 /* create timer wheel manager */
 __IPGUI_API__ ipgui_err_t ipgui_timer_manager_create(ipgui_tick_t Preci, ipgui_tick_t MaxTick, ipgui_twhl_mngr_t ** pstMngr)
 {
-    unsigned int unSlotPowerN, unSlotNum;
-    unsigned int unPrimeX= 0, unPrimeN = 0;
-    unsigned int unPerWheelSize;
-    int nIdx;
+    u32_t unSlotPowerN, unSlotNum;
+    u32_t unPrimeX= 0, unPrimeN = 0;
+    u32_t unPerWheelSize;
+    s32_t nIdx;
 
     /* 参数检查替换为debug_log */
     if (!Preci || !MaxTick || (MaxTick % Preci))
@@ -91,17 +91,17 @@ __IPGUI_API__ ipgui_err_t ipgui_timer_manager_create(ipgui_tick_t Preci, ipgui_t
     unSlotNum      = unPrimeX * unPrimeN;
     unPerWheelSize = IPGUI_TWHL_SZ + unPrimeX * IPGUI_LIST_SIZE;
     
-    if (NULL == ((* pstMngr) = (ipgui_twhl_mngr_t *)ipgui_mem_alloc(ipgui_smem, IPGUI_TWHL_MNGR_SZ + unPrimeN * sizeof(ipgui_tmr_whl_t *))))
+    if ((ipgui_twhl_mngr_t *)0 == ((* pstMngr) = (ipgui_twhl_mngr_t *)ipgui_mem_alloc(ipgui_smem, IPGUI_TWHL_MNGR_SZ + unPrimeN * sizeof(ipgui_tmr_whl_t *))))
         goto __return;
 
     for (nIdx = 0; nIdx < unPrimeN; nIdx ++)
     {
-        if (NULL == (((* pstMngr)->pstWhls[nIdx]) = (ipgui_tmr_whl_t *)ipgui_mem_alloc(ipgui_smem, unPerWheelSize)))
+        if ((ipgui_tmr_whl_t *)0 == (((* pstMngr)->pstWhls[nIdx]) = (ipgui_tmr_whl_t *)ipgui_mem_alloc(ipgui_smem, unPerWheelSize)))
         {
             goto __return;
         }
 
-        for (int i = 0; i < unPrimeX; i ++)
+        for (s32_t i = 0; i < unPrimeX; i ++)
             list_head_init(&(((* pstMngr)->pstWhls[nIdx])->stTmrList[i]));
     }
 
@@ -119,17 +119,17 @@ __IPGUI_API__ ipgui_err_t ipgui_timer_manager_create(ipgui_tick_t Preci, ipgui_t
 __return:
     if (*pstMngr)
         ipgui_mem_free(ipgui_smem, (void *)(* pstMngr));
-    for (int i = 0; i < nIdx; i ++)
+    for (s32_t i = 0; i < nIdx; i ++)
         ipgui_mem_free(ipgui_smem, (void *)(* pstMngr)->pstWhls[nIdx]);
     return IPGUI_ERR_MEM;
 }
 
 /* 如果没有定时器在运行，返回1，否则返回0 */
-__IPGUI_STATIC__ int no_timer_is_running(ipgui_twhl_mngr_t * pstMngr)
+__IPGUI_STATIC__ s32_t no_timer_is_running(ipgui_twhl_mngr_t * pstMngr)
 {
-    for (int i = 0; i < pstMngr->ubWhlNum; i ++)
+    for (s32_t i = 0; i < pstMngr->ubWhlNum; i ++)
     {
-        for (int j = 0; j < pstMngr->ubPerWhlSlotNum; j ++)
+        for (s32_t j = 0; j < pstMngr->ubPerWhlSlotNum; j ++)
             if (!list_empty(&(pstMngr->pstWhls[i]->stTmrList[j])))
                 return 0;
     }
@@ -141,15 +141,15 @@ __IPGUI_STATIC__ int no_timer_is_running(ipgui_twhl_mngr_t * pstMngr)
 __IPGUI_API__ ipgui_err_t ipgui_timer_manager_destroy(ipgui_twhl_mngr_t ** pstMngr)
 {
     (*pstMngr)->bValid = 0;
-    for (int i = 0; i < (* pstMngr)->ubWhlNum; i ++)
+    for (s32_t i = 0; i < (* pstMngr)->ubWhlNum; i ++)
         ipgui_mem_free(ipgui_smem, (void *)(* pstMngr)->pstWhls[i]);
     ipgui_mem_free(ipgui_smem, (void *)(* pstMngr));
-    *pstMngr = NULL;
+    *pstMngr = (ipgui_twhl_mngr_t *)0;
 
     return IPGUI_ERR_OK;
 }
 
-__IPGUI_API__ ipgui_err_t ipgui_timer_init(ipg_tmr_t * pstTimer, ipgui_tick_t unPeriod, unsigned int unLiveRound, pfCallback_t pfCallback, void * pvPrvdata)
+__IPGUI_API__ ipgui_err_t ipgui_timer_init(ipg_tmr_t * pstTimer, ipgui_tick_t unPeriod, u32_t unLiveRound, pfCallback_t pfCallback, void * pvPrvdata)
 {
 
     if(!pstTimer || !unLiveRound || !unPeriod)
@@ -166,7 +166,7 @@ __IPGUI_API__ ipgui_err_t ipgui_timer_init(ipg_tmr_t * pstTimer, ipgui_tick_t un
     return IPGUI_ERR_OK;
 }
 
-__IPGUI_API__ ipgui_err_t ipgui_timer_create(ipg_tmr_t ** pstTimer, ipgui_tick_t unPeriod, unsigned int unLiveRound, pfCallback_t pfCallback, void * pvPrvdata)
+__IPGUI_API__ ipgui_err_t ipgui_timer_create(ipg_tmr_t ** pstTimer, ipgui_tick_t unPeriod, u32_t unLiveRound, pfCallback_t pfCallback, void * pvPrvdata)
 {
     if (!pstTimer || !unLiveRound || !unPeriod)
         return IPGUI_ERR_PARAM;
@@ -184,11 +184,11 @@ __IPGUI_API__ ipgui_err_t ipgui_timer_destroy(ipg_tmr_t * pstTimer)
 }
 
 /* insert to lower level wheel */
-__IPGUI_STATIC__ void ipgui_timer_lock_target(ipgui_twhl_mngr_t * pstMngr, ipg_tmr_t * pstTimer, unsigned int * punSlotIdx, ipgui_tmr_whl_t ** ppstWhl)
+__IPGUI_STATIC__ void ipgui_timer_lock_target(ipgui_twhl_mngr_t * pstMngr, ipg_tmr_t * pstTimer, u32_t * punSlotIdx, ipgui_tmr_whl_t ** ppstWhl)
 {
-    int nExpire = pstTimer->Expire;
-    int nLockedWhl = 0, nCompensate = 0, nTemp, nLastOff = 1;
-    int nTickMax = pstMngr->ubPerWhlSlotNum;
+    s32_t nExpire = pstTimer->Expire;
+    s32_t nLockedWhl = 0, nCompensate = 0, nTemp, nLastOff = 1;
+    s32_t nTickMax = pstMngr->ubPerWhlSlotNum;
     nExpire /= pstMngr->Preci;/* 先归一化 */
 
     /* 这里的所有乘/除/取余运算都可以使用查表法优化 */
@@ -205,7 +205,7 @@ __IPGUI_STATIC__ void ipgui_timer_lock_target(ipgui_twhl_mngr_t * pstMngr, ipg_t
         nTemp = pstMngr->ubPerWhlSlotNum;
         nCompensate += pstMngr->ubPerWhlSlotNum - pstMngr->pstWhls[0]->unCurSlot;
 
-        for (int i = 1; i < nLockedWhl; i++) {
+        for (s32_t i = 1; i < nLockedWhl; i++) {
             IPGUI_MACRO_POWER(nTemp, i);
             nCompensate += (pstMngr->ubPerWhlSlotNum - pstMngr->pstWhls[i]->unCurSlot - 1) * nTemp;
         }
@@ -230,8 +230,8 @@ __IPGUI_API__ ipgui_err_t ipgui_timer_start(ipg_tmr_t * pstTimer, ipgui_twhl_mng
 {
     ipgui_tick_t SchdLine;
     ipgui_tmr_whl_t * pstWhl;
-    unsigned int unSlotIdx;
-    unsigned int unSkipRound;
+    u32_t unSlotIdx;
+    u32_t unSkipRound;
 
     /* 参数检查替换为ipgui_debug_assert(...) */
     if ((unDelay > IPGUI_TIME_TICK_MAX) || (unDelay % pstMngr->Preci))
@@ -294,7 +294,7 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ ipgui_err_t ipgui_timer_reload(ipg_tmr_t * pst
 
 #if IPGUI_TIMER_ALLOW_SUSPEND == 1
 /* 定时器的暂停功能暂时没用到 */
-__IPGUI_API__ ipgui_err_t ipgui_timer_set_suspend(ipg_tmr_t * pstTimer, int suspend)
+__IPGUI_API__ ipgui_err_t ipgui_timer_set_suspend(ipg_tmr_t * pstTimer, s32_t suspend)
 {
     pstTimer->suspend = !!suspend;
 }
@@ -305,7 +305,7 @@ __IPGUI_API__ ipgui_tick_t ipgui_next_timeout(ipgui_twhl_mngr_t * pstMngr)
 {
     ipgui_list_t * pstIndex;
 
-    for (int i = 0; i < pstMngr->ubWhlNum; ++ i) {
+    for (s32_t i = 0; i < pstMngr->ubWhlNum; ++ i) {
 
     }
 
@@ -318,9 +318,9 @@ __IPGUI_API__ ipgui_err_t ipgui_timer_loop(ipgui_twhl_mngr_t * pstMngr, ipgui_ti
     ipg_tmr_t * pstTimer;
     struct list_head * pstLinkBuck;
     ipgui_tmr_whl_t * pstWhl;
-    int nWhlIdx = -1;
-    unsigned int unCurSlot;
-    int loop = 0;
+    s32_t nWhlIdx = -1;
+    u32_t unCurSlot;
+    s32_t loop = 0;
 
     //ipgui_debug_assert(pstMngr->Preci == unPassTick, "unPassTick is not equal with Preci");
 

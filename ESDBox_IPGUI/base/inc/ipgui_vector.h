@@ -1,7 +1,6 @@
 #ifndef __IPGUI_VECTOR_H__
 #define __IPGUI_VECTOR_H__
 
-#include "ipgui_utils.h"
 #include "ipgui_graphic2.h"
 #include "ipgui_math.h"
 #include "ipgui_prim.h"

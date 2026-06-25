@@ -29,27 +29,22 @@ ipgui_tick_t ipgui_sys_tick_last = 0;
 
 #define IPGUI_MILLISECOND_PER_SECOND 1000u
 
-__IPGUI_STATIC__ unsigned int sec2millis(unsigned int unSecs)
+__IPGUI_STATIC__ u32_t sec2millis(u32_t unSecs)
 {
     return unSecs * IPGUI_MILLISECOND_PER_SECOND;
 }
 
-__IPGUI_STATIC__ unsigned int millis2sec(unsigned int unMillis)
-{
-    return unMillis / IPGUI_MILLISECOND_PER_SECOND;
-}
-
-__IPGUI_API__ unsigned int ipgui_tick2millis(ipgui_tick_t unTicks)
+__IPGUI_API__ u32_t ipgui_tick2millis(ipgui_tick_t unTicks)
 {
     return (unTicks * (IPGUI_MILLISECOND_PER_SECOND / IPGUI_TICK_PER_SECOND));
 }
 
-__IPGUI_API__ ipgui_tick_t ipgui_millis2tick(unsigned int unMillis)
+__IPGUI_API__ ipgui_tick_t ipgui_millis2tick(u32_t unMillis)
 {
     return (ipgui_tick_t)(unMillis * (IPGUI_TICK_PER_SECOND / IPGUI_MILLISECOND_PER_SECOND));
 }
 
-__IPGUI_API__ ipgui_tick_t ipgui_sec2tick(unsigned int unSecs)
+__IPGUI_API__ ipgui_tick_t ipgui_sec2tick(u32_t unSecs)
 {
     return ipgui_millis2tick(sec2millis(unSecs));
 }

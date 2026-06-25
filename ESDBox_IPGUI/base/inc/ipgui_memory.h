@@ -3,16 +3,9 @@
 
 #include "ipgui_utils.h"
 #include "ipgui_list.h"
-#include "ipgui_types.h"
 #include "ipgui_conf.h"
 
-IPGUI_HEADER_BEGIN _______________MARKER_______________
-
-#if defined(IPGUI_BASETYPE_64BIT)
-#define ipgui_mem_unit_type_t unsigned long long
-#else
-#define ipgui_mem_unit_type_t unsigned int
-#endif
+#define ipgui_mem_unit_type_t uintptr_t
 
 typedef struct stHeapControlBlock ipgui_mem_t;
 
@@ -59,7 +52,7 @@ struct usdinfo{
 
 extern ipgui_mem_t * ipgui_smem;
 
-extern unsigned char ipgui_memheap[IPGUI_SMEM_SIZE];
+extern u8_t ipgui_memheap[IPGUI_SMEM_SIZE];
 
 extern __IPGUI_API__ ipgui_mem_t *  ipgui_mem_init(void *,void *);
 
@@ -71,26 +64,26 @@ extern __IPGUI_API__ void *         ipgui_mem_calloc(ipgui_mem_t *, ipgui_mem_un
 
 extern __IPGUI_API__ void           ipgui_mem_free(ipgui_mem_t *, void *);
 
-extern __IPGUI_API__ ipgui_err_t    ipgui_mem_statistics_take(ipgui_mem_t *, ipgui_mem_unit_type_t *, ipgui_mem_unit_type_t *, unsigned char *, unsigned char *, unsigned char *);
+extern __IPGUI_API__ ipgui_err_t    ipgui_mem_statistics_take(ipgui_mem_t *, ipgui_mem_unit_type_t *, ipgui_mem_unit_type_t *, u8_t *, u8_t *, u8_t *);
 
 extern __IPGUI_API__ void *         ipgui_mem_realloc(ipgui_mem_t *, void *, ipgui_mem_unit_type_t);
 
 extern __IPGUI_API__ int            ipgui_strlen(const char *);
 
-extern __IPGUI_API__ void           ipgui_memset(void *, unsigned char, unsigned int);
+extern __IPGUI_API__ void           ipgui_memset(void *, u8_t, u32_t);
 
-extern __IPGUI_API__ void           ipgui_memset_0(void *, unsigned int);
+extern __IPGUI_API__ void           ipgui_memset_0(void *, u32_t);
 
-extern __IPGUI_API__ void           ipgui_memcpy(void *, const void *, unsigned int);
+extern __IPGUI_API__ void           ipgui_memcpy(void *, const void *, u32_t);
 
-extern __IPGUI_API__ int            ipgui_memcmp(const void *, const void *, unsigned int);
+extern __IPGUI_API__ int            ipgui_memcmp(const void *, const void *, u32_t);
 
-extern __IPGUI_API__ void           ipgui_mem_usage_statistics_take(unsigned char *, unsigned char *);
+extern __IPGUI_API__ void           ipgui_mem_usage_statistics_take(u8_t *, u8_t *);
 
 extern __IPGUI_API__ void *         ipgui_mem_alloc_def(ipgui_mem_unit_type_t size);
 
 extern __IPGUI_API__ void           ipgui_mem_free_def(void * p);
 
 extern __IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_mem_module_init(void);
-IPGUI_HEADER_END _______________MARKER_______________
+
 #endif

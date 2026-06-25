@@ -71,26 +71,10 @@
 #error "Unsupported C/C++ compiler"
 #endif
 
-/* os platform */
-#if defined (__alpha__) || defined (__ia64__) || defined (__x86_64__) \
-	|| defined (_WIN64) || defined (__LP64__) || defined (__LLP64__)
-    #if !defined IPGUI_BASETYPE_64BIT
-        #define IPGUI_BASETYPE_64BIT
-    #endif
-#endif
-
-enum ipgui_aligend_size
-{
-#ifdef IPGUI_BASETYPE_64BIT
-	/* All allocation sizes and addresses are aligned to 8 bytes. */
-	IPGUI_MEM_ALIGN_SIZE_MASK = 7U,
-    IPGUI_MEM_ALIGN_SIZE      = 8U,
-#else
-	/* All allocation sizes and addresses are aligned to 4 bytes. */
-	IPGUI_MEM_ALIGN_SIZE_MASK = 3U,
-    IPGUI_MEM_ALIGN_SIZE      = 4U,
-#endif
-};
+/* 对齐大小由 uintptr_t 宽度自动决定：
+ * 用户只需在 ipgui_types.h 中正确定义 uintptr_t（4 字节或 8 字节） */
+#define IPGUI_MEM_ALIGN_SIZE      sizeof(uintptr_t)
+#define IPGUI_MEM_ALIGN_SIZE_MASK (IPGUI_MEM_ALIGN_SIZE - 1)
 
 #define IPGUI_ROUND(x)                  ((int)((x) + 0.5))
 
@@ -128,7 +112,7 @@ enum ipgui_aligend_size
 #define IPGUI_ALIGN8(x)                     (((x) + 7) >> 3 << 3)
 
 /// align
-#define IPGUI_ALIGN(x, b)                   (((size_t)(x) + ((size_t)(b) - 1)) & ~((size_t)(b) - 1))
+#define IPGUI_ALIGN(x, b)                   (((uintptr_t)(x) + ((uintptr_t)(b) - 1)) & ~((uintptr_t)(b) - 1))
 
 /// align u32
 #define IPGUI_ALIGN_U32(x)               (((u32_t)(x) + (u32_t)3U) & ~((u32_t)3U))
@@ -137,23 +121,19 @@ enum ipgui_aligend_size
 #define IPGUI_ALIGN_U64(x, b)               (((u64_t)(x) + ((u64_t)(b) - 1)) & ~((u64_t)(b) - 1))
 
 /// align by pow2
-#define IPGUI_ALIGN_POW2(x)                 (((x) > 1)? (IPGUI_IS_POW2(x)? (x) : ((size_t)1 << (32 - tb_bits_cl0_u32_be((tb_uint32_t)(x))))) : 1)
+#define IPGUI_ALIGN_POW2(x)                 (((x) > 1)? (IPGUI_IS_POW2(x)? (x) : ((uintptr_t)1 << (32 - tb_bits_cl0_u32_be((tb_uint32_t)(x))))) : 1)
 
 /*
- * align by cpu bytes
+ * align by cpu bytes, derived from uintptr_t width
  */
-#if defined IPGUI_BASETYPE_64BIT
-#define IPGUI_ALIGN_CPU(x)                  IPGUI_ALIGN8(x)
-#else
-#define IPGUI_ALIGN_CPU(x)                  IPGUI_ALIGN4(x)
-#endif
+#define IPGUI_ALIGN_CPU(x)                  (((x) + IPGUI_MEM_ALIGN_SIZE_MASK) & ~((uintptr_t)IPGUI_MEM_ALIGN_SIZE_MASK))
 
 /// offsetof
-#define IPGUI_OFFSETOF(t, m)                ((size_t) &((t *)0)->m)
+#define IPGUI_OFFSETOF(t, m)                ((uintptr_t) &((t *)0)->m)
 
 /// container of 
-#define ipgui_offsetof(type, mem)           ((size_t) &((type *)0)->mem)
-#define ipgui_container_of(ptr, type, mem)  (type *)((char *)ptr -ipgui_offsetof(type, mem))
+#define ipgui_offsetof(type, mem)           ((uintptr_t) &((type *)0)->mem)
+#define ipgui_container_of(ptr, type, mem)  (type *)((s8_t *)ptr -ipgui_offsetof(type, mem))
 
 // /// memsizeof
 // #define tb_memsizeof(s, m)              sizeof(((s const*)0)->m)
@@ -169,8 +149,5 @@ enum ipgui_aligend_size
 
 /// swap
 #define IPGUI_SWAP(t, l, r)                 __IPGUI_MACRO_START t __p = (r); (r) = (l); (l) = __p; __IPGUI_MACRO_END
-
-#define ipgui_writel(a, v)                  (*(volatile unsigned int *)(a) = (v))
-#define ipgui_readl(a)                      (*(volatile unsigned int *)(a))
 
 #endif

@@ -28,28 +28,26 @@
 #define BLK_SZ_MIN (((sizeof(blk_node_t)) + IPGUI_MEM_ALIGN_SIZE - 1) & (~(ipgui_mem_unit_type_t)IPGUI_MEM_ALIGN_SIZE_MASK))
 
 /* init membox */
-__IPGUI_API__ ipgui_err_t ipgui_membox_init(ipgui_membox_t * mb, void * mem, unsigned short blk_sz, int blk_cnt)
+__IPGUI_API__ ipgui_err_t ipgui_membox_init(ipgui_membox_t * mb, void * mem, u16_t blk_sz, s32_t blk_cnt)
 {
-    int idx;
+    s32_t idx;
     blk_node_t * iblock;
 
-    if ((NULL == mem) || (blk_cnt < 1)) {
-        //ipgui_debug_error("error: invalid membox param\r\n");
+    if (((void *)0 == mem) || (blk_cnt < 1)) {
         return IPGUI_ERR_PARAM;
     }
 
     if (blk_sz < BLK_SZ_MIN) {
-        //ipgui_debug_warning("warning: block size is too little\r\n");
         blk_cnt = (blk_sz * blk_cnt) / BLK_SZ_MIN;
         blk_sz = BLK_SZ_MIN;
     }
 
-    mb->block.next = NULL;
+    mb->block.next = (blk_node_t *)0;
     iblock = &mb->block;
     iblock->next = (blk_node_t *)mem;
     for (idx = 0; idx < blk_cnt - 1; idx ++) {
-        iblock = (blk_node_t *)((unsigned char *)mem + idx * blk_sz);
-        iblock->next = (blk_node_t *)((unsigned char *)iblock + blk_sz);
+        iblock = (blk_node_t *)((s8_t *)mem + idx * blk_sz);
+        iblock->next = (blk_node_t *)((s8_t *)iblock + blk_sz);
     }
 
     mb->blk_cnt = blk_cnt;
@@ -60,13 +58,13 @@ __IPGUI_API__ ipgui_err_t ipgui_membox_init(ipgui_membox_t * mb, void * mem, uns
 }
 
 /* create membox */
-__IPGUI_API__ ipgui_membox_t * ipgui_membox_create(unsigned short blk_sz, int blk_cnt)
+__IPGUI_API__ ipgui_membox_t * ipgui_membox_create(u16_t blk_sz, s32_t blk_cnt)
 {
     void * p = (void *)0;
     if ((void *)0 == (p = ipgui_mem_alloc(ipgui_smem, sizeof(ipgui_membox_t) + blk_sz * blk_cnt)))
         return (void *)0;
 
-    if (IPGUI_ERR_OK != ipgui_membox_init((ipgui_membox_t *)p, (void *)((char *)p + sizeof(ipgui_membox_t)), blk_sz, blk_cnt))
+    if (IPGUI_ERR_OK != ipgui_membox_init((ipgui_membox_t *)p, (void *)((s8_t *)p + sizeof(ipgui_membox_t)), blk_sz, blk_cnt))
         ipgui_mem_free(ipgui_smem, p);
 
     return (ipgui_membox_t *)p;
@@ -105,7 +103,7 @@ __IPGUI_API__ void ipgui_membox_free(ipgui_membox_t * mb, void * addr)
     mb->blk_used --;
 }
 
-__IPGUI_API__ void ipgui_membox_expand(ipgui_membox_t * mb, void * mem, unsigned short blk_sz, int blk_cnt)
+__IPGUI_API__ void ipgui_membox_expand(ipgui_membox_t * mb, void * mem, u16_t blk_sz, s32_t blk_cnt)
 {
     if (!mem) return;
 }

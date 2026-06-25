@@ -49,9 +49,9 @@ const ipgui_angle_t ipgui_arctan_lut[23] = {
     IPGUI_ANGLE_ROUND(0.00001366 * IPGUI_ANGLE_PRECISION),      /* 0.00001366° */
 };
 
-__IPGUI_API__ int ipgui_sin(int angle)
+__IPGUI_API__ s32_t ipgui_sin(s32_t angle)
 {
-    int ret = 0;
+    s32_t ret = 0;
     angle       = angle % 360;
     if(angle < 0) angle = 360 + angle;
     if(angle < 90)
@@ -76,7 +76,7 @@ __IPGUI_API__ int ipgui_sin(int angle)
     return ret;
 }
 
-__IPGUI_API__ int ipgui_cos(int angle)
+__IPGUI_API__ s32_t ipgui_cos(s32_t angle)
 {
     return ipgui_sin(angle + 90);   /* cosα = sin(π/2+α) 或 cosα = sin(π/2－α) */
 }
@@ -105,13 +105,13 @@ __IPGUI_API__ float ipgui_float_sqrt(ipgui_scoord_t a)
 #endif
 
 /* 计算最小的b且满足b * b > a */
-__IPGUI_STATIC__ int ipgui_guess_sqrt_iter_init(int a)
+__IPGUI_STATIC__ s32_t ipgui_guess_sqrt_iter_init(s32_t a)
 {
-    int b;
+    s32_t b;
     b = a >> 1;
     while (1)
     {
-        if ((long long)b * (long long)b > a)
+        if ((s64_t)b * (s64_t)b > a)
             b = b >> 1;
         else 
             break;
@@ -120,7 +120,7 @@ __IPGUI_STATIC__ int ipgui_guess_sqrt_iter_init(int a)
 }
 
 /* r_frac_1000是小数部分，精确到小数点后3位 */
-__IPGUI_API__ ipgui_err_t ipgui_int_sqrt(int a, int * r_int, int * r_frac_1000)
+__IPGUI_API__ ipgui_err_t ipgui_int_sqrt(s32_t a, s32_t * r_int, s32_t * r_frac_1000)
 {
     if (a < 0)
         return IPGUI_ERR_PARAM;
@@ -136,18 +136,18 @@ __IPGUI_API__ ipgui_err_t ipgui_int_sqrt(int a, int * r_int, int * r_frac_1000)
     }
 
     /* 牛顿迭代法 */
-    long long x_iter;
+    s64_t x_iter;
     x_iter = ipgui_guess_sqrt_iter_init(a);/* 选合适的初始值 */
-    long long fx = (long long)x_iter * (long long)x_iter - a;
-    long long inte;
-    int fract;
+    s64_t fx = (s64_t)x_iter * (s64_t)x_iter - a;
+    s64_t inte;
+    s32_t fract;
 
-    long long last_fx;
+    s64_t last_fx;
     for (;;) {
         /* 使用整数部分迭代 */
         inte = (-fx) / (2 * x_iter);
         x_iter = inte + x_iter;
-        fx = (long long)x_iter * (long long)x_iter - a;
+        fx = (s64_t)x_iter * (s64_t)x_iter - a;
         if (fx == last_fx)
             break;
         last_fx = fx;
@@ -157,7 +157,7 @@ __IPGUI_API__ ipgui_err_t ipgui_int_sqrt(int a, int * r_int, int * r_frac_1000)
      */
     fract = (-fx) % (2 * x_iter);
 
-    int temp_int, temp_frac;
+    s32_t temp_int, temp_frac;
     if (fract < 0) {
         temp_int = x_iter - 1;
         /* 1 - fract/(2 * x_iter) / 1 * 1000 % */
@@ -170,7 +170,7 @@ __IPGUI_API__ ipgui_err_t ipgui_int_sqrt(int a, int * r_int, int * r_frac_1000)
         temp_int = x_iter;
     }
     x_iter = temp_int * 1000 + temp_frac;
-    fx = (long long)((int)x_iter * (int)x_iter) - (long long)(a * 1000000);
+    fx = (s64_t)((s32_t)x_iter * (s32_t)x_iter) - (s64_t)(a * 1000000);
     inte = (-fx) / (2 * x_iter);
     x_iter = inte + x_iter;
 
@@ -181,11 +181,11 @@ __IPGUI_API__ ipgui_err_t ipgui_int_sqrt(int a, int * r_int, int * r_frac_1000)
 }
 
 __IPGUI_API__ ipgui_err_t ipgui_int_sqrt_optimized(
-    int a, int * r_int, int * r_frac_1000)
+    s32_t a, s32_t * r_int, s32_t * r_frac_1000)
 {
     ipgui_err_t ret;
     if (a < 50) {    
-        int temp;
+        s32_t temp;
         ret = ipgui_int_sqrt(a * 64, r_int, r_frac_1000);
         if(ret != IPGUI_ERR_OK) 
             return ret;
@@ -201,8 +201,8 @@ __IPGUI_API__ ipgui_err_t ipgui_int_sqrt_optimized(
 }
 
 /* 求log(a)的值，转化为2^x = a--->即求f(x) = 2^x - a = 0 的解 */
-__IPGUI_API__ ipgui_err_t ipgui_log2(int a, int * r_i, int * r_f)
+__IPGUI_API__ ipgui_err_t ipgui_log2(s32_t a, s32_t * r_i, s32_t * r_f)
 {
-    int abs_a = a < 0 ? (-a) : a;
+    s32_t abs_a = a < 0 ? (-a) : a;
     
 }

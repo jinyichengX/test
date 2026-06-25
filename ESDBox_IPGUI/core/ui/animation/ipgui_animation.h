@@ -15,7 +15,7 @@ typedef enum {
 typedef struct {
     /* 动画函数 */
     ipgui_anim_func_t      anim_func;
-    ipgui_tick_t           t1, t2;
+    ipgui_tick_t           t1, t2;      /* t1 t2不是绝对时间，是函数上的区间 */
 
     /* 循环类型，默认正向FORWARD */
     ipgui_anim_loop_type_t loop_type;

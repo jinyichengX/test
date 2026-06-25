@@ -32,13 +32,13 @@ static inline void ipgui_norm_queue_item_read(ipgui_norm_queue_t * q, void * des
 }
 
 /* check if queue is full */
-static inline int ipgui_norm_queue_full(ipgui_norm_queue_t * q)
+static inline s32_t ipgui_norm_queue_full(ipgui_norm_queue_t * q)
 {
     return (q->length == q->item_cnt);
 }
 
 /* check if queue is empty */
-static inline int ipgui_norm_queue_empty(ipgui_norm_queue_t * q)
+static inline s32_t ipgui_norm_queue_empty(ipgui_norm_queue_t * q)
 {
     return (q->length == 0);
 }

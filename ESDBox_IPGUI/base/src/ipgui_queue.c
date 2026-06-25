@@ -24,15 +24,13 @@
 
 #include "ipgui_queue.h"
 #include "ipgui_memory.h"
-#include <string.h>
-#include <stdint.h>
 
 #define LCHILD_IDX(i)           (((i) << 1) + 1)
 #define RCHILD_IDX(i)           (((i) + 1) << 1)
 #define PARENT_IDX(i)           (((i) - 1) / 2)
 #define BHP_ITEM(bh,n)          ((void *)((bh)->pbPool + (bh)->usItemSize * (n)))
 
-#define FREE_SlOT_IDX_INVALID ((unsigned short)(-1))
+#define FREE_SlOT_IDX_INVALID ((u16_t)(-1))
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_item_increase(ipgui_queue_t * pstQ)
 {
@@ -44,45 +42,45 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_item_decrease(ipgui_queue_t *
     -- pstQ->usItemUsed;
 }
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ int ipgui_queue_is_full(ipgui_queue_t * pstQ)
+__IPGUI_STATIC__ __IPGUI_INLINE__ s32_t ipgui_queue_is_full(ipgui_queue_t * pstQ)
 {
     return (pstQ->usItemUsed == pstQ->usItemCnt);
 }
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ int ipgui_queue_is_empty(ipgui_queue_t * pstQ)
+__IPGUI_STATIC__ __IPGUI_INLINE__ s32_t ipgui_queue_is_empty(ipgui_queue_t * pstQ)
 {
     return !pstQ->usItemUsed;
 }
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_get_free_slot(ipgui_queue_t * pstQ, unsigned short * pusSlot)
+__IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_get_free_slot(ipgui_queue_t * pstQ, u16_t * pusSlot)
 {
-    unsigned int usFirstSlot = pstQ->usFirstFreeSlot;
+    u32_t usFirstSlot = pstQ->usFirstFreeSlot;
     pstQ->usFirstFreeSlot = pstQ->pstFreeSlot[usFirstSlot].usFreeSlot;
     * pusSlot = usFirstSlot;
 }
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_return_free_slot(ipgui_queue_t * pstQ, unsigned short usSlot)
+__IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_return_free_slot(ipgui_queue_t * pstQ, u16_t usSlot)
 {
     pstQ->pstFreeSlot[usSlot].usFreeSlot = pstQ->usFirstFreeSlot;
     pstQ->usFirstFreeSlot = usSlot;
 }
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_item_push(ipgui_queue_t * pstQ, unsigned short usSlot, void * pvItem)
+__IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_item_push(ipgui_queue_t * pstQ, u16_t usSlot, void * pvItem)
 {   
     memcpy(&pstQ->pbDpool[usSlot * pstQ->usItemSize], pvItem, pstQ->usItemSize);
 }
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_item_fetch(ipgui_queue_t * pstQ, unsigned short usSlot, void * pvItem)
+__IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_item_fetch(ipgui_queue_t * pstQ, u16_t usSlot, void * pvItem)
 {   
     memcpy(pvItem, &pstQ->pbDpool[usSlot * pstQ->usItemSize], pstQ->usItemSize);
 }
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ int binary_heap_full(bhp_t * b)
+__IPGUI_STATIC__ __IPGUI_INLINE__ s32_t binary_heap_full(bhp_t * b)
 {
     return b->usItemCnt == b->usItemMax;
 }
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ int binary_heap_empty(bhp_t * b)
+__IPGUI_STATIC__ __IPGUI_INLINE__ s32_t binary_heap_empty(bhp_t * b)
 {
     return b->usItemCnt == 0;
 }
@@ -108,9 +106,9 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void binary_heap_item_decrease(bhp_t * b)
 }
 
 /* init binary heap */
-__IPGUI_API__ int binary_heap_init(bhp_t * pstBhp, uint16_t usItemSize, uint16_t usItemMax, int (*pfCompare)(void *, void *))
+__IPGUI_API__ s32_t binary_heap_init(bhp_t * pstBhp, u16_t usItemSize, u16_t usItemMax, s32_t (*pfCompare)(void *, void *))
 {
-    if (NULL == pstBhp || 0 == usItemSize || 0 == pfCompare)
+    if ((bhp_t *)0 == pstBhp || 0 == usItemSize || 0 == pfCompare)
         goto _return;
 
     pstBhp->usItemCnt = 0;
@@ -124,14 +122,14 @@ _return:
 
 #if USE_BINARY_HEAP_STATIC == 0
 /* create binary heap */
-__IPGUI_API__ bhp_t * binary_heap_create(uint16_t usItemSize, uint16_t usItemMax, int (*pfCompare)(void *, void *))
+__IPGUI_API__ bhp_t * binary_heap_create(u16_t usItemSize, u16_t usItemMax, s32_t (*pfCompare)(void *, void *))
 {
-    bhp_t * pstBhp = NULL;
+    bhp_t * pstBhp = (bhp_t *)0;
 
     if(usItemSize == 0 || usItemMax == 0)
         goto _return;
 
-    if(NULL == (pstBhp = (bhp_t *)ipgui_mem_alloc(ipgui_smem, sizeof(bhp_t) + usItemSize * usItemMax)))
+    if((bhp_t *)0 == (pstBhp = (bhp_t *)ipgui_mem_alloc(ipgui_smem, sizeof(bhp_t) + usItemSize * usItemMax)))
         goto _return;
 
     if(0 != binary_heap_init(pstBhp, usItemSize, usItemMax, pfCompare))
@@ -152,14 +150,14 @@ __IPGUI_API__ void binary_heap_destroy(bhp_t * pstBhp)
 #endif
 
 /* insert item */
-__IPGUI_API__ int binary_heap_insert(bhp_t * pstBhp, void * pvItem, uint16_t usItemSize)
+__IPGUI_API__ s32_t binary_heap_insert(bhp_t * pstBhp, void * pvItem, u16_t usItemSize)
 {
-    uint16_t usPholeIdx;
-    uint16_t usHoleIdx = 0;
-    void * pvPholeItem = NULL;
-    void * pvHoleItem = NULL;
+    u16_t usPholeIdx;
+    u16_t usHoleIdx = 0;
+    void * pvPholeItem = (void *)0;
+    void * pvHoleItem = (void *)0;
 
-    if(pstBhp == NULL || usItemSize != pstBhp->usItemSize || pvItem == NULL)
+    if(pstBhp == (bhp_t *)0 || usItemSize != pstBhp->usItemSize || pvItem == (void *)0)
         return -1;
     
     if(binary_heap_full(pstBhp))
@@ -193,13 +191,13 @@ __IPGUI_API__ int binary_heap_insert(bhp_t * pstBhp, void * pvItem, uint16_t usI
 }
 
 /* fetch first item */
-__IPGUI_API__ int binary_heap_fetch(bhp_t * pstBhp, void * pvItem, uint16_t usItemSize)
+__IPGUI_API__ s32_t binary_heap_fetch(bhp_t * pstBhp, void * pvItem, u16_t usItemSize)
 {
-    uint16_t usLchdIdx, usRchdIdx, usHoleIdx, usChdIdx;
+    u16_t usLchdIdx, usRchdIdx, usHoleIdx, usChdIdx;
     void * pvHoleItem, * pvLchdItem, * pvRchdItem, * pvChdItem;
-    void * pvLastItem = NULL;
+    void * pvLastItem = (void *)0;
 
-    if(pstBhp == NULL || usItemSize != pstBhp->usItemSize || pvItem == NULL)
+    if(pstBhp == (bhp_t *)0 || usItemSize != pstBhp->usItemSize || pvItem == (void *)0)
         return -1;
 
     if(binary_heap_empty(pstBhp))
@@ -216,7 +214,7 @@ __IPGUI_API__ int binary_heap_fetch(bhp_t * pstBhp, void * pvItem, uint16_t usIt
     pvLchdItem = BHP_ITEM(pstBhp, usLchdIdx);
     pvRchdItem = BHP_ITEM(pstBhp, usRchdIdx);
 
-    usChdIdx   = (*(int *)pvLchdItem < *(int *)pvRchdItem) ? usLchdIdx : usRchdIdx;
+    usChdIdx   = (*(s32_t *)pvLchdItem < *(s32_t *)pvRchdItem) ? usLchdIdx : usRchdIdx;
     pvChdItem  = BHP_ITEM(pstBhp, usChdIdx);
 
     pvLastItem = BHP_ITEM(pstBhp, pstBhp->usItemCnt - 1);
@@ -243,7 +241,7 @@ __IPGUI_API__ int binary_heap_fetch(bhp_t * pstBhp, void * pvItem, uint16_t usIt
 }
 
 /* compare function for binary heap */
-__IPGUI_STATIC__ int ipgui_queue_prio_compare(void * pvMap1, void * pvMap2)
+__IPGUI_STATIC__ s32_t ipgui_queue_prio_compare(void * pvMap1, void * pvMap2)
 {
     prio_map_slot_t * pstSlot1 = (prio_map_slot_t *)pvMap1;
     prio_map_slot_t * pstSlot2 = (prio_map_slot_t *)pvMap2;
@@ -252,7 +250,7 @@ __IPGUI_STATIC__ int ipgui_queue_prio_compare(void * pvMap1, void * pvMap2)
 
 /* 不用 */
 #if 0
-__IPGUI_STATIC__ int ipgui_queue_prio_compare1(void * pvMap1, void * pvMap2)
+__IPGUI_STATIC__ s32_t ipgui_queue_prio_compare1(void * pvMap1, void * pvMap2)
 {
     prio_map_slot_t * pstSlot1 = (prio_map_slot_t *)pvMap1;
     prio_map_slot_t * pstSlot2 = (prio_map_slot_t *)pvMap2;
@@ -261,11 +259,11 @@ __IPGUI_STATIC__ int ipgui_queue_prio_compare1(void * pvMap1, void * pvMap2)
 #endif
 
 /* create queue */
-__IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_queue_create(ipgui_queue_t ** ppstQ, unsigned short usItemSize, unsigned short usItemCnt)
+__IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_queue_create(ipgui_queue_t ** ppstQ, u16_t usItemSize, u16_t usItemCnt)
 {
     void * pvSlots;
     bhp_t * pstBhp;
-    * ppstQ = NULL;
+    * ppstQ = (ipgui_queue_t *)0;
 
     if( !usItemSize || !usItemCnt )
         return IPGUI_ERR_PARAM;
@@ -293,7 +291,7 @@ __IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_queue_create(ipgui_queue_t ** pps
     (* ppstQ)->stBhp = pstBhp;
     binary_heap_init((* ppstQ)->stBhp, sizeof(prio_map_slot_t), usItemCnt, ipgui_queue_prio_compare);
     (* ppstQ)->usFirstFreeSlot = 0;
-    for( int i = 0; i < usItemCnt; ++ i )
+    for( s32_t i = 0; i < usItemCnt; ++ i )
     {
         (* ppstQ)->pstFreeSlot[i].usFreeSlot = i + 1;
     }
@@ -317,9 +315,9 @@ __IPGUI_API__ __IPGUI_DEINIT__ ipgui_err_t ipgui_queue_destroy(ipgui_queue_t ** 
 }
 
 /* publish item to queue */
-__IPGUI_API__ ipgui_err_t ipgui_queue_publish(ipgui_queue_t * pstQ, void * pvItem, unsigned short usItemSize, ipgui_prio_t prio)
+__IPGUI_API__ ipgui_err_t ipgui_queue_publish(ipgui_queue_t * pstQ, void * pvItem, u16_t usItemSize, ipgui_prio_t prio)
 {
-    unsigned short usSlot;
+    u16_t usSlot;
     prio_map_slot_t stMap;
 
     if( usItemSize != pstQ->usItemSize )
@@ -340,9 +338,9 @@ __IPGUI_API__ ipgui_err_t ipgui_queue_publish(ipgui_queue_t * pstQ, void * pvIte
 }
 
 /* fetch item from queue */
-__IPGUI_API__ ipgui_err_t ipgui_queue_subscribe(ipgui_queue_t * pstQ, void * pvItem, unsigned short usItemSize)
+__IPGUI_API__ ipgui_err_t ipgui_queue_subscribe(ipgui_queue_t * pstQ, void * pvItem, u16_t usItemSize)
 {    
-    unsigned short usSlot;
+    u16_t usSlot;
     prio_map_slot_t stMap;
 
     if( usItemSize != pstQ->usItemSize )

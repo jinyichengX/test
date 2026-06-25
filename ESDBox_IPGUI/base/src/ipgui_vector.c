@@ -1,8 +1,8 @@
 #include "ipgui_vector.h"
 
 #define IPGUI_VEC_SCALED_MAGICNUM_FLOAT     0.607253f                                                                                                                   /* the magic number is used to the pesudo-rotated vector */
-#define IPGUI_VEC_SCALED_MAGICNUM_INT       (int)(IPGUI_VEC_SCALED_MAGICNUM_FLOAT * (float)(1 << IPGUI_PIXEL_BITS))                                                     /* integer part */
-#define IPGUI_VEC_SCALED_MAGICNUM_FRACT     (int)(((IPGUI_VEC_SCALED_MAGICNUM_FLOAT * (float)(1 << IPGUI_PIXEL_BITS)) * 100)  - (IPGUI_VEC_SCALED_MAGICNUM_INT * 100))  /* fract part, percent */
+#define IPGUI_VEC_SCALED_MAGICNUM_INT       (s32_t)(IPGUI_VEC_SCALED_MAGICNUM_FLOAT * (float)(1 << IPGUI_PIXEL_BITS))                                                     /* integer part */
+#define IPGUI_VEC_SCALED_MAGICNUM_FRACT     (s32_t)(((IPGUI_VEC_SCALED_MAGICNUM_FLOAT * (float)(1 << IPGUI_PIXEL_BITS)) * 100)  - (IPGUI_VEC_SCALED_MAGICNUM_INT * 100))  /* fract part, percent */
 #define IPGUI_VEC_SCALED_MAGICNUM           ((IPGUI_VEC_SCALED_MAGICNUM_INT * 100)  + IPGUI_VEC_SCALED_MAGICNUM_FRACT)
 #define IPGUI_VEC_ROTATE_ITER_MAX           IPGUI_ARRAY_LEN(ipgui_arctan_lut)                                                                                           /* the value must be same with arctan lookup table size */                     /* the value must be same with arctan lookup table size */
 
@@ -78,8 +78,8 @@ __IPGUI_STATIC__ void ipgui_vector_pesudo_rotate(ipgui_svector_t * v,
     }
 
     ipgui_scoord_t offx, offy;
-    int compensate = 0, compensate_temp;
-    for (int i = 0; i < IPGUI_VEC_ROTATE_ITER_MAX; i++) {
+    s32_t compensate = 0, compensate_temp;
+    for (s32_t i = 0; i < IPGUI_VEC_ROTATE_ITER_MAX; i++) {
         if (angle > 0) {
             if (temp_v.y < 0) compensate_temp = -compensate;
             else compensate_temp = compensate;
@@ -116,7 +116,7 @@ __IPGUI_API__ void ipgui_vector_pesudo_polarization(
     ipgui_angle_t angle_tmp = 0;
     ipgui_svector_t temp_v;
     ipgui_scoord_t for_exc;
-    char sign;
+    s8_t sign;
 
     if (!v || !angle || !mod) return;
 
@@ -139,8 +139,8 @@ __IPGUI_API__ void ipgui_vector_pesudo_polarization(
     }
 
     ipgui_scoord_t offx, offy;
-    int compensate = 0, compensate_temp;
-    for (int i = 0; i < IPGUI_VEC_ROTATE_ITER_MAX; i++) {
+    s32_t compensate = 0, compensate_temp;
+    for (s32_t i = 0; i < IPGUI_VEC_ROTATE_ITER_MAX; i++) {
         if (temp_v.y < 0) {
             if (temp_v.y < 0) compensate_temp = -compensate;
             else compensate_temp = compensate;

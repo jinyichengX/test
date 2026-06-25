@@ -26,7 +26,7 @@
 #include <string.h>
 
 /* the global heap */
-unsigned char ipgui_memheap[IPGUI_SMEM_SIZE] IPGUI_ST_ALIGN(IPGUI_MEM_ALIGN_SIZE);
+u8_t ipgui_memheap[IPGUI_SMEM_SIZE] IPGUI_ST_ALIGN(IPGUI_MEM_ALIGN_SIZE);
 ipgui_mem_t * ipgui_smem = NULL;
 
 /* align the addr or size up and down */
@@ -444,18 +444,18 @@ static void mem_usage_calc(ipgui_mem_t *pstMem)
 #endif
 
 /* take heap statistics */
-__IPGUI_API__ ipgui_err_t ipgui_mem_statistics_take(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t *HeapSize, ipgui_mem_unit_type_t * StartAddr, unsigned char * pubStrat, unsigned char * pubUsg1, unsigned char * pubUsg2)
+__IPGUI_API__ ipgui_err_t ipgui_mem_statistics_take(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t *HeapSize, ipgui_mem_unit_type_t * StartAddr, u8_t * pubStrat, u8_t * pubUsg1, u8_t * pubUsg2)
 {
 	if (pstMem == NULL)
         return IPGUI_ERR_PARAM;
 
 	if (HeapSize != NULL) * HeapSize = ((ipgui_mem_t *)pstMem)->HeapSize;
 	if (StartAddr!= NULL) * StartAddr = ((ipgui_mem_t *)pstMem)->StartAddr;
-	if (pubStrat != NULL) * pubStrat = (unsigned char)(((ipgui_mem_t *)pstMem)->strat.alloc_pttn);
+	if (pubStrat != NULL) * pubStrat = (u8_t)(((ipgui_mem_t *)pstMem)->strat.alloc_pttn);
 #if IPGUI_MEM_STATISTICS_EN == 1
 	mem_usage_calc( pstMem );
-	if (pubUsg1 != NULL) * pubUsg1 = (unsigned char)((ipgui_mem_t *)pstMem)->bUsageInt;
-	if (pubUsg2 != NULL) * pubUsg2 = (unsigned char)((ipgui_mem_t *)pstMem)->bUsageFlo;
+	if (pubUsg1 != NULL) * pubUsg1 = (u8_t)((ipgui_mem_t *)pstMem)->bUsageInt;
+	if (pubUsg2 != NULL) * pubUsg2 = (u8_t)((ipgui_mem_t *)pstMem)->bUsageFlo;
 #endif
 	return IPGUI_ERR_OK;
 }
@@ -463,12 +463,12 @@ __IPGUI_API__ ipgui_err_t ipgui_mem_statistics_take(ipgui_mem_t * pstMem, ipgui_
 static const char us = sizeof(ipgui_mem_unit_type_t);
 
 /* memory set */
-__IPGUI_API__ void ipgui_memset(void * pv, unsigned char v, unsigned int len)
+__IPGUI_API__ void ipgui_memset(void * pv, u8_t v, u32_t len)
 {   
     memset(pv, v, len);
     // int seg;
     // ipgui_mem_unit_type_t up;
-    // unsigned char * pe = (unsigned char *)pv + len;
+    // u8_t * pe = (u8_t *)pv + len;
     // ipgui_mem_unit_type_t vex = 0;
 
     // if (!len || !pv)
@@ -476,7 +476,7 @@ __IPGUI_API__ void ipgui_memset(void * pv, unsigned char v, unsigned int len)
 
     // if (len < 8) {
     //     for( int i = 0; i < len; i++ )
-    //         ((unsigned char *)pv)[i] = v;
+    //         ((u8_t *)pv)[i] = v;
     //     return;
     // }
 
@@ -489,7 +489,7 @@ __IPGUI_API__ void ipgui_memset(void * pv, unsigned char v, unsigned int len)
     // len -= seg;
 
     // while (seg --)
-    //     ((unsigned char *)pv)[seg] = v;
+    //     ((u8_t *)pv)[seg] = v;
 
     // seg = len / us;
     // len -= seg * us;
@@ -501,7 +501,7 @@ __IPGUI_API__ void ipgui_memset(void * pv, unsigned char v, unsigned int len)
     //     (pe - len)[seg] = v;
 }
 
-__IPGUI_API__ void ipgui_memset_0(void * pv, unsigned int len)
+__IPGUI_API__ void ipgui_memset_0(void * pv, u32_t len)
 {
     ipgui_memset(pv, 0, len);
 }
@@ -514,13 +514,13 @@ __IPGUI_API__ int ipgui_strlen(const char * str)
     return len;
 }
 
-__IPGUI_API__ void ipgui_memcpy(void * dst, const void * src, unsigned int len)
+__IPGUI_API__ void ipgui_memcpy(void * dst, const void * src, u32_t len)
 {
     /* not support */
     memcpy(dst, src, len);
 }
 
-__IPGUI_API__ int ipgui_memcmp(const void * dst, const void * src, unsigned int len)
+__IPGUI_API__ int ipgui_memcmp(const void * dst, const void * src, u32_t len)
 {
     /* not support */
     return memcmp(dst, src, len);
@@ -532,7 +532,7 @@ __IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_mem_module_init(void)
     return ipgui_smem ? IPGUI_ERR_OK : IPGUI_ERR_NOK;
 }
 
-__IPGUI_API__ void ipgui_mem_usage_statistics_take(unsigned char * pubUsg1, unsigned char * pubUsg2)
+__IPGUI_API__ void ipgui_mem_usage_statistics_take(u8_t * pubUsg1, u8_t * pubUsg2)
 {
     ipgui_mem_statistics_take( ipgui_smem, NULL, NULL, NULL, pubUsg1, pubUsg2);
 }
