@@ -14,6 +14,7 @@
 #include "ipgui_draw_arc.h"
 #include "ipgui_image.h"
 #include "ipgui_time.h"
+#include "ipgui_animation.h"
 #undef main
 
 extern __IPGUI_API__ ipgui_err_t ipgui_sdl_mouse_event_poll(void * priv_data, ipgui_input_src_evt_t * raw_evt);
@@ -37,7 +38,7 @@ ipgui_scr_drv_t sdl_drv = {
     .flush       = sdl_flush,
 };
 
-static u8_t main_screen_frame_buf[1 * 4];
+static u8_t main_screen_frame_buf[800 * 4];
 
 void draw_main_screen_backgroud_color(ipgui_scr_t * scr, ipgui_surf_t * surf)
 {
@@ -317,6 +318,9 @@ int main(void)
 
         ipgui_dispatch_input_event(&dispatcher);
 
+        /* 驱动所有动画，需在渲染之前调用 */
+        ipgui_anim_update_all();
+
         ipgui_screen_render(&main_screen);
 
         /* 每帧标记渐变动画控件为脏，确保持续重绘 */
@@ -339,9 +343,9 @@ int main(void)
             ipgui_widget_mark_dirty(widget3);
 
         /* 心跳 */
-        ipgui_loop_def(2);
+        ipgui_loop_def(1);
         ipgui_tick_inc();
-        Sleep(2);
+        Sleep(1);
 
     }
 

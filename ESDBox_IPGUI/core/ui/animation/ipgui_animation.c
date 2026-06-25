@@ -12,16 +12,17 @@ typedef enum {
     IPGUI_ANIM_STATE_PAUSED,
 }ipgui_anim_state_t;
 
-typedef struct {
+struct ipgui_anim_t {
     struct list_head   node;
     ipgui_anim_dsc_t   dsc;
     ipgui_anim_state_t state;
     ipgui_tick_t       anim_start_tick; /* animation start tick */
-    ipgui_tick_t       duration;        /* t2 - t1 */
-    u32_t              loop_count_orig; /* 原始loop_count，start时恢复 */
+    ipgui_tick_t       duration;        /* dsc.t2 - dsc.t1 */
+    u32_t              loop_cnt_left;   /* 剩余循环次数，运行时递减 */
     ipgui_tick_t       pause_tick;      /* 暂停时刻的时间戳 */
-    char               forward;         /* 实时状态，1=正向(t1->t2), 0=反向(t2->t1) */
-} ipgui_anim_t;
+    s8_t               forward;         /* 实时状态，1=正向(t1->t2), 0=反向(t2->t1) */
+    ipgui_anim_value_t value;           /* 当前动画值 */
+};
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ 
 void anim_state_set(ipgui_anim_t * anim, ipgui_anim_state_t state)
@@ -70,16 +71,37 @@ __IPGUI_API__ ipgui_anim_t * ipgui_anim_create(const ipgui_anim_dsc_t * dsc)
     if (!anim) {
         return (ipgui_anim_t *)0;
     }
+
     anim->dsc = * dsc;
-    anim->state = IPGUI_ANIM_STATE_READY;
     anim->duration = anim->dsc.t2 - anim->dsc.t1;
     anim->forward = (dsc->loop_type != IPGUI_ANIM_LOOP_TYPE_BACKWARD);
-    anim->loop_count_orig = dsc->loop_count;
+    anim->state = IPGUI_ANIM_STATE_READY;
+    anim->value = anim->dsc.anim_func(anim->forward ? anim->dsc.t1 : anim->dsc.t2);
     list_add(&anim->node, &anim_ready_list);
     return anim;
 }
 
 __IPGUI_API__ ipgui_err_t ipgui_anim_start(ipgui_anim_t * anim)
+{
+    if (!anim) return IPGUI_ERR_PARAM;
+
+    switch (anim->state) {
+        case IPGUI_ANIM_STATE_READY:
+            anim->anim_start_tick = ipgui_tick_now() + anim->dsc.start_delay;
+            anim->forward = (anim->dsc.loop_type != IPGUI_ANIM_LOOP_TYPE_BACKWARD);
+            anim->loop_cnt_left = anim->dsc.loop_count;
+            anim_state_set(anim, IPGUI_ANIM_STATE_RUNNING);
+            return IPGUI_ERR_OK;
+        case IPGUI_ANIM_STATE_RUNNING:
+            return IPGUI_ERR_ANIM_ALREADY_RUNNING;
+        case IPGUI_ANIM_STATE_PAUSED:
+            return IPGUI_ERR_ANIM_IS_PAUSED;
+        default:
+            return IPGUI_ERR_NOK;
+    }
+}
+
+__IPGUI_API__ ipgui_err_t ipgui_anim_pause(ipgui_anim_t * anim)
 {
     if (!anim) return IPGUI_ERR_PARAM;
 
@@ -92,12 +114,14 @@ __IPGUI_API__ ipgui_err_t ipgui_anim_start(ipgui_anim_t * anim)
             return IPGUI_ERR_OK;
         case IPGUI_ANIM_STATE_PAUSED:
             return IPGUI_ERR_ANIM_ALREADY_PAUSED;
+        default:
+            return IPGUI_ERR_NOK;
     }
 }
 
 __IPGUI_API__ ipgui_err_t ipgui_anim_resume(ipgui_anim_t * anim)
 {
-    if (!anim) return;
+    if (!anim) return IPGUI_ERR_PARAM;
 
     switch (anim->state) {
         case IPGUI_ANIM_STATE_READY:
@@ -108,20 +132,34 @@ __IPGUI_API__ ipgui_err_t ipgui_anim_resume(ipgui_anim_t * anim)
             anim->anim_start_tick += (ipgui_tick_now() - anim->pause_tick);
             anim_state_set(anim, IPGUI_ANIM_STATE_RUNNING);
             return IPGUI_ERR_OK;
+        default:
+            return IPGUI_ERR_NOK;
     }
 }
 
 __IPGUI_API__ ipgui_err_t ipgui_anim_stop(ipgui_anim_t * anim)
 {
-    if (!anim) return;
+    if (!anim) return IPGUI_ERR_PARAM;
 
     if (anim->state == IPGUI_ANIM_STATE_READY) {
         return IPGUI_ERR_ANIM_NOT_PAUSED_OR_RUNNING;
     }
 
-    anim->dsc.loop_count = anim->loop_count_orig;
+    if (anim->dsc.auto_destroy) {
+        ipgui_anim_destroy(anim);
+        return IPGUI_ERR_OK;
+    }
+
+    anim->loop_cnt_left = anim->dsc.loop_count;
     anim_state_set(anim, IPGUI_ANIM_STATE_READY);
     return IPGUI_ERR_OK;
+}
+
+__IPGUI_API__ void ipgui_anim_destroy(ipgui_anim_t * anim)
+{
+    if (!anim) return;
+    list_del(&anim->node);
+    anim_free(anim);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__
@@ -134,10 +172,14 @@ void anim_cycle_restart(ipgui_anim_t * anim, ipgui_tick_t now)
 __IPGUI_STATIC__ __IPGUI_INLINE__
 void anim_cycle_end(ipgui_anim_t * anim, ipgui_tick_t now)
 {
-    if (anim->dsc.loop_count > 0) {
-        anim->dsc.loop_count --;
-        if (anim->dsc.loop_count == 0) {
-            anim_state_set(anim, IPGUI_ANIM_STATE_READY);
+    if (anim->loop_cnt_left > 0) {
+        anim->loop_cnt_left --;
+        if (anim->loop_cnt_left == 0) {
+            if (anim->dsc.auto_destroy) {
+                ipgui_anim_destroy(anim);
+            } else {
+                anim_state_set(anim, IPGUI_ANIM_STATE_READY);
+            }
             return;
         }
     }
@@ -149,7 +191,6 @@ __IPGUI_API__ void ipgui_anim_update_all(void)
     ipgui_anim_t * anim;
     ipgui_tick_t now = ipgui_tick_now();
     ipgui_tick_t passed;
-    ipgui_anim_value_t value;
 
     struct list_head * pos, * head;
     list_for_each_safe(pos, head, &anim_running_list) {
@@ -166,11 +207,11 @@ __IPGUI_API__ void ipgui_anim_update_all(void)
         passed = now - anim->anim_start_tick;
         passed = IPGUI_MIN(passed, anim->duration);
 
-        /* calc animation current value */
+        /* calc & store current value */
         if (anim->forward) {
-            value = anim->dsc.anim_func(anim->dsc.t1 + passed);
+            anim->value = anim->dsc.anim_func(anim->dsc.t1 + passed);
         } else {
-            value = anim->dsc.anim_func(anim->dsc.t2 - passed);
+            anim->value = anim->dsc.anim_func(anim->dsc.t2 - passed);
         }
 
         /* one cycle not end */
@@ -198,4 +239,9 @@ __IPGUI_API__ void ipgui_anim_update_all(void)
             break;
         }
     }
+}
+
+__IPGUI_API__ ipgui_anim_value_t ipgui_anim_get_value(ipgui_anim_t * anim)
+{
+    return anim ? anim->value : 0;
 }

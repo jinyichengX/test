@@ -25,6 +25,20 @@ typedef struct {
 
     /* 动画开始延迟时间 */
     ipgui_tick_t           start_delay;
+
+    /* 播完后自动销毁 */
+    u8_t                   auto_destroy;
 } ipgui_anim_dsc_t;
+
+typedef struct ipgui_anim_t ipgui_anim_t;
+
+__IPGUI_API__ ipgui_anim_t *     ipgui_anim_create(const ipgui_anim_dsc_t * dsc);
+__IPGUI_API__ ipgui_err_t        ipgui_anim_start(ipgui_anim_t * anim);
+__IPGUI_API__ ipgui_err_t        ipgui_anim_pause(ipgui_anim_t * anim);
+__IPGUI_API__ ipgui_err_t        ipgui_anim_resume(ipgui_anim_t * anim);
+__IPGUI_API__ ipgui_err_t        ipgui_anim_stop(ipgui_anim_t * anim);
+__IPGUI_API__ void               ipgui_anim_destroy(ipgui_anim_t * anim);
+__IPGUI_API__ ipgui_anim_value_t ipgui_anim_get_value(ipgui_anim_t * anim);
+__IPGUI_API__ void               ipgui_anim_update_all(void);
 
 #endif

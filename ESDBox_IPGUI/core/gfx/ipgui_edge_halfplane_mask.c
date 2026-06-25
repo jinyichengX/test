@@ -166,6 +166,7 @@ __IPGUI_API__ u8_t ipgui_edge_halfplane_mask(
 #if 0
 /* 测试，逐点遍历效率很低 */
 #include "ipgui_pattle.h"
+#include "ipgui_color.h"
 void test_first_octant_halfplane(ipgui_surf_t * surf)
 {
     ipgui_color_t g_color;

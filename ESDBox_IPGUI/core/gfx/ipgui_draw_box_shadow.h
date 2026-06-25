@@ -1,7 +1,6 @@
 #ifndef IPGUI_DRAW_BOX_SHADOW_H
 #define IPGUI_DRAW_BOX_SHADOW_H
 
-#include "ipgui_core.h"
 #include "ipgui_blend.h"
 #include "ipgui_box_style.h"
 

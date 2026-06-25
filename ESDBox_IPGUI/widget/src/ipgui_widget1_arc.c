@@ -6,8 +6,10 @@
 #include "ipgui_draw_box_border.h"
 #include "ipgui_draw_filled_circle.h"
 #include "ipgui_draw_builtin_font.h"
+#include "ipgui_anim_bounce.h"
 #include "open_sans.h"
 #include <math.h>
+#include <stddef.h>
 void widget1_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
 {
    
@@ -105,52 +107,69 @@ void widget_switch_label_render(struct ipgui_widget * widget, ipgui_widget_rende
 static ipgui_coord_t knob_cx = 21;
 static ipgui_box_bg_style_t box_bg_style;
 
-/* 开关动画状态 */
-static int knob_animating = 0;
-static ipgui_coord_t knob_anim_start = 0;
-static ipgui_coord_t knob_anim_target = 0;
-static ipgui_tick_t knob_anim_start_tick = 0;
-#define KNOB_ANIM_DURATION 83
+/* 开关动画状态：使用动画引擎 + bounce 曲线 */
+static ipgui_anim_t *knob_anim = NULL;
+static ipgui_coord_t knob_anim_start_pos = 0;
+static ipgui_coord_t knob_anim_target_pos = 0;
+static ipgui_tick_t knob_anim_begin_tick = 0;
+#define KNOB_ANIM_DURATION 80
 
 void widget_switch_event_handler(struct ipgui_widget * widget, ipgui_widget_evt_t * evt)
 {
     if (evt->type == IPGUI_WIDGET_EVENT_RELEASED) {
         /* 动画播放中，忽略新的释放事件 */
-        if (knob_animating) return;
+        if (knob_anim != NULL) return;
 
         if(knob_cx == 21) {
             box_bg_style.opacity = 170;
             IPGUI_COLOR_SET(box_bg_style.paint.src.color, 255, 0x2196F3);
-            knob_anim_start = 21;
-            knob_anim_target = 70;
+            knob_anim_start_pos = 21;
+            knob_anim_target_pos = 70;
         } else {
             box_bg_style.opacity = 100;
             IPGUI_COLOR_SET(box_bg_style.paint.src.color, 255, 0x909090);
-            knob_anim_start = 70;
-            knob_anim_target = 21;
+            knob_anim_start_pos = 70;
+            knob_anim_target_pos = 21;
         }
-        knob_anim_start_tick = ipgui_sys_tick;
-        knob_animating = 1;
+
+        /* 创建弹性动画（bounce 曲线） */
+        ipgui_anim_dsc_t dsc = {0};
+        dsc.anim_func    = ipgui_anim_bounce;
+        dsc.t1           = 0;
+        dsc.t2           = KNOB_ANIM_DURATION;
+        dsc.loop_count   = 1;
+        dsc.auto_destroy = 1;
+
+        knob_anim = ipgui_anim_create(&dsc);
+        if (knob_anim) {
+            ipgui_anim_start(knob_anim);
+            knob_anim_begin_tick = ipgui_sys_tick;
+        }
+
         ipgui_widget_mark_dirty(widget);
     }
 }
 
 int widget_switch_is_animating(void)
 {
-    return knob_animating;
+    return knob_anim != NULL;
 }
 
 void widget_switch_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
 {
-    /* 动画插值：线性过渡 knob_cx */
-    if (knob_animating) {
-        ipgui_tick_t elapsed = ipgui_sys_tick - knob_anim_start_tick;
+    /* 弹性动画插值：从动画引擎获取 bounce 曲线值 */
+    if (knob_anim != NULL) {
+        ipgui_tick_t elapsed = ipgui_sys_tick - knob_anim_begin_tick;
         if (elapsed >= KNOB_ANIM_DURATION) {
-            knob_cx = knob_anim_target;
-            knob_animating = 0;
+            /* 动画引擎已 auto_destroy，仅归位并清空指针 */
+            knob_cx = knob_anim_target_pos;
+            knob_anim = NULL;
         } else {
-            knob_cx = knob_anim_start +
-                (ipgui_coord_t)((knob_anim_target - knob_anim_start) * (s32_t)elapsed / KNOB_ANIM_DURATION);
+            ipgui_anim_value_t v = ipgui_anim_get_value(knob_anim);
+            ipgui_coord_t diff = knob_anim_target_pos - knob_anim_start_pos;
+            /* v ∈ [0, t2] 线性映射到 [start, target]，bounce 振荡叠加其上 */
+            knob_cx = knob_anim_start_pos
+                + (ipgui_coord_t)(diff * (s32_t)v / KNOB_ANIM_DURATION);
         }
     }
 

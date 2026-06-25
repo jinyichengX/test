@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPGUI Animation Simulator</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font: 13px/1.5 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background:#1e1e2e; color:#cdd6f4; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+/* ── top bar ── */
+#topbar { display:flex; align-items:center; gap:12px; padding:8px 16px; background:#181825; border-bottom:1px solid #313244; }
+#topbar .tick-label { color:#a6adc8; font-size:12px; }
+#topbar .tick-val { color:#89b4fa; font-weight:700; font-size:15px; min-width:50px; }
+#topbar button { padding:5px 14px; border:1px solid #45475a; border-radius:5px; background:#313244; color:#cdd6f4; cursor:pointer; font-size:12px; transition:all .15s; }
+#topbar button:hover { background:#45475a; }
+#topbar button.accent { border-color:#89b4fa; color:#89b4fa; }
+#topbar button.accent:hover { background:#89b4fa; color:#1e1e2e; }
+#topbar button.danger { border-color:#f38ba8; color:#f38ba8; }
+#topbar button.danger:hover { background:#f38ba8; color:#1e1e2e; }
+#topbar .spacer { flex:1; }
+#topbar .speed-ctrl { display:flex; align-items:center; gap:6px; }
+#topbar .speed-ctrl input { width:50px; }
+
+/* ── main area ── */
+#main { display:flex; flex:1; overflow:hidden; }
+
+/* ── left panel ── */
+#left { width:340px; min-width:340px; display:flex; flex-direction:column; background:#181825; border-right:1px solid #313244; }
+#left-section { padding:14px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+
+.section-title { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#6c7086; margin-bottom:2px; }
+
+/* create form */
+.form-row { display:flex; align-items:center; gap:8px; }
+.form-row label { font-size:11px; color:#a6adc8; width:55px; text-align:right; flex-shrink:0; }
+.form-row input,.form-row select { flex:1; padding:4px 8px; background:#313244; border:1px solid #45475a; border-radius:4px; color:#cdd6f4; font-size:12px; font-family:inherit; }
+.form-row select { cursor:pointer; }
+.form-row input:focus,.form-row select:focus { outline:none; border-color:#89b4fa; }
+
+.btn-row { display:flex; gap:6px; flex-wrap:wrap; }
+.btn-row button { flex:1; min-width:50px; padding:5px 0; border:1px solid #45475a; border-radius:5px; background:#313244; color:#cdd6f4; cursor:pointer; font-size:11px; transition:all .15s; }
+.btn-row button:hover { background:#45475a; }
+.btn-row button.on { border-color:#a6e3a1; color:#a6e3a1; background:#1e3820; }
+
+/* state machine */
+#sm-canvas { width:100%; height:180px; background:#11111b; border-radius:6px; }
+
+/* anim list */
+#anim-list { flex:1; overflow-y:auto; padding:8px; }
+#anim-list .anim-card { background:#1e1e2e; border:1px solid #313244; border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer; font-size:11px; transition:border .15s; }
+#anim-list .anim-card:hover { border-color:#585b70; }
+#anim-list .anim-card.sel { border-color:#89b4fa; }
+.anim-card .row1 { display:flex; align-items:center; gap:8px; margin-bottom:3px; }
+.anim-card .aid { color:#89b4fa; font-weight:600; }
+.anim-card .st { display:inline-block; padding:1px 7px; border-radius:3px; font-size:10px; font-weight:600; }
+.anim-card .st-R { background:#585b70; color:#bac2de; }
+.anim-card .st-G { background:#1e6600; color:#a6e3a1; }
+.anim-card .st-P { background:#6c4a00; color:#f9e2af; }
+.anim-card .row2 { color:#a6adc8; }
+.anim-card .v { color:#f9e2af; }
+.card-ops { display:flex; gap:3px; margin-top:5px; }
+.card-ops button { padding:2px 8px; font-size:10px; border:1px solid #45475a; border-radius:3px; background:transparent; color:#a6adc8; cursor:pointer; }
+.card-ops button:hover { border-color:#89b4fa; color:#89b4fa; }
+
+/* center panel */
+#center { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+/* track */
+#track-area { padding:20px 30px; background:#11111b; border-bottom:1px solid #313244; }
+#track-area h3 { font-size:12px; color:#6c7086; margin-bottom:12px; }
+#track-container { position:relative; height:60px; background:#232336; border-radius:8px; overflow:visible; }
+#track-line { position:absolute; top:50%; left:20px; right:20px; height:2px; background:#45475a; transform:translateY(-50%); }
+#track-t1 { position:absolute; left:15px; bottom:2px; font-size:10px; color:#6c7086; }
+#track-t2 { position:absolute; right:15px; bottom:2px; font-size:10px; color:#6c7086; }
+#track-indicator { position:absolute; top:50%; width:28px; height:28px; border-radius:50%; background:#89b4fa; transform:translate(-50%,-50%); box-shadow:0 0 12px #89b4fa66; z-index:2; }
+#track-value { position:absolute; top:2px; font-size:11px; color:#89b4fa; font-weight:600; transform:translateX(-50%); white-space:nowrap; }
+
+/* state panel */
+#state-panel { padding:14px 20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px 16px; border-bottom:1px solid #313244; font-size:11px; }
+#state-panel .kv { display:flex; flex-direction:column; }
+#state-panel .kv .k { color:#6c7086; font-size:10px; }
+#state-panel .kv .v { color:#cdd6f4; font-weight:600; font-family:'Cascadia Code','Consolas',monospace; }
+
+/* right panel */
+#right { width:320px; min-width:320px; display:flex; flex-direction:column; background:#181825; border-left:1px solid #313244; }
+#right h3 { font-size:12px; color:#a6adc8; padding:12px 14px 6px; }
+
+/* log */
+#log-wrap { flex:1; overflow:hidden; display:flex; flex-direction:column; border-top:1px solid #313244; }
+#log-wrap h3 { padding:8px 14px; }
+#log { flex:1; overflow-y:auto; padding:4px 14px; font:11px/1.6 'Cascadia Code','Consolas',monospace; background:#11111b; }
+.log-line { white-space:nowrap; }
+.log-tick { color:#585b70; margin-right:6px; }
+.log-ref { color:#89b4fa; }
+.log-ok { color:#a6e3a1; }
+.log-err { color:#f38ba8; }
+.log-detail { color:#a6adc8; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="tick-label">TICK</span>
+  <span class="tick-val" id="tick-val">0</span>
+  <span class="spacer"></span>
+  <button class="danger" onclick="resetAll()">重置</button>
+</div>
+
+<div id="main">
+  <!-- LEFT -->
+  <div id="left">
+    <div id="left-section">
+      <span class="section-title">状态机</span>
+      <canvas id="sm-canvas" width="310" height="180"></canvas>
+
+      <span class="section-title">创建动画</span>
+      <div class="form-row"><label>t1</label><input type="number" id="f-t1" value="0"></div>
+      <div class="form-row"><label>t2</label><input type="number" id="f-t2" value="200"></div>
+      <div class="form-row"><label>循环</label><select id="f-loop-type"><option value="0">FORWARD</option><option value="1">BACKWARD</option><option value="2">PING_PONG</option></select></div>
+      <div class="form-row"><label>次数</label><input type="number" id="f-loop-count" value="0" min="0"><span style="font-size:10px;color:#6c7086;">0=无限</span></div>
+      <div class="form-row"><label>延迟</label><input type="number" id="f-delay" value="0" min="0"></div>
+      <div class="form-row"><label>函数</label><select id="f-func">
+        <option value="0">linear</option>
+        <option value="1">ease_in_quad</option>
+        <option value="2">ease_out_quad</option>
+        <option value="3">ease_in_out_quad</option>
+      </select></div>
+      <div class="form-row"><label>自毁</label><input type="checkbox" id="f-auto-destroy" style="width:auto;flex:none;"><span style="font-size:10px;color:#6c7086;">播完即销毁</span></div>
+      <button style="width:100%;padding:6px;border:1px solid #a6e3a1;border-radius:5px;background:#1e3820;color:#a6e3a1;cursor:pointer;font-size:12px;margin-top:4px;" onclick="doCreate()">create()</button>
+    </div>
+    <div id="anim-list"></div>
+  </div>
+
+  <!-- CENTER -->
+  <div id="center">
+    <div id="track-area">
+      <h3>动画可视化</h3>
+      <div id="track-container">
+        <div id="track-line"></div>
+        <span id="track-t1">t1</span>
+        <span id="track-t2">t2</span>
+        <span id="track-value">-</span>
+        <div id="track-indicator" style="left:20px;"></div>
+      </div>
+    </div>
+    <div id="state-panel">
+      <div class="kv"><span class="k">state</span><span class="v" id="sv-state">-</span></div>
+      <div class="kv"><span class="k">forward</span><span class="v" id="sv-forward">-</span></div>
+      <div class="kv"><span class="k">anim_start_tick</span><span class="v" id="sv-rst">-</span></div>
+      <div class="kv"><span class="k">duration</span><span class="v" id="sv-duration">-</span></div>
+      <div class="kv"><span class="k">loop_cnt_left</span><span class="v" id="sv-loop">-</span></div>
+      <div class="kv"><span class="k">dsc.loop_count</span><span class="v" id="sv-loop-ori">-</span></div>
+      <div class="kv"><span class="k">pause_tick</span><span class="v" id="sv-pause">-</span></div>
+      <div class="kv"><span class="k">passed</span><span class="v" id="sv-passed">-</span></div>
+      <div class="kv"><span class="k">value</span><span class="v" id="sv-value" style="color:#89b4fa;">-</span></div>
+    </div>
+    <div id="log-wrap">
+      <h3>操作日志</h3>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  1:1 C code replica
+// ═══════════════════════════════════════════
+const ST = { READY:0, RUNNING:1, PAUSED:2 };
+const LOOP = { FORWARD:0, BACKWARD:1, PING_PONG:2 };
+const ERR = { OK:0, ALREADY_RUNNING:1, ALREADY_PAUSED:2, IS_PAUSED:3, NOT_PAUSED:4, NOT_RUNNING:5, NOT_PAUSED_OR_RUNNING:6, PARAM:7 };
+const ERR_NAME = ['OK','ALREADY_RUNNING','ALREADY_PAUSED','IS_PAUSED','NOT_PAUSED','NOT_RUNNING','NOT_PAUSED_OR_RUNNING','PARAM'];
+const ST_NAME = ['READY','RUNNING','PAUSED'];
+const LOOP_NAME = ['FORWARD','BACKWARD','PING_PONG'];
+
+let g_tick = 0;
+let g_anims = [];
+let g_next_id = 1;
+let g_sel_id = null;
+
+function MIN(a,b){ return a<b ? a : b; }
+
+// anim functions
+const ANIM_FUNCS = [
+  { name:'linear', fn: t => t },
+  { name:'ease_in_quad', fn: null /* baked on create */ },
+  { name:'ease_out_quad', fn: null },
+  { name:'ease_in_out_quad', fn: null },
+];
+
+// ── ipgui_anim_t ──
+class Anim {
+  constructor(dsc, id) {
+    this.id = id;
+    this.ticks = [];       // for visualization history
+    this.dsc = { t1:dsc.t1, t2:dsc.t2, loop_type:dsc.loop_type, loop_count:dsc.loop_count, start_delay:dsc.start_delay, anim_func:dsc.anim_func, func_name:dsc.func_name, auto_destroy:dsc.auto_destroy };
+    this.state = ST.READY;
+    this.anim_start_tick = 0;
+    this.duration = dsc.t2 - dsc.t1;
+    this.loop_cnt_left = 0;   /* 剩余循环次数，运行时递减 */
+    this.pause_tick = 0;
+    this.forward = (dsc.loop_type !== LOOP.BACKWARD) ? 1 : 0;
+    this.last_value = null;
+    this.last_passed = 0;
+  }
+}
+
+function anim_state_set(anim, state) { anim.state = state; }
+
+function ipgui_anim_create(dsc) {
+  if (!dsc) return null;
+  if (dsc.t2 < dsc.t1 || !dsc.anim_func) return null;
+  let a = new Anim(dsc, g_next_id++);
+  g_anims.push(a);
+  addLog(`anim_${a.id}`, 'create', `t1=${dsc.t1} t2=${dsc.t2} ${LOOP_NAME[dsc.loop_type]} loop=${dsc.loop_count} delay=${dsc.start_delay} func=${dsc.func_name} → READY`, true);
+  return a;
+}
+
+function ipgui_anim_start(anim) {
+  if (!anim) return [ERR.PARAM, null];
+  switch (anim.state) {
+    case ST.READY:
+      anim.anim_start_tick = g_tick + anim.dsc.start_delay;
+      anim.forward = (anim.dsc.loop_type !== LOOP.BACKWARD) ? 1 : 0;
+      anim.loop_cnt_left = anim.dsc.loop_count;
+      anim_state_set(anim, ST.RUNNING);
+      return [ERR.OK, `RST=${anim.anim_start_tick} fwd=${anim.forward} loop=${anim.loop_cnt_left}`];
+    case ST.RUNNING: return [ERR.ALREADY_RUNNING, null];
+    case ST.PAUSED:  return [ERR.IS_PAUSED, null];
+  }
+}
+
+function ipgui_anim_pause(anim) {
+  if (!anim) return [ERR.PARAM, null];
+  switch (anim.state) {
+    case ST.READY:   return [ERR.NOT_RUNNING, null];
+    case ST.RUNNING: anim.pause_tick = g_tick; anim_state_set(anim, ST.PAUSED); return [ERR.OK, `pause_tick=${anim.pause_tick}`];
+    case ST.PAUSED:  return [ERR.ALREADY_PAUSED, null];
+  }
+}
+
+function ipgui_anim_resume(anim) {
+  if (!anim) return [ERR.PARAM, null];
+  switch (anim.state) {
+    case ST.READY:   return [ERR.NOT_PAUSED, null];
+    case ST.RUNNING: return [ERR.ALREADY_RUNNING, null];
+    case ST.PAUSED:
+      anim.anim_start_tick += (g_tick - anim.pause_tick);
+      anim_state_set(anim, ST.RUNNING);
+      return [ERR.OK, `RST→${anim.anim_start_tick}`];
+  }
+}
+
+function ipgui_anim_stop(anim) {
+  if (!anim) return [ERR.PARAM, null];
+  if (anim.state === ST.READY) return [ERR.NOT_PAUSED_OR_RUNNING, null];
+  if (anim.dsc.auto_destroy) {
+    g_anims = g_anims.filter(a => a !== anim);
+    return [ERR.OK, 'DESTROYED'];
+  }
+  anim.loop_cnt_left = anim.dsc.loop_count;
+  anim_state_set(anim, ST.READY);
+  return [ERR.OK, `loop→${anim.dsc.loop_count}`];
+}
+
+function anim_cycle_restart(anim, now) {
+  anim.anim_start_tick = now;
+  anim.last_passed = 0;
+  anim_state_set(anim, ST.RUNNING);
+}
+
+function anim_cycle_end(anim, now) {
+  if (anim.loop_cnt_left > 0) {
+    anim.loop_cnt_left--;
+    if (anim.loop_cnt_left === 0) {
+      if (anim.dsc.auto_destroy) {
+        g_anims = g_anims.filter(a => a !== anim);
+        if (g_sel_id === anim.id) g_sel_id = null;
+        return 'DESTROY';
+      }
+      anim.last_passed = 0;
+      anim_state_set(anim, ST.READY);
+      return 'READY';
+    }
+  }
+  anim_cycle_restart(anim, now);
+  return 'restart';
+}
+
+function ipgui_anim_update_all() {
+  let results = [];
+  for (let anim of g_anims) {
+    if (anim.state !== ST.RUNNING) continue;
+    let entry = { anim, value:null, action:'' };
+    if (g_tick < anim.anim_start_tick) { entry.action = 'delay'; results.push(entry); continue; }
+    let passed = g_tick - anim.anim_start_tick;
+    passed = MIN(passed, anim.duration);
+    let value;
+    if (anim.forward) value = anim.dsc.anim_func(anim.dsc.t1 + passed);
+    else               value = anim.dsc.anim_func(anim.dsc.t2 - passed);
+    anim.last_value = value; anim.last_passed = passed;
+    anim.ticks.push({ tick:g_tick, value });
+    entry.value = value; entry.passed = passed;
+    if (passed < anim.duration) { entry.action = 'run'; results.push(entry); continue; }
+    switch (anim.dsc.loop_type) {
+      case LOOP.FORWARD: case LOOP.BACKWARD:
+        entry.action = 'cycle→' + anim_cycle_end(anim, g_tick); break;
+      case LOOP.PING_PONG:
+        if (anim.forward) { anim.forward = 0; anim_cycle_restart(anim, g_tick); entry.action = 'PONG:→backward'; }
+        else { anim.forward = 1; entry.action = 'PONG:→forward ' + anim_cycle_end(anim, g_tick); }
+        break;
+    }
+    results.push(entry);
+  }
+  return results;
+}
+
+// ═══════════════════════════════════════════
+//  State machine canvas — 铁三角
+// ═══════════════════════════════════════════
+const smCanvas = document.getElementById('sm-canvas');
+const smCtx = smCanvas.getContext('2d');
+const W = smCanvas.width, H = smCanvas.height;
+
+//       READY (top)
+//       /    \
+//  start()  stop()
+//     /        \
+// RUNNING --- PAUSED
+//     \        /
+//   pause() resume()
+
+const N = [
+  { id:0, x:105, y:10,  w:100, h:40, label:'READY'   },
+  { id:1, x:10,  y:120, w:100, h:40, label:'RUNNING'  },
+  { id:2, x:200, y:120, w:100, h:40, label:'PAUSED'   },
+];
+
+// edges: [from, to, label, edgeIndex]
+const E = [
+  { from:0, to:1, label:'start()',  ei:0 },  // READY→RUNNING
+  { from:1, to:2, label:'pause()',  ei:2 },  // RUNNING→PAUSED
+  { from:2, to:1, label:'resume()', ei:3 },  // PAUSED→RUNNING
+  { from:1, to:0, label:'stop()',   ei:1 },  // RUNNING→READY
+  { from:2, to:0, label:'stop()',   ei:4 },  // PAUSED→READY
+];
+
+function roundRect(x,y,w,h,r) {
+  smCtx.beginPath(); smCtx.moveTo(x+r,y); smCtx.lineTo(x+w-r,y);
+  smCtx.arcTo(x+w,y,x+w,y+r,r); smCtx.lineTo(x+w,y+h-r);
+  smCtx.arcTo(x+w,y+h,x+w-r,y+h,r); smCtx.lineTo(x+r,y+h);
+  smCtx.arcTo(x,y+h,x,y+h-r,r); smCtx.lineTo(x,y+r);
+  smCtx.arcTo(x,y,x+r,y,r); smCtx.closePath();
+}
+
+function nodeCenter(n) { return { cx:n.x+n.w/2, cy:n.y+n.h/2 }; }
+
+function drawArrowLine(x1,y1,x2,y2) {
+  let dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy);
+  if (len<1) return;
+  let ux=dx/len, uy=dy/len;
+  // shorten to avoid overlapping node
+  let s=18, xa=x1+ux*s, ya=y1+uy*s, xb=x2-ux*s, yb=y2-uy*s;
+  smCtx.beginPath(); smCtx.moveTo(xa,ya); smCtx.lineTo(xb,yb); smCtx.stroke();
+  // arrowhead
+  let as=8;
+  smCtx.beginPath(); smCtx.moveTo(xb,yb);
+  smCtx.lineTo(xb-as*ux+as*0.4*uy, yb-as*uy-as*0.4*ux);
+  smCtx.lineTo(xb-as*ux-as*0.4*uy, yb-as*uy+as*0.4*ux);
+  smCtx.closePath(); smCtx.fill();
+  // midpoint for label
+  return { mx:(xa+xb)/2, my:(ya+yb)/2, ux, uy };
+}
+
+function drawStateMachine(highlightEdge) {
+  smCtx.clearRect(0,0,W,H);
+
+  // edges
+  E.forEach((e,i) => {
+    let hl = (i === highlightEdge);
+    smCtx.strokeStyle = hl ? '#89b4fa' : '#45475a';
+    smCtx.lineWidth = hl ? 2.5 : 1.5;
+    smCtx.fillStyle = smCtx.strokeStyle;
+
+    let f = N[e.from], t = N[e.to];
+    let fc = nodeCenter(f), tc = nodeCenter(t);
+    let info = drawArrowLine(fc.cx, fc.cy, tc.cx, tc.cy);
+
+    // label near midpoint offset
+    let offX = -info.uy * 14, offY = info.ux * 14;
+    smCtx.fillStyle = hl ? '#89b4fa' : '#6c7086';
+    smCtx.font = 'bold 11px "Segoe UI","PingFang SC",sans-serif';
+    smCtx.textAlign = 'center';
+    smCtx.fillText(e.label, info.mx + offX, info.my + offY + 4);
+    smCtx.textAlign = 'start';
+  });
+
+  // nodes
+  N.forEach(n => {
+    let sel = g_sel_id && g_anims.find(a=>a.id===g_sel_id);
+    let active = sel && sel.state === n.id;
+    smCtx.fillStyle = active ? '#1e3a5f' : '#1e1e2e';
+    smCtx.strokeStyle = active ? '#89b4fa' : '#45475a';
+    smCtx.lineWidth = active ? 2.5 : 1.5;
+    roundRect(n.x,n.y,n.w,n.h,6);
+    smCtx.fill(); smCtx.stroke();
+    smCtx.fillStyle = active ? '#89b4fa' : '#cdd6f4';
+    smCtx.font = 'bold 13px "Segoe UI","PingFang SC",sans-serif';
+    smCtx.textAlign = 'center';
+    smCtx.fillText(n.label, n.x+n.w/2, n.y+n.h/2+5);
+    smCtx.textAlign = 'start';
+  });
+}
+
+// ═══════════════════════════════════════════
+//  UI Helpers
+// ═══════════════════════════════════════════
+
+function addLog(ref, op, detail, ok) {
+  let div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-tick">[${String(g_tick).padStart(5,'0')}]</span><span class="log-ref">${ref}.${op}()</span>` +
+    (detail ? ` <span class="${ok ? 'log-ok' : 'log-err'}">→ ${detail}</span>` : '');
+  let log = document.getElementById('log');
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function getAnim() {
+  if (g_sel_id) return g_anims.find(a => a.id === g_sel_id);
+  return g_anims.length > 0 ? g_anims[g_anims.length-1] : null;
+}
+
+function setSel(id) { g_sel_id = id; }
+
+// ── refresh: light (tick) vs full (cards) ──
+
+function refreshLight() {
+  document.getElementById('tick-val').textContent = g_tick;
+  let a = getAnim();
+  if (!a) return;
+  document.getElementById('sv-state').textContent = ST_NAME[a.state];
+  document.getElementById('sv-forward').textContent = a.forward ? '1 (正向)' : '0 (反向)';
+  document.getElementById('sv-rst').textContent = a.anim_start_tick;
+  document.getElementById('sv-loop').textContent = a.loop_cnt_left;
+  document.getElementById('sv-passed').textContent = a.last_passed;
+  document.getElementById('sv-value').textContent = a.last_value !== null ? a.last_value : '-';
+  // 实时算位置，PAUSED 用上次冻结点
+  let vp = a.state === ST.RUNNING ? MIN(g_tick - a.anim_start_tick, a.duration) : a.last_passed;
+  if (vp < 0) vp = 0;
+  let pct = a.duration > 0 ? vp / a.duration * 100 : 0;
+  if (!a.forward) pct = 100 - pct;
+  let leftPx = 20 + pct * 0.01 * (document.getElementById('track-container').clientWidth - 40);
+  document.getElementById('track-indicator').style.left = leftPx + 'px';
+  document.getElementById('track-value').style.left = leftPx + 'px';
+  document.getElementById('track-value').textContent = a.last_value !== null ? a.last_value : '';
+}
+
+function refreshCards() {
+  let html = '';
+  g_anims.forEach(a => {
+    let sc = a.state===0?'R':(a.state===1?'G':'P');
+    html += `<div class="anim-card${g_sel_id===a.id?' sel':''}" data-id="${a.id}">
+      <div class="row1"><span class="aid">anim_${a.id}</span><span class="st st-${sc}">${ST_NAME[a.state]}</span></div>
+      <div class="row2">${a.dsc.func_name} | ${LOOP_NAME[a.dsc.loop_type]} | t1=${a.dsc.t1} t2=${a.dsc.t2} | loop=${a.loop_cnt_left}/${a.dsc.loop_count}${a.dsc.auto_destroy?' | auto':''}</div>
+      ${a.last_value!==null?`<div class="row2">value=<span class="v">${a.last_value}</span> passed=${a.last_passed}</div>`:''}
+      <div class="card-ops">
+        <button data-op="start" data-id="${a.id}">▶ start</button>
+        <button data-op="pause" data-id="${a.id}">⏸ pause</button>
+        <button data-op="resume" data-id="${a.id}">▶ resume</button>
+        <button data-op="stop" data-id="${a.id}">⏹ stop</button>
+        <button data-op="delete" data-id="${a.id}" style="color:#f38ba8;border-color:#f38ba8;">✕</button>
+      </div></div>`;
+  });
+  if (!html) html = '<div style="color:#6c7086;font-size:11px;padding:8px;">无动画实例</div>';
+  document.getElementById('anim-list').innerHTML = html;
+}
+
+function refresh() {
+  refreshCards();
+  document.getElementById('tick-val').textContent = g_tick;
+  let a = getAnim();
+  let fn = (id,val) => { let e=document.getElementById(id);if(e)e.textContent=val; };
+  if (a) {
+    fn('sv-state', ST_NAME[a.state]);
+    fn('sv-forward', a.forward ? '1 (正向)' : '0 (反向)');
+    fn('sv-rst', a.anim_start_tick);
+    fn('sv-duration', a.duration);
+    fn('sv-loop', a.loop_cnt_left);
+    fn('sv-loop-ori', a.dsc.loop_count);
+    fn('sv-pause', a.pause_tick);
+    fn('sv-passed', a.last_passed);
+    fn('sv-value', a.last_value !== null ? a.last_value : '-');
+    let vp = a.state === ST.RUNNING ? MIN(g_tick - a.anim_start_tick, a.duration) : a.last_passed;
+    if (vp < 0) vp = 0;
+    let pct = a.duration > 0 ? vp / a.duration * 100 : 0;
+    if (!a.forward) pct = 100 - pct;
+    let leftPx = 20 + pct * 0.01 * (document.getElementById('track-container').clientWidth - 40);
+    document.getElementById('track-indicator').style.left = leftPx + 'px';
+    document.getElementById('track-value').style.left = leftPx + 'px';
+    document.getElementById('track-value').textContent = a.last_value !== null ? a.last_value : '';
+    document.getElementById('track-t1').textContent = `t1=${a.dsc.t1}`;
+    document.getElementById('track-t2').textContent = `t2=${a.dsc.t2}`;
+    drawStateMachine(-1);
+  } else {
+    fn('sv-state','-');fn('sv-forward','-');fn('sv-rst','-');fn('sv-duration','-');
+    fn('sv-loop','-');fn('sv-loop-ori','-');fn('sv-pause','-');fn('sv-passed','-');fn('sv-value','-');
+    document.getElementById('track-indicator').style.left = '20px';
+    document.getElementById('track-value').textContent = '-';
+    document.getElementById('track-value').style.left = '20px';
+    document.getElementById('track-t1').textContent = 't1';
+    document.getElementById('track-t2').textContent = 't2';
+    drawStateMachine(-1);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  Operations
+// ═══════════════════════════════════════════
+
+function makeFunc(idx, t1, t2) {
+  let d = t2 - t1;
+  switch (idx) {
+    case 0: return { fn: t => t, name: 'linear' };
+    case 1: return { fn: t => { let p=(t-t1)/d; return Math.round(t1 + p*p*d); }, name: 'ease_in_quad' };
+    case 2: return { fn: t => { let p=(t-t1)/d; return Math.round(t1 + (1-(1-p)*(1-p))*d); }, name: 'ease_out_quad' };
+    case 3: return { fn: t => { let p=(t-t1)/d; return Math.round(t1 + (p<0.5 ? 2*p*p*d : (1 - Math.pow(-2*p+2,2)/2)*d)); }, name: 'ease_in_out_quad' };
+    default: return { fn: t => t, name: 'linear' };
+  }
+}
+
+function doCreate() {
+  let t1 = +document.getElementById('f-t1').value;
+  let t2 = +document.getElementById('f-t2').value;
+  let lt = +document.getElementById('f-loop-type').value;
+  let lc = +document.getElementById('f-loop-count').value;
+  let delay = +document.getElementById('f-delay').value;
+  let fi = +document.getElementById('f-func').value;
+  let ad = +document.getElementById('f-auto-destroy').checked;
+  let f = makeFunc(fi, t1, t2);
+  let dsc = { t1,t2, loop_type:lt, loop_count:lc, start_delay:delay, anim_func:f.fn, func_name:f.name, auto_destroy:ad };
+  let anim = ipgui_anim_create(dsc);
+  if (anim) g_sel_id = anim.id;
+  refresh();
+}
+
+function doStart() {
+  let a = getAnim();
+  if (!a) return addLog('?','start','无动画',false);
+  let [err,detail] = ipgui_anim_start(a);
+  addLog(`anim_${a.id}`,`start`, err===0 ? detail : ERR_NAME[err], err===0);
+  // highlight edge: READY→RUNNING
+  if (err===0) drawStateMachine(0);
+  refresh();
+}
+
+function doPause() {
+  let a = getAnim();
+  if (!a) return addLog('?','pause','无动画',false);
+  let [err,detail] = ipgui_anim_pause(a);
+  addLog(`anim_${a.id}`,`pause`, err===0 ? detail : ERR_NAME[err], err===0);
+  if (err===0) drawStateMachine(2);
+  refresh();
+}
+
+function doResume() {
+  let a = getAnim();
+  if (!a) return addLog('?','resume','无动画',false);
+  let [err,detail] = ipgui_anim_resume(a);
+  addLog(`anim_${a.id}`,`resume`, err===0 ? detail : ERR_NAME[err], err===0);
+  if (err===0) drawStateMachine(3);
+  refresh();
+}
+
+function doStop() {
+  let a = getAnim();
+  if (!a) return addLog('?','stop','无动画',false);
+  let wasAuto = a.dsc.auto_destroy;
+  let id = a.id;
+  let preState = a.state;
+  let [err,detail] = ipgui_anim_stop(a);
+  addLog(`anim_${id}`,`stop`, err===0 ? detail : ERR_NAME[err], err===0);
+  if (wasAuto) { g_sel_id = g_anims.length > 0 ? g_anims[g_anims.length-1].id : null; refresh(); return; }
+  if (err===0) drawStateMachine(preState===ST.PAUSED ? 4 : 1);
+  refresh();
+}
+
+function stepTick() { g_tick++; tickUpdate(); }
+
+function tickUpdate() {
+  let results = ipgui_anim_update_all();
+  let needFullRefresh = false;
+  results.forEach(r => {
+    if (r.action === 'delay') return;
+    if (r.action.includes('DESTROY')) { needFullRefresh = true; return; }
+    if (r.action.includes('READY')) { needFullRefresh = true; return; }
+    if (r.action !== 'run') {
+      addLog(`anim_${r.anim.id}`,`tick`, `value=${r.value} ${r.action}`, true);
+    }
+  });
+  if (needFullRefresh) {
+    if (g_anims.length === 0) { g_sel_id = null; }
+     else if (!g_anims.find(a => a.id === g_sel_id)) { g_sel_id = g_anims[g_anims.length-1].id; }
+    refresh();
+  } else {
+    refreshLight();
+  }
+}
+
+function resetAll() {
+  g_tick = 0; g_anims = []; g_next_id = 1; g_sel_id = null;
+  document.getElementById('log').innerHTML = '';
+  addLog('system','reset','全部清除 tick=0', true);
+  refresh();
+}
+
+// init
+drawStateMachine(-1);
+addLog('system','init','就绪', true);
+
+// event delegation: card clicks + button ops (stable container, survives innerHTML refresh)
+document.getElementById('anim-list').addEventListener('click', function(e) {
+  let btn = e.target.closest('button');
+  if (btn) {
+    let op = btn.dataset.op;
+    let id = +btn.dataset.id;
+    setSel(id);
+    if (op === 'start') doStart();
+    else if (op === 'pause') doPause();
+    else if (op === 'resume') doResume();
+    else if (op === 'stop') doStop();
+    else if (op === 'delete') doDelete(id);
+    return;
+  }
+  // card body click
+  let card = e.target.closest('.anim-card');
+  if (card) { setSel(+card.dataset.id); refresh(); }
+});
+
+function doDelete(id) {
+  let idx = g_anims.findIndex(a => a.id === id);
+  if (idx < 0) return;
+  let a = g_anims[idx];
+  g_anims.splice(idx, 1);
+  if (g_sel_id === id) g_sel_id = null;
+  addLog(`anim_${id}`, 'delete', `${LOOP_NAME[a.dsc.loop_type]} removed`, true);
+  refresh();
+}
+
+// 自动 tick 循环：有 RUNNING 动画时自动推进
+setInterval(() => {
+  if (g_anims.some(a => a.state === ST.RUNNING)) {
+    g_tick++;
+    tickUpdate();
+  }
+}, 30);
+</script>
+</body>
+</html>
