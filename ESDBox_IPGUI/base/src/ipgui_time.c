@@ -61,14 +61,14 @@ __IPGUI_API__ void ipgui_tick_inc(void)
     ipgui_sys_tick ++;
 }
 
-__IPGUI_API__ ipgui_tick_t ipgui_tick_get(void)
+__IPGUI_API__ ipgui_tick_t ipgui_tick_now(void)
 {
     return ipgui_sys_tick;
 }
 
 __IPGUI_API__ ipgui_tick_t ipgui_tick_passed(ipgui_tick_t last)
 {
-    return ipgui_tick_get() - last;
+    return ipgui_tick_now() - last;
 }
 
 __IPGUI_API__ ipgui_tick_t ipgui_tick_passed_last(void)

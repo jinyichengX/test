@@ -13,6 +13,8 @@ extern __IPGUI_API__ ipgui_tick_t ipgui_sec2tick(unsigned int unSecs);
 
 extern __IPGUI_API__ void ipgui_tick_inc(void);
 
+extern __IPGUI_API__ ipgui_tick_t ipgui_tick_now(void);
+
 extern __IPGUI_API__ ipgui_tick_t ipgui_tick_passed_last(void);
 extern ipgui_tick_t ipgui_sys_tick;
 extern ipgui_tick_t ipgui_sys_tick_last;

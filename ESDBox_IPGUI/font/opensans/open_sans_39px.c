@@ -1990,9 +1990,6 @@ static const unsigned char open_sans_39px_char_031_bitmap[] = {
     0x54, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xb0, /* 行27 */
 };
 
-/* 字符  32: SPACE */
-static const unsigned char open_sans_39px_char_032_bitmap[] = {0};
-
 /* 字符  33: !    */
 /*
  *   ▓▓██████░░

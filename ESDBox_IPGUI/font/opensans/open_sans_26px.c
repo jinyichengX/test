@@ -1414,9 +1414,6 @@ static const unsigned char open_sans_26px_char_031_bitmap[] = {
     0x8c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x20, /* 行18 */
 };
 
-/* 字符  32: SPACE */
-static const unsigned char open_sans_26px_char_032_bitmap[] = {0};
-
 /* 字符  33: !    */
 /*
  *   ██████
