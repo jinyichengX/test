@@ -63,7 +63,7 @@ __IPGUI_API__ ipgui_anim_t * ipgui_anim_create(const ipgui_anim_dsc_t * dsc)
     if (!dsc) {
         return (ipgui_anim_t *)0;
     }
-    if ((dsc->t2 < dsc->t1) || (!dsc->anim_func)) {
+    if ((dsc->t2 <= dsc->t1) || (!dsc->anim_func)) {
         return (ipgui_anim_t *)0;
     }
 
@@ -90,6 +90,7 @@ __IPGUI_API__ ipgui_err_t ipgui_anim_start(ipgui_anim_t * anim)
             anim->anim_start_tick = ipgui_tick_now() + anim->dsc.start_delay;
             anim->forward = (anim->dsc.loop_type != IPGUI_ANIM_LOOP_TYPE_BACKWARD);
             anim->loop_cnt_left = anim->dsc.loop_count;
+            anim->value = anim->dsc.anim_func(anim->forward ? anim->dsc.t1 : anim->dsc.t2);
             anim_state_set(anim, IPGUI_ANIM_STATE_RUNNING);
             return IPGUI_ERR_OK;
         case IPGUI_ANIM_STATE_RUNNING:
@@ -137,6 +138,13 @@ __IPGUI_API__ ipgui_err_t ipgui_anim_resume(ipgui_anim_t * anim)
     }
 }
 
+__IPGUI_API__ void ipgui_anim_destroy(ipgui_anim_t * anim)
+{
+    if (!anim) return;
+    list_del(&anim->node);
+    anim_free(anim);
+}
+
 __IPGUI_API__ ipgui_err_t ipgui_anim_stop(ipgui_anim_t * anim)
 {
     if (!anim) return IPGUI_ERR_PARAM;
@@ -155,18 +163,10 @@ __IPGUI_API__ ipgui_err_t ipgui_anim_stop(ipgui_anim_t * anim)
     return IPGUI_ERR_OK;
 }
 
-__IPGUI_API__ void ipgui_anim_destroy(ipgui_anim_t * anim)
-{
-    if (!anim) return;
-    list_del(&anim->node);
-    anim_free(anim);
-}
-
 __IPGUI_STATIC__ __IPGUI_INLINE__
 void anim_cycle_restart(ipgui_anim_t * anim, ipgui_tick_t now)
 {
     anim->anim_start_tick = now;
-    anim_state_set(anim, IPGUI_ANIM_STATE_RUNNING);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__
@@ -198,8 +198,9 @@ __IPGUI_API__ void ipgui_anim_update_all(void)
 
         /* still in delay time [start_time, start_time + start_delay] 
          * start time is the time when animation start
+         * use signed cast to handle tick wrap-around correctly
          */
-        if (now < anim->anim_start_tick) {
+        if ((s32_t)(now - anim->anim_start_tick) < 0) {
             continue;
         }
 

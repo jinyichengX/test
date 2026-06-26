@@ -23,9 +23,14 @@
  * SOFTWARE.
  */
 
-/* user include here begin */
-#include <stdio.h>
-/* user include here end */
+#include "ipgui_utils.h"
+
+/* 
+ * ipgui_putck() is declared weak. 
+ * To redirect debug output to your hardware (UART, etc.),
+ * provide a strong definition in your application code, e.g.:
+ *   void ipgui_putck(char c) { UART_SendChar(c); }
+ */
 
 typedef unsigned long long uint64_t;
 typedef long long int64_t;
@@ -60,9 +65,9 @@ static char * strcpy(char * dst, const char * src)
     return tmp;
 }
 
-static void ipgui_putck(char c)
+__WEAK__ void ipgui_putck(char c)
 {
-    putchar(c);
+    (void)c;
 }
 
 static void ipgui_putsk(char * s)

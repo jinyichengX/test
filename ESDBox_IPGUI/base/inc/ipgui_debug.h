@@ -1,10 +1,6 @@
 #ifndef IPGUI_DEBUG_H
 #define IPGUI_DEBUG_H
 
-#include "ipgui_utils.h"
-
-IPGUI_HEADER_BEGIN _______________MARKER_______________
-
 #define IPGUI_DEBUG_LEVEL_0       0
 #define IPGUI_DEBUG_LEVEL_1       1
 #define IPGUI_DEBUG_LEVEL_2       2
@@ -22,7 +18,5 @@ IPGUI_HEADER_BEGIN _______________MARKER_______________
 #define ipgui_dbg_assert
 
 extern void ipgui_printk(char * fmt, ...);
-
-IPGUI_HEADER_END   _______________MARKER_______________
 
 #endif

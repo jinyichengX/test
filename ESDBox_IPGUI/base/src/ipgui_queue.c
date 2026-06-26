@@ -67,12 +67,12 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_return_free_slot(ipgui_queue_
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_item_push(ipgui_queue_t * pstQ, u16_t usSlot, void * pvItem)
 {   
-    memcpy(&pstQ->pbDpool[usSlot * pstQ->usItemSize], pvItem, pstQ->usItemSize);
+    ipgui_memcpy(&pstQ->pbDpool[usSlot * pstQ->usItemSize], pvItem, pstQ->usItemSize);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void ipgui_queue_item_fetch(ipgui_queue_t * pstQ, u16_t usSlot, void * pvItem)
 {   
-    memcpy(pvItem, &pstQ->pbDpool[usSlot * pstQ->usItemSize], pstQ->usItemSize);
+    ipgui_memcpy(pvItem, &pstQ->pbDpool[usSlot * pstQ->usItemSize], pstQ->usItemSize);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ s32_t binary_heap_full(bhp_t * b)
@@ -87,12 +87,12 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ s32_t binary_heap_empty(bhp_t * b)
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void binary_heap_read(bhp_t * b, void * pvItem)
 {
-    memcpy(pvItem, BHP_ITEM(b, 0), b->usItemSize);
+    ipgui_memcpy(pvItem, BHP_ITEM(b, 0), b->usItemSize);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void binary_heap_write(bhp_t * b, void * pvItem)
 {
-    memcpy(BHP_ITEM(b, b->usItemCnt), pvItem, b->usItemSize);
+    ipgui_memcpy(BHP_ITEM(b, b->usItemCnt), pvItem, b->usItemSize);
 }
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void binary_heap_item_increase(bhp_t * b)
@@ -176,13 +176,13 @@ __IPGUI_API__ s32_t binary_heap_insert(bhp_t * pstBhp, void * pvItem, u16_t usIt
     {
         pvHoleItem  = BHP_ITEM(pstBhp, usHoleIdx);
         pvPholeItem = BHP_ITEM(pstBhp, usPholeIdx);
-        memcpy(pvHoleItem, pvPholeItem, usItemSize);
+        ipgui_memcpy(pvHoleItem, pvPholeItem, usItemSize);
         usHoleIdx   = usPholeIdx;
         usPholeIdx  = PARENT_IDX(usHoleIdx);
         pvPholeItem = BHP_ITEM(pstBhp, usPholeIdx);
     }
     pvHoleItem = BHP_ITEM(pstBhp, usHoleIdx);
-    memcpy(pvHoleItem, pvItem, usItemSize);
+    ipgui_memcpy(pvHoleItem, pvItem, usItemSize);
 
     /* item number increase */
     binary_heap_item_increase(pstBhp);
@@ -220,7 +220,7 @@ __IPGUI_API__ s32_t binary_heap_fetch(bhp_t * pstBhp, void * pvItem, u16_t usIte
     pvLastItem = BHP_ITEM(pstBhp, pstBhp->usItemCnt - 1);
     while( pstBhp->pfCompare(pvChdItem, pvLastItem) && (usChdIdx < pstBhp->usItemCnt))
     {
-        memcpy(pvHoleItem, pvChdItem, usItemSize);
+        ipgui_memcpy(pvHoleItem, pvChdItem, usItemSize);
         
         usHoleIdx  = usChdIdx;
         usLchdIdx  = LCHILD_IDX(usHoleIdx);
@@ -232,7 +232,7 @@ __IPGUI_API__ s32_t binary_heap_fetch(bhp_t * pstBhp, void * pvItem, u16_t usIte
         usChdIdx   = pstBhp->pfCompare(pvLchdItem, pvRchdItem) ? usLchdIdx : usRchdIdx;
         pvChdItem  = BHP_ITEM(pstBhp, usChdIdx);
     }
-    memcpy(pvHoleItem, pvLastItem, usItemSize);
+    ipgui_memcpy(pvHoleItem, pvLastItem, usItemSize);
 
     /* item number decrease */
     binary_heap_item_decrease(pstBhp);

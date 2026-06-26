@@ -23,7 +23,7 @@ typedef struct {
     /* 循环次数，0=无限循环，1=播一次，N=播N次 */
     u32_t                  loop_count;
 
-    /* 动画开始延迟时间 */
+    /* 动画开始延迟时间，只在第一次循环有效 */
     ipgui_tick_t           start_delay;
 
     /* 播完后自动销毁 */

@@ -39,14 +39,13 @@ static ipgui_twhl_mngr_t * kmng1 = (ipgui_twhl_mngr_t *)0;
 /* find the prime plan */
 __IPGUI_STATIC__ ipgui_err_t ipgui_timer_prime_slove(u32_t unSlotPowerN, u32_t * punPrimeX, u32_t * punPrimeN)
 {
-    s32_t x = 2, y, nProduct;
+    s32_t x = 2, y;
     s32_t nNeedSz, nTemp = 2147483647;
     * punPrimeN = 0xffffffff;
 
     while (x * x < unSlotPowerN)
     {
         y = (s32_t)ceil(log((double)unSlotPowerN) / log((double)x));
-        nProduct = x * y;
 #if IPGUI_TMR_WHEEL_ALLOC_MIN
         nNeedSz = IPGUI_TWHL_SZ * y + x * sizeof(struct list_head);
 #endif
@@ -228,10 +227,8 @@ __IPGUI_STATIC__ void ipgui_timer_lock_target(ipgui_twhl_mngr_t * pstMngr, ipg_t
 
 __IPGUI_API__ ipgui_err_t ipgui_timer_start(ipg_tmr_t * pstTimer, ipgui_twhl_mngr_t * pstMngr, ipgui_tick_t unDelay)
 {
-    ipgui_tick_t SchdLine;
     ipgui_tmr_whl_t * pstWhl;
     u32_t unSlotIdx;
-    u32_t unSkipRound;
 
     /* 参数检查替换为ipgui_debug_assert(...) */
     if ((unDelay > IPGUI_TIME_TICK_MAX) || (unDelay % pstMngr->Preci))
@@ -299,18 +296,6 @@ __IPGUI_API__ ipgui_err_t ipgui_timer_set_suspend(ipg_tmr_t * pstTimer, s32_t su
     pstTimer->suspend = !!suspend;
 }
 #endif
-
-/* get next timeout tick */
-__IPGUI_API__ ipgui_tick_t ipgui_next_timeout(ipgui_twhl_mngr_t * pstMngr)
-{
-    ipgui_list_t * pstIndex;
-
-    for (s32_t i = 0; i < pstMngr->ubWhlNum; ++ i) {
-
-    }
-
-    return (ipgui_tick_t)0;
-}
 
 /* this api must be called in a loop */
 __IPGUI_API__ ipgui_err_t ipgui_timer_loop(ipgui_twhl_mngr_t * pstMngr, ipgui_tick_t unPassTick)

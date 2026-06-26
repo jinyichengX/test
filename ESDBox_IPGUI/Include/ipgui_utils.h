@@ -36,8 +36,20 @@
 #define IPGUI_HEADER_END
 #endif
 
-/* GNUC */
-#if defined (__GNUC__)
+/*
+ * Compiler attribute macros — multi-compiler support
+ *
+ * GCC / Clang   : full support (__attribute__, __builtin_expect, weak, etc.)
+ * MSVC          : best-effort subset (align, pack, weak not supported)
+ * IAR           : uses __weak, __packed, __noreturn; no likely/unlikely
+ * ARMCC v5      : uses __attribute__ (GCC-compatible subset)
+ * ARMCC v6      : uses __attribute__ (GCC-compatible subset)
+ * Unsupported   : fall back to empty macros (degrade gracefully)
+ */
+
+#if defined(__GNUC__) || defined(__clang__) || \
+    (defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+/* ── GCC, Clang, ARM Compiler 6 ─────────────────────────────────────── */
 #define IPGUI_ST_ALIGN(n)   __attribute__((aligned(n)))
 #define likely(x)           __builtin_expect(!!(x), 1)
 #define unlikely(x)         __builtin_expect(!!(x), 0)
@@ -49,26 +61,62 @@
 #define __NO_RETURN__       __attribute__((__noreturn__))
 #define __NAKED__           __attribute__((naked))
 #define __WEAK__            __attribute__((weak))
-#elif defined (__clang__)
-/* standard C */
-#if defined __STDC_VERSION__ && (__STDC_VERSION__ >= 201112L)
-#define IPGUI_ST_ALIGN(n)   _Alignas(n)
-#elif
-#define IPGUI_ST_ALIGN(n)   _Pragma("pack(push, 1)")
+
+#elif defined(__CC_ARM)
+/* ── ARM Compiler 5 (armcc) ────────────────────────────────────────── */
+#define IPGUI_ST_ALIGN(n)   __attribute__((aligned(n)))
+#define likely(x)           (x)
+#define unlikely(x)         (x)
+#define __UNUSED__          __attribute__((__unused__))
+#define __USED__            __attribute__((__used__))
+#define __PACKED__          __attribute__((packed))
+#define __PURE__            __attribute__((__pure__))
+#define __CONST__           __attribute__((__const__))
+#define __NO_RETURN__       __attribute__((__noreturn__))
+#define __NAKED__           __attribute__((naked))
+#define __WEAK__            __attribute__((weak))
+
+#elif defined(__ICCARM__) || defined(__ICC430__) || defined(__IAR_SYSTEMS_ICC__)
+/* ── IAR (ARM / MSP430 / STM8 / AVR) ───────────────────────────────── */
+#define IPGUI_ST_ALIGN(n)   _Pragma("data_alignment=n")
+#define likely(x)           (x)
+#define unlikely(x)         (x)
+#define __UNUSED__
+#define __USED__            __root
+#define __PACKED__          __packed
+#define __PURE__
+#define __CONST__
+#define __NO_RETURN__       __noreturn
+#define __NAKED__           __naked
+#define __WEAK__            __weak
+
+#elif defined(_MSC_VER)
+/* ── MSVC ──────────────────────────────────────────────────────────── */
+#define IPGUI_ST_ALIGN(n)   __declspec(align(n))
+#define likely(x)           (x)
+#define unlikely(x)         (x)
+#define __UNUSED__          __pragma(warning(suppress:4100))
+#define __USED__
+#define __PACKED__          __declspec(align(1))
+#define __PURE__
+#define __CONST__
+#define __NO_RETURN__       __declspec(noreturn)
+#define __NAKED__           __declspec(naked)
+#define __WEAK__            /* weak not supported on MSVC */
+
 #else
-#error "Unsupported C/C++ standard"
-#endif
-#elif defined (__CC_ARM)
-#error "Unsupported C/C++ compiler"
-#elif defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)// ARM Compiler V6
-#error "Unsupported C/C++ compiler"
-#elif defined(__ICCARM__)  || defined(__ICC430__) // __IAR_SYSTEMS_ICC__
-#error "Unsupported C/C++ compiler"
-#elif defined(__IAR_SYSTEMS_ICC__)// ICC Compiler for STM8/AVR
-#error "Unsupported C/C++ compiler"
-#else
+/* ── Unknown compiler — fallback (no attributes) ───────────────────── */
 #define IPGUI_ST_ALIGN(n)
-#error "Unsupported C/C++ compiler"
+#define likely(x)           (x)
+#define unlikely(x)         (x)
+#define __UNUSED__
+#define __USED__
+#define __PACKED__
+#define __PURE__
+#define __CONST__
+#define __NO_RETURN__
+#define __NAKED__
+#define __WEAK__
 #endif
 
 /* 对齐大小由 uintptr_t 宽度自动决定：

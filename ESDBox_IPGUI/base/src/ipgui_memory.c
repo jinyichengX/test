@@ -27,7 +27,7 @@
 
 /* the global heap */
 u8_t ipgui_memheap[IPGUI_SMEM_SIZE] IPGUI_ST_ALIGN(IPGUI_MEM_ALIGN_SIZE);
-ipgui_mem_t * ipgui_smem = NULL;
+ipgui_mem_t * ipgui_smem = (ipgui_mem_t *)0;
 
 /* align the addr or size up and down */
 #define IPGUI_MEM_ALIGNED_UP(n)  				            (((n) + IPGUI_MEM_ALIGN_SIZE - 1) & (~(ipgui_mem_unit_type_t)IPGUI_MEM_ALIGN_SIZE_MASK))
@@ -72,11 +72,11 @@ static void * ipgui_mem_alloc_wf(ipgui_mem_t *, ipgui_mem_unit_type_t);
 /* initialise kernel heap memory */
 __IPGUI_API__ ipgui_mem_t * ipgui_mem_init(void * pvSurf, void * pvBottom)
 {
-	ipgui_mem_t * pstMem = NULL;
+	ipgui_mem_t * pstMem = (ipgui_mem_t *)0;
 	linknode_t * pstFirstNode;
 	ipgui_mem_unit_type_t AlgSurf, AlgBtm;
 	
-	if ((pvSurf == NULL) || (pvBottom == NULL))
+	if ((pvSurf == (void *)0) || (pvBottom == (void *)0))
 	    return (ipgui_mem_t *)0;
 	if (IPGUI_MEM_MNGNODEESZ_MIN < IPGUI_MEM_ALLOC_FIX_HEAD_MIN)
 	    return (ipgui_mem_t *)0;
@@ -114,7 +114,7 @@ __IPGUI_API__ ipgui_mem_t * ipgui_mem_init(void * pvSurf, void * pvBottom)
 /* best fit */
 static void * ipgui_mem_alloc_bf(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t Size)
 {
-	linknode_t * pstFitNode = NULL;
+	linknode_t * pstFitNode = (linknode_t *)0;
 	struct list_head * pstPos, * pstNext;
 	ipgui_mem_unit_type_t TempSize = 0xffffffff;
 	
@@ -134,7 +134,7 @@ static void * ipgui_mem_alloc_bf(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t Siz
 /* first fit */
 static void * ipgui_mem_alloc_ff( ipgui_mem_t * pstMem, ipgui_mem_unit_type_t Size )
 {
-	linknode_t * pstFitNode = NULL;
+	linknode_t * pstFitNode = (linknode_t *)0;
 	struct list_head * pstPos, * pstNext;
 	
 	IPGUI_MEM_TRAVERSAL_FREELIST(pstPos, pstNext, &pstMem->stFreeEntry)
@@ -151,7 +151,7 @@ static void * ipgui_mem_alloc_ff( ipgui_mem_t * pstMem, ipgui_mem_unit_type_t Si
 /* worst fit */
 static void * ipgui_mem_alloc_wf( ipgui_mem_t * pstMem, ipgui_mem_unit_type_t Size )
 {
-	linknode_t * pstFitNode = NULL;
+	linknode_t * pstFitNode = (linknode_t *)0;
 	struct list_head * pstPos, * pstNext;
 	ipgui_mem_unit_type_t TempSize = 0;
 	
@@ -178,10 +178,10 @@ __IPGUI_API__ void * ipgui_mem_alloc(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t
 	struct list_head stBk;
 	struct usdinfo * alloc;
 	
-	if ((pstMem == NULL) || (!Size))
-        return NULL;
+	if ((pstMem == (ipgui_mem_t *)0) || (!Size))
+        return (void *)0;
 	if (IPGUI_MEM_FREELIST_EMPTY(&pstMem->stFreeEntry))
-        return NULL;
+        return (void *)0;
 	
 	NeedSz = IPGUI_MEM_ALIGNED_UP(Size);
 	NeedSz += IPGUI_MEM_ALLOC_FIX_HEAD_MIN;
@@ -196,10 +196,10 @@ __IPGUI_API__ void * ipgui_mem_alloc(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t
 	 * but if not,switch to the other allocate pattern 
 	 * and try again
 	 */
-	if ((pstFitNode == NULL)&&(ptn == WORST_FIT))
-	    return NULL;
+	if ((pstFitNode == (linknode_t *)0)&&(ptn == WORST_FIT))
+	    return (void *)0;
 
-	else if ((pstFitNode == NULL) && (ptn != WORST_FIT))
+	else if ((pstFitNode == (linknode_t *)0) && (ptn != WORST_FIT))
     {
         for( idx = 0; idx < MAX_PATTERN; idx++ )
         {
@@ -208,15 +208,15 @@ __IPGUI_API__ void * ipgui_mem_alloc(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t
 
             IPGUI_MEM_ALLOCPATTERN_SET(pstMem, idx);
 
-            if ((pstFitNode = (linknode_t *)pstMem->strat.php_alloc[ptn](pstMem, NeedSz)) != NULL)
+            if ((pstFitNode = (linknode_t *)pstMem->strat.php_alloc[ptn](pstMem, NeedSz)) != (linknode_t *)0)
                 break;
         }
         IPGUI_MEM_ALLOCPATTERN_SET(pstMem, ptn);
 	}
 #endif
 
-	if (pstFitNode == NULL)
-        return NULL;
+	if (pstFitNode == (linknode_t *)0)
+        return (void *)0;
 	
 	leftsz = pstFitNode->BlockSize - NeedSz;
 	if (leftsz >= IPGUI_MEM_MNGNODEESZ_MIN)
@@ -245,19 +245,19 @@ __IPGUI_API__ void * ipgui_mem_alloc(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t
 __IPGUI_API__ void * ipgui_mem_alloc_align(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t ** unaligned_addr, ipgui_mem_unit_type_t align_size, int n)
 {
 	ipgui_mem_unit_type_t Size;
-	void * p = NULL;
+	void * p = (void *)0;
 	
-	if ((pstMem == NULL) || (!align_size) || (n == 0))
-        return NULL;
+	if ((pstMem == (ipgui_mem_t *)0) || (!align_size) || (n == 0))
+        return (void *)0;
 	if (align_size % IPGUI_MEM_ALIGN_SIZE)
-        return NULL;
+        return (void *)0;
 	
-	if (unaligned_addr == NULL) 
+	if (unaligned_addr == (ipgui_mem_unit_type_t **)0) 
         IPGUI_MEM_DBG_WARNING;
 	
 	Size = align_size * (n + 1);
-	if (NULL == (p = ipgui_mem_alloc(pstMem, Size)))
-        return NULL;
+	if ((void *)0 == (p = ipgui_mem_alloc(pstMem, Size)))
+        return (void *)0;
 	
 	* unaligned_addr = p;
 	p = (void *)((((ipgui_mem_unit_type_t)p) + align_size-1) & (~(ipgui_mem_unit_type_t)(align_size-1)));
@@ -268,13 +268,13 @@ __IPGUI_API__ void * ipgui_mem_alloc_align(ipgui_mem_t * pstMem, ipgui_mem_unit_
 /* allocate and clear block */
 __IPGUI_API__ void * ipgui_mem_calloc(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t Size)
 {
-	void * pvAddr = NULL;
+	void * pvAddr = (void *)0;
 	
-	if ((pstMem == NULL ) || (!Size))
-        return NULL;
+	if ((pstMem == (ipgui_mem_t *)0) || (!Size))
+        return (void *)0;
 
-	if (NULL != (pvAddr = ipgui_mem_alloc(pstMem, Size)))
-        memset(pvAddr, 0, Size);
+	if ((void *)0 != (pvAddr = ipgui_mem_alloc(pstMem, Size)))
+        ipgui_memset(pvAddr, 0, Size);
 	
 	return (void *)pvAddr;
 }
@@ -284,7 +284,7 @@ static void search_neigh_node(ipgui_mem_t * pstMem, void * pvFstAddr, struct lis
 {
 	struct list_head *pstPos,*pstNext;
 	
-	if ((pstMem == NULL) || (pvFstAddr == NULL))
+	if ((pstMem == (ipgui_mem_t *)0) || (pvFstAddr == (void *)0))
         return;
 	if (IPGUI_MEM_FREELIST_EMPTY(&pstMem->stFreeEntry))
         return;
@@ -309,7 +309,7 @@ __IPGUI_API__ void ipgui_mem_free(ipgui_mem_t * pstMem, void * pvFstAddr)
 	linknode_t * pstFreeNode;
 	struct list_head stBk;
 	struct list_head * pstaNeighNode[2] = { [0] = 0,[1] = 0, };
-	if ((pstMem == NULL) || (pvFstAddr == NULL))
+	if ((pstMem == (ipgui_mem_t *)0) || (pvFstAddr == (void *)0))
         return;
 
 	pstFreeNode = (linknode_t *)((char *)pvFstAddr - IPGUI_MEM_ALLOC_FIX_HEAD_MIN);
@@ -383,13 +383,13 @@ static void mem_usage_calc(ipgui_mem_t * pstMem);
 __IPGUI_API__ void * ipgui_mem_realloc(ipgui_mem_t * pstMem, void * pvFstAddr, ipgui_mem_unit_type_t Size)
 {
 	int nOrgSz = 0;
-	void * pvNewAddr = NULL;
+	void * pvNewAddr = (void *)0;
 
-	if (pstMem == NULL)
-        return NULL;
+	if ((pstMem == (ipgui_mem_t *)0))
+        return (void *)0;
 	if (!Size)
         return (void *)pvFstAddr;
-    if (pvFstAddr == NULL)
+    if (pvFstAddr == (void *)0)
         return ipgui_mem_alloc(pstMem, Size);
 
 	nOrgSz = ((struct usdinfo *)((char *)pvFstAddr - IPGUI_MEM_ALLOC_FIX_HEAD_MIN))->UsedSize;
@@ -398,7 +398,7 @@ __IPGUI_API__ void * ipgui_mem_realloc(ipgui_mem_t * pstMem, void * pvFstAddr, i
         return (void *)pvFstAddr;
 	
     pvNewAddr = ipgui_mem_alloc(pstMem, Size);
-    if (pvNewAddr == NULL)
+    if (pvNewAddr == (void *)0)
         return (void *)pvFstAddr;
 	
     ipgui_memcpy(pvNewAddr, pvFstAddr, (nOrgSz < Size) ? nOrgSz : Size);
@@ -427,7 +427,7 @@ static void mem_usage_calc(ipgui_mem_t *pstMem)
     ipgui_mem_unit_type_t Total = pstMem->ValidSize;
     ipgui_mem_unit_type_t Used = 0;
 	
-    if (pstMem == NULL)
+    if (pstMem == (ipgui_mem_t *)0)
         return;
 
     IPGUI_MEM_TRAVERSAL_FREELIST(pstPos, pstNext, &pstMem->stFreeEntry)
@@ -446,16 +446,16 @@ static void mem_usage_calc(ipgui_mem_t *pstMem)
 /* take heap statistics */
 __IPGUI_API__ ipgui_err_t ipgui_mem_statistics_take(ipgui_mem_t * pstMem, ipgui_mem_unit_type_t *HeapSize, ipgui_mem_unit_type_t * StartAddr, u8_t * pubStrat, u8_t * pubUsg1, u8_t * pubUsg2)
 {
-	if (pstMem == NULL)
+	if ((pstMem == (ipgui_mem_t *)0))
         return IPGUI_ERR_PARAM;
 
-	if (HeapSize != NULL) * HeapSize = ((ipgui_mem_t *)pstMem)->HeapSize;
-	if (StartAddr!= NULL) * StartAddr = ((ipgui_mem_t *)pstMem)->StartAddr;
-	if (pubStrat != NULL) * pubStrat = (u8_t)(((ipgui_mem_t *)pstMem)->strat.alloc_pttn);
+	if (HeapSize) * HeapSize = ((ipgui_mem_t *)pstMem)->HeapSize;
+	if (StartAddr) * StartAddr = ((ipgui_mem_t *)pstMem)->StartAddr;
+	if (pubStrat) * pubStrat = (u8_t)(((ipgui_mem_t *)pstMem)->strat.alloc_pttn);
 #if IPGUI_MEM_STATISTICS_EN == 1
 	mem_usage_calc( pstMem );
-	if (pubUsg1 != NULL) * pubUsg1 = (u8_t)((ipgui_mem_t *)pstMem)->bUsageInt;
-	if (pubUsg2 != NULL) * pubUsg2 = (u8_t)((ipgui_mem_t *)pstMem)->bUsageFlo;
+	if (pubUsg1) * pubUsg1 = (u8_t)((ipgui_mem_t *)pstMem)->bUsageInt;
+	if (pubUsg2) * pubUsg2 = (u8_t)((ipgui_mem_t *)pstMem)->bUsageFlo;
 #endif
 	return IPGUI_ERR_OK;
 }
@@ -466,39 +466,6 @@ static const char us = sizeof(ipgui_mem_unit_type_t);
 __IPGUI_API__ void ipgui_memset(void * pv, u8_t v, u32_t len)
 {   
     memset(pv, v, len);
-    // int seg;
-    // ipgui_mem_unit_type_t up;
-    // u8_t * pe = (u8_t *)pv + len;
-    // ipgui_mem_unit_type_t vex = 0;
-
-    // if (!len || !pv)
-    //     return;
-
-    // if (len < 8) {
-    //     for( int i = 0; i < len; i++ )
-    //         ((u8_t *)pv)[i] = v;
-    //     return;
-    // }
-
-    // for (int i = 0; i < us; i ++)
-    //     vex |= (v << (i * 8));
-    
-    // up = IPGUI_MEM_ALIGNED_UP((ipgui_mem_unit_type_t)pv);
-
-    // seg = up - (ipgui_mem_unit_type_t)pv;
-    // len -= seg;
-
-    // while (seg --)
-    //     ((u8_t *)pv)[seg] = v;
-
-    // seg = len / us;
-    // len -= seg * us;
-    // while (seg --)
-    //     ((ipgui_mem_unit_type_t *)up)[seg] = vex;
-
-    // seg = len;
-    // while (seg --)
-    //     (pe - len)[seg] = v;
 }
 
 __IPGUI_API__ void ipgui_memset_0(void * pv, u32_t len)
@@ -534,7 +501,7 @@ __IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_mem_module_init(void)
 
 __IPGUI_API__ void ipgui_mem_usage_statistics_take(u8_t * pubUsg1, u8_t * pubUsg2)
 {
-    ipgui_mem_statistics_take( ipgui_smem, NULL, NULL, NULL, pubUsg1, pubUsg2);
+    ipgui_mem_statistics_take( ipgui_smem, 0, 0, 0, pubUsg1, pubUsg2);
 }
 
 __IPGUI_API__ void * ipgui_mem_alloc_def(ipgui_mem_unit_type_t size)

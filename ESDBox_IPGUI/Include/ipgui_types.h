@@ -76,6 +76,7 @@ typedef enum {
     IPGUI_NO
 }ipgui_yes_no_t;
 
+/* 用户指定 */
 typedef unsigned int u32_t;
 typedef unsigned short u16_t;
 typedef unsigned char u8_t;
@@ -86,11 +87,11 @@ typedef long long s64_t;
 typedef unsigned long long u64_t;
 typedef unsigned long long uintptr_t;//uintptr_t 的大小必须适配当前系统的指针宽度
 
-/* 动画值类型 */
+/* 动画值类型（用户不可修改） */
 typedef s32_t ipgui_anim_value_t;
 
-/* 系统时基类型 */
-typedef uintptr_t ipgui_tick_t;
+/* 系统时基类型（用户不可修改） */
+typedef u32_t ipgui_tick_t;
 
 #endif
 
