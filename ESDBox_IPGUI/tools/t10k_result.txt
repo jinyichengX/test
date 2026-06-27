@@ -1,6 +1,0 @@
-=== 10000 Timers - Diverse Params + U32 Wrap ===
-Period: 10-509 (unique), Delay: 0-4999 (staggered)
-3333 infinite, 6667 limited (1-10 rounds)
-150 ticks, START @ U32_MAX-200 => WRAP at tick ~200
-
-Setup done: 10000 timers

@@ -1,8 +1,0 @@
-============================================================
-  10000 Concurrent Timers - Final Test
-============================================================
-  10000 timers, each unique params, 5000 ticks across U32 wrap
-
-Start time: 4294851760 (U32_MAX=4294967295)
-Setting up 10000 timers...
-Running 5000 ticks...
