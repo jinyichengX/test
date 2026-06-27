@@ -253,8 +253,3 @@ __IPGUI_API__ void ipgui_timer_loop(ipgui_timer_mgr_t *mgr, ipgui_tick_t passed)
         ipgui_timer_tick(mgr);
     }
 }
-
-__IPGUI_API__ void ipgui_timer_handler(ipgui_timer_mgr_t *mgr)
-{
-    ipgui_timer_loop(mgr, ipgui_tick_passed_last());
-}

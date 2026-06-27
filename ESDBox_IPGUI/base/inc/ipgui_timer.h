@@ -59,6 +59,5 @@ __IPGUI_API__ void        ipgui_timer_stop    (ipg_tmr_t *tmr);
 __IPGUI_API__ ipgui_err_t ipgui_timer_restart (ipgui_timer_mgr_t *mgr, ipg_tmr_t *tmr);
 __IPGUI_API__ void        ipgui_timer_tick    (ipgui_timer_mgr_t *mgr);
 __IPGUI_API__ void        ipgui_timer_loop    (ipgui_timer_mgr_t *mgr, ipgui_tick_t passed);
-__IPGUI_API__ void        ipgui_timer_handler (ipgui_timer_mgr_t *mgr);
 
 #endif
