@@ -1,0 +1,6 @@
+=== 5000 Timers WRAP-AROUND Test (FIXED) ===
+Start: U32_MAX-50. Ticks: 200. Wrap at tick ~50.
+Timers with delay crossing the wrap point.
+
+Setup done: 5000 timers
+  Tick 50: 44 fires, time=4294967295

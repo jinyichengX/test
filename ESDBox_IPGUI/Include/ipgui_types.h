@@ -87,10 +87,10 @@ typedef long long s64_t;
 typedef unsigned long long u64_t;
 typedef unsigned long long uintptr_t;//uintptr_t 的大小必须适配当前系统的指针宽度
 
-/* 动画值类型（用户不可修改） */
+/* 动画值类型（不允许修改） */
 typedef s32_t ipgui_anim_value_t;
 
-/* 系统时基类型（用户不可修改） */
+/* 系统时基类型（不允许修改） */
 typedef u32_t ipgui_tick_t;
 
 #endif

@@ -1,0 +1,32 @@
+═══════════════════════════════════════════
+  全方位验证报告 - 纯天然级联引擎
+═══════════════════════════════════════════
+
+T1 tick进位 ──
+  Final time=0 (expect 0: 0xFFFFFF00+256 wraps)
+  PASS
+
+T2 DAFO ──
+  p=1: 200 fires (expect~100)
+  p=3: 67 fires (expect~67)
+  p=5: 41 fires (expect~41)
+  p=7: 29 fires (expect~29)
+  p=9: 23 fires (expect~23)
+  p=11: 19 fires (expect~19)
+  p=13: 16 fires (expect~16)
+  p=17: 12 fires (expect~12)
+
+T3 10000一波+回绕 ──
+  Start=4294966784, ticks=6000
+  OK=956 wait(outsiderange)=9044 extra=0
+  PASS
+
+T4 周期+回绕 ──
+  Inf: 1000 ok 0 no | Lim: 2000 ok 0 over | Math: 2000 ok 0 bad
+  PASS
+
+T5 极端混合 ──
+  One-shot: 244 ok 256 wait 0 err | Inf: 362 | Lim: 750 ok 0 over
+  PASS
+
+T6 十万规模 ──

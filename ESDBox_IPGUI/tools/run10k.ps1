@@ -1,0 +1,1 @@
+$p = Start-Process -FilePath "m:\test\ESDBox_IPGUI\tools\t10ks.exe" -NoNewWindow -RedirectStandardOutput "m:\test\ESDBox_IPGUI\tools\t10kout.txt" -PassThru; $p.WaitForExit(120000) | Out-Null; Write-Output "Exit=$($p.ExitCode)"

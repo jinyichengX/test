@@ -1,0 +1,3 @@
+=== 10000 Timers Quick Test ===
+start=4294851760 (U32_MAX=4294967295)
+10000 timers setup done

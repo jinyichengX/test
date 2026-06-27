@@ -343,7 +343,6 @@ int main(void)
             ipgui_widget_mark_dirty(widget3);
 
         /* 心跳 */
-        ipgui_loop_def(1);
         ipgui_tick_inc();
         Sleep(1);
 

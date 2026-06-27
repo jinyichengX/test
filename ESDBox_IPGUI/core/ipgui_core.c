@@ -4,7 +4,6 @@
 #include "ipgui_gradient_color.h"
 #include "ipgui_draw_polygon.h"
 
-__IPGUI_INIT__ ipgui_err_t ipgui_timer_moudle_init(void);
 ipgui_err_t ipgui_bmp_dec_module_init(void);
 __IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_init(void)
 {
@@ -14,9 +13,9 @@ __IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_init(void)
     if (err != IPGUI_ERR_OK)
         return err;
 
-    err = ipgui_timer_moudle_init();
-    if (err != IPGUI_ERR_OK)
-        return err;
+    // err = ipgui_timer_moudle_init();
+    // if (err != IPGUI_ERR_OK)
+    //     return err;
 
     err = ipgui_bmp_dec_module_init();
     if (err != IPGUI_ERR_OK)
