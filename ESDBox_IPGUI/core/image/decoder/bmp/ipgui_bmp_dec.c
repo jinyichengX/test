@@ -130,7 +130,7 @@ static ipgui_err_t bmp_decoder_standard(void * bh, struct bmp_inf * inf)
 
     if (compress == 3) {
         inf->has_mask = 1;
-    }
+    } else inf->has_mask = 0;
 
     if ((inf->bpp == 1) || (inf->bpp == 4) || (inf->bpp == 8)) {
         inf->has_pattle = 1;
@@ -185,7 +185,7 @@ ipgui_err_t ipgui_bmp_dec(const s8_t * path, struct bmp_inf * inf)
     struct bmp_hdr bh;
     s32_t rd_sz, pix_off, hsz;
 
-    ipgui_memset(&inf->file, 0, sizeof(ipgui_file_t));
+    ipgui_memset(inf, 0, sizeof(*inf));
     ipgui_link_fs_auto(&inf->file);
     ret = ipgui_vfs_fopen(&inf->file, path, IPGUI_FILE_MODE_READ, 0, 0);
     if (ret != IPGUI_ERR_OK)
