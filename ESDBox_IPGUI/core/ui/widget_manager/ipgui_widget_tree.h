@@ -3,8 +3,6 @@
 
 #include "ipgui_utils.h"
 
-typedef int (* widget_ops_t)(struct widget_link_t *, void *);
-
 struct widget_link_t{
     struct widget_link_t * parent;
     struct widget_link_t * sib_next; /* next sibling */
@@ -18,6 +16,8 @@ struct widget_link_t{
 struct widget_tree_t{
     struct widget_link_t root;
 };
+
+typedef int (* widget_ops_t)(struct widget_link_t *, void *);
 
 extern __IPGUI_API__ ipgui_yes_no_t ipgui_widget_link_is_detached(struct widget_link_t * link);
 extern __IPGUI_API__ void ipgui_widget_tree_init(struct widget_tree_t * tree);

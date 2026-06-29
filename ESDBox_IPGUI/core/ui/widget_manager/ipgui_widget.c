@@ -175,20 +175,53 @@ __IPGUI_API__ void ipgui_widget_mark_dirty(ipgui_widget_t * widget)
     ipgui_dirty_rect_add(&scr->dirty, (ipgui_dirty_rect_t *)&dr);
 }
 
-/* 全局坐标转为控件相对坐标系 */
-__IPGUI_API__ __IPGUI_NOT_FOR_USER__ void ipgui_widget_point_to_self(
-    ipgui_widget_t * widget, 
-    ipgui_coord_t g_x, 
-    ipgui_coord_t g_y,
-    ipgui_coord_t * self_x,
-    ipgui_coord_t * self_y)
+__IPGUI_API__ void ipgui_widget_set_align(
+    ipgui_widget_t *     widget, 
+    ipgui_widget_align_t align,
+    ipgui_coord_t        parent_w,
+    ipgui_coord_t        parent_h)
 {
-    ipgui_aabb_t global_aabb;
+    if (!widget) return;
 
-    if (!widget || !self_x || !self_y) return;
+    if(IPGUI_YES == ipgui_widget_link_is_detached(&widget->link))
+        return;
 
-    ipgui_widget_abs_pos(widget, &global_aabb);
-
-    *self_x = g_x - global_aabb.start.x;
-    *self_y = g_y - global_aabb.start.y;
+    switch (align) {
+        case IPGUI_WIDGET_ALIGN_LEFT_TOP:
+            widget->x = 0;
+            widget->y = 0;
+            break;
+        case IPGUI_WIDGET_ALIGN_TOP_CENTER:
+            widget->x = (parent_w - widget->w) / 2;
+            widget->y = 0;
+            break;
+        case IPGUI_WIDGET_ALIGN_RIGHT_TOP:
+            widget->x = parent_w - widget->w;
+            widget->y = 0;
+            break;
+        case IPGUI_WIDGET_ALIGN_LEFT_CENTER:
+            widget->x = 0;
+            widget->y = (parent_h - widget->h) / 2;
+            break;
+        case IPGUI_WIDGET_ALIGN_CENTER:
+            widget->x = (parent_w - widget->w) / 2;
+            widget->y = (parent_h - widget->h) / 2;
+            break;
+        case IPGUI_WIDGET_ALIGN_RIGHT_CENTER:
+            widget->x = parent_w - widget->w;
+            widget->y = (parent_h - widget->h) / 2;
+            break;
+        case IPGUI_WIDGET_ALIGN_LEFT_BOTTOM:
+            widget->x = 0;
+            widget->y = parent_h - widget->h;
+            break;
+        case IPGUI_WIDGET_ALIGN_BOTTOM_CENTER:
+            widget->x = (parent_w - widget->w) / 2;
+            widget->y = parent_h - widget->h;
+            break;
+        case IPGUI_WIDGET_ALIGN_RIGHT_BOTTOM:
+            widget->x = parent_w - widget->w;
+            widget->y = parent_h - widget->h;
+            break;
+    }
 }

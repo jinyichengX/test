@@ -46,6 +46,19 @@ typedef enum {
     IPGUI_WIDGET_FLAG_DISABLED          = 0x0008,  /* 禁用：不响应事件 */
 } ipgui_widget_flag_t;
 
+/* 控件在父控件中的对齐方式 */
+typedef enum {
+    IPGUI_WIDGET_ALIGN_LEFT_TOP,                   /* 左上对齐 */
+    IPGUI_WIDGET_ALIGN_TOP_CENTER,                 /* 上中对齐 */
+    IPGUI_WIDGET_ALIGN_RIGHT_TOP,                  /* 右上对齐 */
+    IPGUI_WIDGET_ALIGN_LEFT_CENTER,                /* 左中对齐 */
+    IPGUI_WIDGET_ALIGN_CENTER,                     /* 居中对齐 */
+    IPGUI_WIDGET_ALIGN_RIGHT_CENTER,               /* 右中对齐 */
+    IPGUI_WIDGET_ALIGN_LEFT_BOTTOM,                /* 左下对齐 */
+    IPGUI_WIDGET_ALIGN_BOTTOM_CENTER,              /* 下中对齐 */
+    IPGUI_WIDGET_ALIGN_RIGHT_BOTTOM,               /* 右下对齐 */
+} ipgui_widget_align_t;
+
 typedef struct ipgui_widget
 {
     /* ---- 扩展数据 ---- */

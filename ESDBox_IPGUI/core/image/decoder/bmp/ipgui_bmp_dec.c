@@ -56,6 +56,9 @@ struct bmp_inf
     /* path */
     const s8_t * path;
 
+    /* file handle, kept open for line-by-line reading */
+    ipgui_file_t file;
+
     /* direct info */
     s32_t pixs_off; /* 颜色偏移/调色板索引偏移 */
 
@@ -178,18 +181,17 @@ static s32_t validate_masks(u32_t rm, u32_t gm, u32_t bm)
 ipgui_err_t ipgui_bmp_dec(const s8_t * path, struct bmp_inf * inf)
 {
     ipgui_err_t ret;
-    ipgui_file_t file;
     struct bmp_file_hdr bfh;
     struct bmp_hdr bh;
     s32_t rd_sz, pix_off, hsz;
 
-    ipgui_memset(&file, 0, sizeof(ipgui_file_t));
-    ipgui_link_fs_auto(&file);
-    ret = ipgui_vfs_fopen(&file, path, IPGUI_FILE_MODE_READ, 0, 0);
+    ipgui_memset(&inf->file, 0, sizeof(ipgui_file_t));
+    ipgui_link_fs_auto(&inf->file);
+    ret = ipgui_vfs_fopen(&inf->file, path, IPGUI_FILE_MODE_READ, 0, 0);
     if (ret != IPGUI_ERR_OK)
         return ret;
 
-    ret = ipgui_vfs_fread(&file, &bfh, BFH_SZ, &rd_sz);
+    ret = ipgui_vfs_fread(&inf->file, &bfh, BFH_SZ, &rd_sz);
     if (ret != IPGUI_ERR_OK)
         goto _return;
 
@@ -203,9 +205,11 @@ ipgui_err_t ipgui_bmp_dec(const s8_t * path, struct bmp_inf * inf)
     inf->pixs_off = pix_off;
 
     /* get bmp header size from bmp header */
-    ret = ipgui_vfs_fread(&file, &bh, BH_SZ, &rd_sz);
-    if ((ret != IPGUI_ERR_OK) || (BH_SZ != rd_sz))
+    ret = ipgui_vfs_fread(&inf->file, &bh, BH_SZ, &rd_sz);
+    if ((ret != IPGUI_ERR_OK) || (BH_SZ != rd_sz)) {
+        if (ret == IPGUI_ERR_OK) ret = IPGUI_ERR_NOK;
         goto _return;
+    }
 
     hsz = le32((s8_t *)&bh.hsz);
     /* check if header is supportted, v4 header or v5 header may not support */
@@ -232,9 +236,9 @@ ipgui_err_t ipgui_bmp_dec(const s8_t * path, struct bmp_inf * inf)
             goto _return;
         }
         s32_t br = 0;
-        ret = ipgui_vfs_fseek(&file, IPGUI_FILE_SEEK_SET, inf->pat_off);
+        ret = ipgui_vfs_fseek(&inf->file, IPGUI_FILE_SEEK_SET, inf->pat_off);
         if (ret != IPGUI_ERR_OK) goto _return;
-        ret = ipgui_vfs_fread(&file, inf->pattle, pattle_sz, &br);
+        ret = ipgui_vfs_fread(&inf->file, inf->pattle, pattle_sz, &br);
         if (ret != IPGUI_ERR_OK) goto _return;
         if (br != pattle_sz) {
             ipgui_mem_free_def(inf->pattle);
@@ -257,7 +261,13 @@ ipgui_err_t ipgui_bmp_dec(const s8_t * path, struct bmp_inf * inf)
         }
     }
 _return:
-    ipgui_vfs_fclose(&file);
+    if (ret != IPGUI_ERR_OK) {
+        ipgui_vfs_fclose(&inf->file);
+        if (inf->pattle) {
+            ipgui_mem_free_def(inf->pattle);
+            inf->pattle = (u32_t *)0;
+        }
+    }
     return ret;
 }
 
@@ -367,13 +377,11 @@ static ipgui_err_t read_shallow(ipgui_file_t * f,
     if (!inf->pattle)
         return IPGUI_ERR_BMP_PAT_NULL;
 
-    #define IDX_CACHE_SIZE 1024
-    static u8_t idx_cache[IDX_CACHE_SIZE];
-
     line_sz = get_shallow_bmp_line_sz(inf->bpp, inf->w);
 
-    if (line_sz > IDX_CACHE_SIZE)
-        return IPGUI_ERR_BMP_PAT_IDX_CACHE;
+    u8_t * idx_cache = (u8_t *)ipgui_mem_alloc_def(line_sz);
+    if (!idx_cache)
+        return IPGUI_ERR_NOMEM;
 
     s32_t bytes_to_read, br;
     s32_t pixels_processed = 0;
@@ -400,13 +408,15 @@ static ipgui_err_t read_shallow(ipgui_file_t * f,
 
         ret = ipgui_vfs_fseek(f, IPGUI_FILE_SEEK_SET, current_off);
         if (ret != IPGUI_ERR_OK) 
-            return ret;
+            goto _cleanup;
 
         ret = ipgui_vfs_fread(f, idx_cache, bytes_to_read, &br);
         if (ret != IPGUI_ERR_OK) 
-            return ret;
-        if (bytes_to_read != br) 
-            return IPGUI_ERR_NOK;
+            goto _cleanup;
+        if (bytes_to_read != br) {
+            ret = IPGUI_ERR_NOK;
+            goto _cleanup;
+        }
 
         for (s32_t i = 0; i < pixels_to_read; i ++) {
             u32_t pattle_index = 0;
@@ -443,7 +453,9 @@ static ipgui_err_t read_shallow(ipgui_file_t * f,
         }
     }
 
-    return IPGUI_ERR_OK;
+_cleanup:
+    ipgui_mem_free_def(idx_cache);
+    return ret;
 }
 
 /* 读取bmp数据，不是读取一行，而是按行顺序读取，一行数据读完继续读下一行，直到满足pix_num */
@@ -452,17 +464,9 @@ ipgui_err_t ipgui_bmp_read_linebyline(struct bmp_inf * inf,
     void * buffer, ipgui_coord_t pix_num, ipgui_coord_t * pix_nr/* how many pixels read actually */)
 {
     ipgui_err_t ret;
-    ipgui_file_t file;
-    const s8_t * path;
     if (((img_x >= inf->w) || (img_y >= inf->h)) ||
         ((img_x < 0) || (img_y < 0)))
         return IPGUI_ERR_OUT_OF_BOUNDS;
-    ipgui_memset(&file, 0, sizeof(ipgui_file_t));
-    path = inf->path;
-    ipgui_link_fs_auto(&file);
-    ret = ipgui_vfs_fopen(&file, path, IPGUI_FILE_MODE_READ, 0, 0);
-    if (ret != IPGUI_ERR_OK)
-        return ret;
 
     /* get left size, compare with pix_num */
     s32_t max_pixs = (inf->w - img_x) + (inf->h - img_y - 1) * inf->w;
@@ -471,36 +475,27 @@ ipgui_err_t ipgui_bmp_read_linebyline(struct bmp_inf * inf,
     }
 
     if ((inf->bpp == 24) || (inf->bpp == 32)) {
-        ret = read_true_color(&file, inf, img_x, img_y, buffer, pix_num);
+        ret = read_true_color(&inf->file, inf, img_x, img_y, buffer, pix_num);
     } else if (inf->bpp == 16) {
-        ret = read_rgb16(&file, inf, img_x, img_y, buffer, pix_num);
+        ret = read_rgb16(&inf->file, inf, img_x, img_y, buffer, pix_num);
     } else {
-        ret = read_shallow(&file, inf, img_x, img_y, buffer, pix_num);
+        ret = read_shallow(&inf->file, inf, img_x, img_y, buffer, pix_num);
     }
     if (pix_nr && (ret == IPGUI_ERR_OK))
         * pix_nr = pix_num;
     else if (pix_nr)
         * pix_nr = 0;
-_return:
-    ipgui_vfs_fclose(&file);
     return ret;
 }
 
-struct bmp_inf * ipgui_bmp_dec_create(void)
-{
-    struct bmp_inf * inf;
-    inf = (struct bmp_inf *)ipgui_mem_alloc_def(sizeof(struct bmp_inf));
-    return inf;
-}
-
-void ipgui_bmp_dec_destroy(struct bmp_inf * inf)
+void ipgui_bmp_close(struct bmp_inf * inf)
 {
     if (!inf) return;
-
-    if (inf->pattle)
-        ipgui_mem_free_def((void *)inf->pattle);
-    
-    ipgui_mem_free_def((void *)inf);
+    ipgui_vfs_fclose(&inf->file);
+    if (inf->pattle) {
+        ipgui_mem_free_def(inf->pattle);
+        inf->pattle = (u32_t *)0;
+    }
 }
 
 ipgui_err_t ipgui_bmp_dec_module_init(void)
@@ -649,11 +644,7 @@ int test_bmp(const s8_t * path, ipgui_img_dsc_t * image)
     image->fmt = (inf.bpp == 24) ? IPGUI_IMG_FMT_RGB888:  IPGUI_IMG_FMT_ARGB8888;
     image->mask = mask_buffer;
     // s32_t pixel_size = ((inf.bpp == 24) ? 3 : (inf.bpp == 16) ? 2 : 4);
-    // // while(1) {
-    // //     clear_fucking_screen(sdl_scr);
-    //     static s32_t angle = 30;
-    //     test_bmp_rotate(buffer, inf.w, inf.h, pixel_size, IPGUI_ANGLE_PRECISION * angle ++);
-    // // }
 
+    ipgui_bmp_close(&inf);
     return 0;
 }

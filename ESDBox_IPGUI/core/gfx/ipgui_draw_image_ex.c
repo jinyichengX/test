@@ -10,5 +10,26 @@ __IPGUI_API__ void ipgui_draw_image_ex(
     ipgui_trans_mat_t        * trans,
     ipgui_image_draw_style_t * style)
 {
+    if ((!surf) || (!img_data) || (!pivot) || (!anchor) || (!style))
+        return;
 
+    if (style->opacity < 3)
+        return;
+    
+    if (!img_mask) {
+        ipgui_draw_image(
+            surf,
+            clip,
+            img_data,
+            pivot,
+            anchor,
+            trans,
+            style);
+    }
+
+    /* use mask to clip image */
+    /* firstly zoom image mask */
+
+    /* then apply to mask */
+    
 }
