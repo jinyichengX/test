@@ -439,7 +439,7 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
             break;
         }
 
-        /* 暂时不支持鼠标以外的事件 */
+        /* 暂时不支持pointer事件类型以外的事件 */
         case IPGUI_INPUT_SRC_EVENT_KEY_DOWN: 
         case IPGUI_INPUT_SRC_EVENT_KEY_UP: 
         default:

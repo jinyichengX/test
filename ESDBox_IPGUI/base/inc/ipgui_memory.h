@@ -76,8 +76,6 @@ extern __IPGUI_API__ void           ipgui_memset_0(void *, u32_t);
 
 extern __IPGUI_API__ void           ipgui_memcpy(void *, const void *, u32_t);
 
-extern __IPGUI_API__ int            ipgui_memcmp(const void *, const void *, u32_t);
-
 extern __IPGUI_API__ void           ipgui_mem_usage_statistics_take(u8_t *, u8_t *);
 
 extern __IPGUI_API__ void *         ipgui_mem_alloc_def(ipgui_mem_unit_type_t size);

@@ -1,5 +1,4 @@
 #include "ipgui_memory.h"
-#include <string.h>
 
 /* the global heap */
 u8_t ipgui_memheap[IPGUI_SMEM_SIZE] IPGUI_ST_ALIGN(IPGUI_MEM_ALIGN_SIZE);
@@ -440,8 +439,42 @@ static const char us = sizeof(ipgui_mem_unit_type_t);
 
 /* memory set */
 __IPGUI_API__ void ipgui_memset(void * pv, u8_t v, u32_t len)
-{   
-    memset(pv, v, len);
+{
+    u8_t *dst;
+    u32_t i;
+
+    if (!len || !pv) return;
+    dst = (u8_t *)pv;
+
+    /* align dst to ptr-width boundary */
+    while (len && ((uintptr_t)dst & (sizeof(uintptr_t) - 1))) {
+        *dst++ = v;
+        len--;
+    }
+
+    /* ptr-width word fill */
+    if (len >= sizeof(uintptr_t)) {
+        uintptr_t w = (uintptr_t)v;
+        w |= w << 8;
+        w |= w << 16;
+        /* expand to 64-bit only on platforms where ptr >= 8 bytes */
+        if (sizeof(uintptr_t) >= 8) {
+            w |= w << 32;
+        }
+
+        uintptr_t *wp = (uintptr_t *)dst;
+        u32_t n = len / sizeof(uintptr_t);
+        for (i = 0; i < n; i++) {
+            *wp++ = w;
+        }
+        dst = (u8_t *)wp;
+        len %= sizeof(uintptr_t);
+    }
+
+    /* tail bytes */
+    for (i = 0; i < len; i++) {
+        *dst++ = v;
+    }
 }
 
 __IPGUI_API__ void ipgui_memset_0(void * pv, u32_t len)
@@ -457,18 +490,51 @@ __IPGUI_API__ int ipgui_strlen(const char * str)
     return len;
 }
 
-__IPGUI_API__ void ipgui_memcpy(void * dst, const void * src, u32_t len)
+__IPGUI_API__ void ipgui_memcpy(void *dst, const void *src, u32_t len)
 {
-    /* not support */
-    memcpy(dst, src, len);
-}
+    u8_t *d;
+    const u8_t *s;
+    u32_t i;
 
-__IPGUI_API__ int ipgui_memcmp(const void * dst, const void * src, u32_t len)
-{
-    /* not support */
-    return memcmp(dst, src, len);
-}
+    if (!len || !dst || !src) return;
 
+    d = (u8_t *)dst;
+    s = (const u8_t *)src;
+
+    /* 小长度快速路径 */
+    if (len <= sizeof(uintptr_t)) {
+        while (len--) {
+            *d++ = *s++;
+        }
+        return;
+    }
+
+    /* 对齐目的地址到机器字边界 */
+    while (len && ((uintptr_t)d & (sizeof(uintptr_t) - 1))) {
+        *d++ = *s++;
+        len--;
+    }
+
+    /* 仅当源地址也对齐时，才执行字宽拷贝，保证硬件安全 */
+    if (len >= sizeof(uintptr_t) && !((uintptr_t)s & (sizeof(uintptr_t) - 1))) {
+        uintptr_t *wd = (uintptr_t *)d;
+        const uintptr_t *ws = (const uintptr_t *)s;
+        const u32_t n = len / sizeof(uintptr_t);
+
+        for (i = 0; i < n; i++) {
+            *wd++ = *ws++;
+        }
+
+        d = (u8_t *)wd;
+        s = (const u8_t *)ws;
+        len %= sizeof(uintptr_t);
+    }
+
+    /* 尾部剩余字节收尾 */
+    while (len--) {
+        *d++ = *s++;
+    }
+}
 __IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_mem_module_init(void)
 {
     ipgui_smem = ipgui_mem_init((void*)ipgui_memheap, (void *)(ipgui_memheap + IPGUI_SMEM_SIZE));
