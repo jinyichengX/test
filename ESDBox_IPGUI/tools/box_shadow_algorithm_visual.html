@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>盒阴影算法 · 逐步拆解可视化</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root {
+  --bg:#0d1117; --surface:#161b22; --border:#30363d;
+  --text:#c9d1d9; --dim:#8b949e; --accent:#58a6ff; --red:#f85149;
+  --green:#3fb950; --yellow:#d2991d;
+}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+body{padding:24px;max-width:1200px;margin:0 auto}
+
+h1{font-size:22px;margin-bottom:4px;color:var(--accent)}
+h2{font-size:16px;margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);color:var(--text)}
+p.desc{font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6}
+
+.step-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.step-card h3{font-size:14px;margin-bottom:8px;color:var(--accent)}
+.step-card canvas{display:block;margin:0 auto;border:1px solid var(--border);border-radius:4px;image-rendering:pixelated}
+.step-card .label{font-size:11px;color:var(--dim);margin-top:6px}
+
+.controls-row{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:12px 0;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+.controls-row label{font-size:12px;color:var(--dim);white-space:nowrap}
+.controls-row input[type="range"]{width:120px;accent-color:var(--accent)}
+.controls-row .val{font-size:12px;color:var(--accent);font-weight:600;min-width:24px;text-align:center}
+.controls-row .sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+
+.explain-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin:12px 0;font-size:13px;line-height:1.8}
+.explain-box .step-num{display:inline-block;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:12px;font-weight:700;margin-right:6px}
+.explain-box .arrow{color:var(--yellow);margin:0 4px}
+.explain-box code{background:rgba(88,166,255,0.1);color:var(--accent);padding:1px 5px;border-radius:3px;font-size:12px}
+
+.big-canvas-wrap{text-align:center;margin:16px 0}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0;font-size:11px}
+.legend span{display:flex;align-items:center;gap:4px}
+.legend .swatch{width:12px;height:12px;border-radius:2px;display:inline-block}
+
+.formula-box{background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:14px 18px;margin-bottom:16px}
+.formula-box .formula-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px}
+.formula-box .formula-content{display:flex;flex-direction:column;gap:8px}
+.formula-box .formula-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;line-height:1.6}
+.formula-box .formula-label{color:var(--green);font-weight:600;white-space:nowrap;min-width:100px}
+.formula-box code{background:rgba(88,166,255,0.08);color:var(--accent);padding:2px 6px;border-radius:3px;font-size:12px;white-space:nowrap}
+.formula-box .formula-arrow{color:var(--dim);font-size:11px;white-space:nowrap}
+.formula-box .formula-note{color:var(--dim);font-size:11px;margin-left:4px}
+</style>
+</head>
+<body>
+
+<h1>盒阴影算法 · 交互式逐步拆解</h1>
+<p class="desc">
+  从零开始理解 CSS <code style="color:var(--yellow)">box-shadow</code> 的底层渲染原理。
+  不需要任何数学基础，每一步都有可视化。
+</p>
+
+<!-- ====== 第0课：像素模糊是什么 ====== -->
+<h2>第 0 课：模糊到底是什么</h2>
+
+<div class="formula-box" id="f0">
+  <div class="formula-title">核心公式（先看这个，再看图）</div>
+  <div class="formula-content">
+    <div class="formula-line">
+      <span class="formula-label">高斯核函数：</span>
+      <code>G(x) = exp(−x² / 2σ²)</code>
+      <span class="formula-arrow">→ 归一化 →</span>
+      <code>kernel[k] = G(k) / ΣG(k)</code>
+      <span class="formula-note">σ ≈ blur_px / 3，x 是邻居到中心的偏移（像素）</span>
+    </div>
+    <div class="formula-line">
+      <span class="formula-label">离散卷积：</span>
+      <code>result[i] = Σ<sub>k=−r</sub><sup>+r</sup> input[i+k] × kernel[k]</code>
+      <span class="formula-note">在位置 i 处，把核窗口内的每个输入 × 对应权重，全加起来</span>
+    </div>
+  </div>
+</div>
+
+<div class="controls-row">
+  <label>σ（西格玛）</label>
+  <input type="range" id="blur0" min="0.5" max="8" value="2" step="0.1">
+  <span class="val" id="blur0Val">2.0</span>
+  <span class="sep"></span>
+  <label>模糊类型</label>
+  <select id="blurType0" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:12px">
+    <option value="gauss">高斯模糊（近重远轻）</option>
+    <option value="box">盒式模糊（邻居平等）</option>
+  </select>
+  <span class="sep"></span>
+  <label>观测位置 i =</label>
+  <input type="range" id="probe0" min="0" max="279" value="130" step="1">
+  <span class="val" id="probe0Val">130</span>
+</div>
+
+<div class="step-grid">
+  <div class="step-card">
+    <h3>① 原始信号 input[i] &nbsp;<span style="font-weight:400;color:var(--dim);font-size:11px">i = 0..279</span></h3>
+    <canvas id="c0a" width="280" height="80"></canvas>
+    <div class="label">白色 = input[i] = 1（阴影内部满），黑色 = 0（阴影外透明）<br>红色虚线 = 盒子边界（内部开始/结束的位置）</div>
+  </div>
+  <div class="step-card">
+    <h3>② 核权重 kernel[k] &nbsp;<span style="font-weight:400;color:var(--dim);font-size:11px">k = −r..+r</span></h3>
+    <canvas id="c0b" width="280" height="150"></canvas>
+    <div class="label">柱高 ∝ 权重，数字 = 归一化后的精确值，k=0 是中心<br>所有数字加起来 = 1.00（保证能量守恒）</div>
+  </div>
+</div>
+
+<div class="step-grid">
+  <div class="step-card" style="grid-column:1/-1;">
+    <h3>③ 对位置 <span id="probeIdxLabel" style="color:var(--accent)">i=130</span> 执行卷积（逐个邻居加权累加）</h3>
+    <canvas id="c0probe" width="740" height="120"></canvas>
+    <div class="label">
+      核窗口对准位置 <span id="probeIdxLabel2" style="color:var(--accent)">i=130</span>
+      — 灰色条选中的 input ← → 绿色柱对应的 kernel
+      — <span style="color:var(--yellow)">每一项 = input[i+k] × kernel[k]</span>，全部加起来 = 该位置的模糊后值
+    </div>
+    <div id="probeCalc" style="margin-top:8px;font-size:11px;color:var(--yellow);font-family:monospace;text-align:left;padding:6px 10px;background:rgba(0,0,0,0.25);border-radius:4px;word-break:break-all;line-height:1.7;max-height:140px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div class="step-grid">
+  <div class="step-card">
+    <h3>④ 最终模糊结果 result[i]</h3>
+    <canvas id="c0c" width="280" height="80"></canvas>
+    <div class="label">每个 result[i] 都按步骤③算一遍 → 硬边界变成柔软渐变</div>
+  </div>
+  <div class="step-card" id="probeResultCard">
+    <h3>⑤ 位置 <span id="probeIdxLabel3" style="color:var(--accent)">i=130</span> 的最终值</h3>
+    <div id="probeResult" style="font-size:32px;font-weight:700;color:var(--accent);margin-top:24px">—</div>
+    <div class="label">这个值 = 该像素的 alpha（0=全透明，1=全阴影）<br>可直接写入 <code>surf[i].alpha</code></div>
+  </div>
+</div>
+
+<div class="explain-box">
+  <span class="step-num">1</span> 生成高斯核 <code>kernel[]</code>（查表/运行时算）<br>
+  <span class="step-num">2</span> 对每个输出像素 <code>i</code>，循环 <code>k = -r..+r</code> 做加权累加<br>
+  <span class="step-num">3</span> 结果写入像素 alpha 通道 —— 这就是模糊的核心<br>
+  <div style="margin-top:6px;font-size:11px;color:var(--dim)">
+    对应 C 代码：<code>for (k = 0; k &lt; kernel_len; k++) sum += input[i + k - r] * kernel[k]; output[i] = sum;</code>
+  </div>
+</div>
+
+<!-- ====== 第1课：1D拆解 → 2D ====== -->
+<h2>第 1 课：二维阴影 = 水平模糊 × 垂直模糊</h2>
+<p class="desc">
+  关键洞察——<strong>矩形是特殊的</strong>：它的 x 方向和 y 方向独立。
+  这意味着你不需要对整张图做二维循环，只需算两个一维结果再相乘。
+</p>
+
+<div class="controls-row">
+  <label>模糊半径</label>
+  <input type="range" id="blur1" min="1" max="20" value="6" step="1">
+  <span class="val" id="blur1Val">6</span>
+  <span class="sep"></span>
+  <label>盒子宽度</label>
+  <input type="range" id="boxW1" min="20" max="120" value="60" step="2">
+  <span class="val" id="boxW1Val">60</span>
+  <span class="sep"></span>
+  <label>盒子高度</label>
+  <input type="range" id="boxH1" min="20" max="120" value="60" step="2">
+  <span class="val" id="boxH1Val">60</span>
+</div>
+<div class="step-grid">
+  <div class="step-card">
+    <h3>① 盒子（无模糊）</h3>
+    <canvas id="c1a" width="180" height="180"></canvas>
+  </div>
+  <div class="step-card">
+    <h3>② 水平方向模糊</h3>
+    <canvas id="c1b" width="180" height="180"></canvas>
+    <div class="label">只有左右方向变模糊</div>
+  </div>
+  <div class="step-card">
+    <h3>③ 垂直方向模糊</h3>
+    <canvas id="c1c" width="180" height="180"></canvas>
+    <div class="label">只有上下方向变模糊</div>
+  </div>
+  <div class="step-card">
+    <h3>④ ② × ③ = 最终阴影</h3>
+    <canvas id="c1d" width="180" height="180"></canvas>
+    <div class="label">两遍一维模糊 = 一遍二维模糊（数学严格相等）</div>
+  </div>
+</div>
+
+<!-- ====== 第2课：完整阴影渲染管线 ====== -->
+<h2>第 2 课：阴影渲染完整管线（5 步）</h2>
+<p class="desc">
+  真正的 box-shadow 算法按以下顺序执行。拖动参数观察每一步的变化。
+</p>
+
+<div class="controls-row" style="flex-wrap:wrap;">
+  <label>扩散 Spread</label>
+  <input type="range" id="spread" min="-10" max="20" value="0" step="1">
+  <span class="val" id="spreadVal">0</span>
+  <span class="sep"></span>
+  <label>模糊 Blur</label>
+  <input type="range" id="blur2" min="0" max="24" value="6" step="1">
+  <span class="val" id="blur2Val">6</span>
+  <span class="sep"></span>
+  <label>偏移X</label>
+  <input type="range" id="offX" min="-30" max="30" value="6" step="1">
+  <span class="val" id="offXVal">6</span>
+  <span class="sep"></span>
+  <label>偏移Y</label>
+  <input type="range" id="offY" min="-30" max="30" value="6" step="1">
+  <span class="val" id="offYVal">6</span>
+  <span class="sep"></span>
+  <label>圆角</label>
+  <input type="range" id="radius2" min="0" max="40" value="12" step="1">
+  <span class="val" id="radius2Val">12</span>
+</div>
+
+<div class="big-canvas-wrap">
+  <canvas id="c2big" width="1100" height="130"></canvas>
+</div>
+<div class="legend">
+  <span><span class="swatch" style="background:#333"></span> 阴影</span>
+  <span><span class="swatch" style="background:#fff"></span> 盒子</span>
+  <span><span class="swatch" style="background:var(--yellow)"></span> 边界框</span>
+</div>
+
+<!-- ====== 第3课：四角模糊 ====== -->
+<h2>第 3 课：圆角 > 0 时四角怎么模糊</h2>
+<p class="desc">
+  矩形的四条边用「距离到边 × CDF 查表」即可（第1课的方法）。
+  但四个圆角需要<strong>距离到圆心 × CDF 查表</strong>。下面展示左上角的模糊过程。
+</p>
+
+<div class="controls-row">
+  <label>圆角半径</label>
+  <input type="range" id="cr" min="4" max="36" value="16" step="1">
+  <span class="val" id="crVal">16</span>
+  <span class="sep"></span>
+  <label>模糊 Blur</label>
+  <input type="range" id="cb" min="0" max="24" value="8" step="1">
+  <span class="val" id="cbVal">8</span>
+</div>
+
+<div class="step-grid">
+  <div class="step-card">
+    <h3>角部放大：原始硬角</h3>
+    <canvas id="c3a" width="200" height="200"></canvas>
+    <div class="label">白色=阴影色满，黑色=透明</div>
+  </div>
+  <div class="step-card">
+    <h3>SDF 距离场</h3>
+    <canvas id="c3b" width="200" height="200"></canvas>
+    <div class="label">每像素到圆角边界的距离（越亮越远）</div>
+  </div>
+  <div class="step-card">
+    <h3>通过 CDF 查表得到阴影</h3>
+    <canvas id="c3c" width="200" height="200"></canvas>
+    <div class="label">距离 → CDF[d] → alpha → 阴影色</div>
+  </div>
+</div>
+
+<div class="explain-box">
+  <span class="step-num">1</span> 算出每个像素到圆角边界的 <strong>SDF 带符号距离</strong><br>
+  <span class="step-num">2</span> <code>d ∈ [-blur, 0]</code> 是阴影内部，alpha=满值<br>
+  <span class="step-num">3</span> <code>d ∈ [0, blur]</code> 是过渡带，查 <strong>CDF 表</strong>（高斯积分离散化）得到 alpha<br>
+  <span class="step-num">4</span> <code>d > blur</code> 是阴影外部，alpha=0<br>
+  <div style="margin-top:8px;font-size:11px;color:var(--dim)">
+    这就是你代码里 <code>cdf_lut[256]</code> 的作用——把「距离」翻译成「透明度」。
+  </div>
+</div>
+
+<script>
+/* ============ 通用工具 ============ */
+function gaussKernel1D(sigma) {
+  const r = Math.max(1, Math.ceil(sigma * 3));
+  const k = [];
+  for (let i = -r; i <= r; i++) k.push(Math.exp(-0.5 * i * i / (sigma * sigma)));
+  const sum = k.reduce((a,b)=>a+b,0);
+  return k.map(v => v / sum);
+}
+
+function boxKernel1D(r) {
+  const k = [];
+  for (let i = -r; i <= r; i++) k.push(1);
+  const sum = k.length;
+  return k.map(v => v / sum);
+}
+
+function convolve1D(arr, kernel) {
+  const half = Math.floor(kernel.length / 2);
+  const out = new Float32Array(arr.length);
+  for (let i = 0; i < arr.length; i++) {
+    let s = 0;
+    for (let j = 0; j < kernel.length; j++) {
+      const idx = i + j - half;
+      if (idx >= 0 && idx < arr.length) s += arr[idx] * kernel[j];
+    }
+    out[i] = s;
+  }
+  return out;
+}
+
+function drawBar(canvas, values, y0, h, colorFn) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  for (let x = 0; x < W; x++) {
+    const i = Math.floor(x / W * values.length);
+    const v = values[Math.min(i, values.length - 1)];
+    const c = colorFn ? colorFn(v) : `rgb(${Math.round(v*255)},${Math.round(v*255)},${Math.round(v*255)})`;
+    ctx.fillStyle = c;
+    ctx.fillRect(x, y0, 1, h);
+  }
+}
+
+/* ============ 第0课 ============ */
+function lesson0() {
+  const sigma = parseFloat(document.getElementById('blur0').value);
+  const type = document.getElementById('blurType0').value;
+  const probe = parseInt(document.getElementById('probe0').value);
+  document.getElementById('blur0Val').textContent = sigma.toFixed(1);
+  document.getElementById('probe0Val').textContent = probe;
+
+  // 更新观测标签
+  ['probeIdxLabel','probeIdxLabel2','probeIdxLabel3'].forEach(id => {
+    document.getElementById(id).textContent = 'i=' + probe;
+  });
+
+  const N = 280;
+  // 硬条：中间 40% 是 1，两边是 0
+  const bar = new Float32Array(N);
+  const center = N / 2;
+  const halfW = N * 0.2;
+  const leftEdge = Math.round(center - halfW);
+  const rightEdge = Math.round(center + halfW);
+  for (let i = 0; i < N; i++) {
+    bar[i] = (Math.abs(i - center) <= halfW) ? 1 : 0;
+  }
+
+  // ---- 生成核 ----
+  let kernel;
+  if (type === 'box') {
+    const r = Math.max(1, Math.round(sigma));
+    kernel = boxKernel1D(r);
+  } else {
+    kernel = gaussKernel1D(sigma);
+  }
+  const r = Math.floor(kernel.length / 2);
+
+  // ==== ① 原始信号 ====
+  const c0a = document.getElementById('c0a');
+  const ctx0a = c0a.getContext('2d');
+  ctx0a.clearRect(0, 0, 280, 80);
+  // 背景刻度
+  ctx0a.strokeStyle = 'rgba(255,255,255,0.04)';
+  for (let gx = 0; gx < 280; gx += 10) { ctx0a.beginPath(); ctx0a.moveTo(gx, 0); ctx0a.lineTo(gx, 80); ctx0a.stroke(); }
+  // 填充
+  for (let x = 0; x < 280; x++) {
+    const i = Math.floor(x / 280 * N);
+    const v = bar[Math.min(i, N - 1)];
+    ctx0a.fillStyle = v > 0.5 ? '#fff' : '#1a1a2e';
+    ctx0a.fillRect(x, 5, 1, 70);
+  }
+  // 边界线
+  ctx0a.strokeStyle = '#f85149'; ctx0a.lineWidth = 1.5; ctx0a.setLineDash([5,3]);
+  ctx0a.beginPath(); ctx0a.moveTo(leftEdge, 0); ctx0a.lineTo(leftEdge, 80); ctx0a.stroke();
+  ctx0a.beginPath(); ctx0a.moveTo(rightEdge, 0); ctx0a.lineTo(rightEdge, 80); ctx0a.stroke();
+  ctx0a.setLineDash([]);
+  // 标注 input[i]=1/0
+  ctx0a.fillStyle = '#fff'; ctx0a.font = 'bold 11px sans-serif';
+  ctx0a.fillText('input[i]=1', leftEdge - 5, 13);
+  ctx0a.fillText('input[i]=0', 0, 76);
+
+  // ==== ② 核权重 ====
+  const c0b = document.getElementById('c0b');
+  const ctx0b = c0b.getContext('2d');
+  ctx0b.clearRect(0, 0, 280, 150);
+  const barW = Math.max(1, Math.min(14, Math.floor(200 / kernel.length)));
+  const totalW = kernel.length * barW;
+  const startX = (280 - totalW) / 2;
+  const maxK = Math.max(...kernel);
+  const baseline = 130;
+
+  // 画 sigma 标注
+  ctx0b.fillStyle = '#8b949e';
+  ctx0b.font = '10px sans-serif';
+  if (type === 'gauss') {
+    ctx0b.fillText('σ = ' + sigma.toFixed(1) + '  |  r = ' + r + '  |  核长度 = ' + kernel.length, 8, 12);
+  } else {
+    ctx0b.fillText('盒式半径 = ' + Math.round(sigma) + '  |  核长度 = ' + kernel.length, 8, 12);
+  }
+
+  for (let i = 0; i < kernel.length; i++) {
+    const h = kernel[i] / maxK * 70;
+    const x = startX + i * barW;
+    // 柱子
+    const g = Math.round(60 + kernel[i] / maxK * 180);
+    ctx0b.fillStyle = `rgb(${g},${Math.round(g*0.4)},60)`;
+    ctx0b.fillRect(x, baseline - h, barW - 1, h);
+    // k=0 标注
+    if (i === r) {
+      ctx0b.fillStyle = '#d2991d';
+      ctx0b.font = 'bold 10px sans-serif';
+      ctx0b.fillText('k=0', x - 6, baseline + 14);
+    }
+  }
+  // 在每个核柱下写数字（只在核不大时）
+  if (kernel.length <= 15) {
+    for (let i = 0; i < kernel.length; i++) {
+      const x = startX + i * barW + barW / 2;
+      ctx0b.fillStyle = '#c9d1d9';
+      ctx0b.font = '8px monospace';
+      ctx0b.textAlign = 'center';
+      ctx0b.fillText(kernel[i].toFixed(3), x, baseline + 24);
+    }
+  }
+  ctx0b.textAlign = 'start';
+  // 总和验证
+  const sumK = kernel.reduce((a,b)=>a+b,0);
+  ctx0b.fillStyle = '#3fb950';
+  ctx0b.font = '10px monospace';
+  ctx0b.fillText('Σ = ' + sumK.toFixed(4), 200, 12);
+
+  // ==== ③ 卷积探针可视化 ====
+  const cP = document.getElementById('c0probe');
+  const ctxP = cP.getContext('2d');
+  ctxP.clearRect(0, 0, 740, 120);
+
+  // 上半区：输入信号 + 高亮核窗口
+  const signalH = 45;
+  const signalY = 5;
+  const pxW = 740 / N;
+  for (let x = 0; x < 740; x++) {
+    const i = Math.floor(x / pxW);
+    const v = bar[Math.min(i, N - 1)];
+    let inWindow = (i >= probe - r && i <= probe + r);
+    ctxP.fillStyle = inWindow ? (v > 0.5 ? '#d2991d' : '#332200') : (v > 0.5 ? '#444' : '#0d1117');
+    ctxP.fillRect(x, signalY, 1, signalH);
+  }
+  // 信号边界线
+  ctxP.strokeStyle = '#f85149'; ctxP.lineWidth = 1; ctxP.setLineDash([4,3]);
+  ctxP.beginPath(); ctxP.moveTo(leftEdge * pxW, signalY); ctxP.lineTo(leftEdge * pxW, signalY + signalH); ctxP.stroke();
+  ctxP.beginPath(); ctxP.moveTo(rightEdge * pxW, signalY); ctxP.lineTo(rightEdge * pxW, signalY + signalH); ctxP.stroke();
+  ctxP.setLineDash([]);
+  // 核窗口范围框
+  const winL = (probe - r) * pxW, winR = (probe + r + 1) * pxW;
+  ctxP.strokeStyle = '#d2991d'; ctxP.lineWidth = 1.5;
+  ctxP.strokeRect(winL, signalY, winR - winL, signalH);
+  // 探头位置线
+  ctxP.strokeStyle = '#58a6ff'; ctxP.lineWidth = 2;
+  ctxP.beginPath(); ctxP.moveTo(probe * pxW, signalY - 2); ctxP.lineTo(probe * pxW, signalY + signalH + 2); ctxP.stroke();
+  ctxP.fillStyle = '#58a6ff'; ctxP.font = 'bold 10px sans-serif';
+  ctxP.fillText('i=' + probe, Math.min(probe * pxW + 4, 700), signalY - 4);
+
+  // 下半区：核对齐到探头位置，每个核条对应一个输入
+  const kernelY = 62;
+  const kernelH = 50;
+  const kPxW = pxW;
+  for (let k = -r; k <= r; k++) {
+    const i = probe + k;
+    if (i < 0 || i >= N) continue;
+    const kv = kernel[k + r];
+    const kx = i * kPxW;
+    const kh = kv / maxK * kernelH;
+    const g = Math.round(60 + kv / maxK * 180);
+    ctxP.fillStyle = `rgb(${g},${Math.round(g*0.5)},60)`;
+    ctxP.fillRect(kx, kernelY + kernelH - kh, kPxW - 1, kh);
+    // 在柱顶写权重
+    if (kernel.length <= 12) {
+      ctxP.fillStyle = '#d2991d';
+      ctxP.font = '7px monospace';
+      ctxP.textAlign = 'center';
+      ctxP.fillText(kv.toFixed(2), kx + kPxW / 2, kernelY + kernelH - kh - 2);
+    }
+  }
+  ctxP.textAlign = 'start';
+  // k=0 线
+  ctxP.strokeStyle = '#58a6ff'; ctxP.lineWidth = 1; ctxP.setLineDash([2,2]);
+  ctxP.beginPath(); ctxP.moveTo(probe * pxW, kernelY); ctxP.lineTo(probe * pxW, kernelY + kernelH); ctxP.stroke();
+  ctxP.setLineDash([]);
+  // 连接线：每个input到对应的kernel
+  if (kernel.length <= 12) {
+    for (let k = -r; k <= r; k++) {
+      const i = probe + k;
+      if (i < 0 || i >= N) continue;
+      const ix = i * kPxW + kPxW / 2;
+      ctxP.strokeStyle = 'rgba(255,255,255,0.1)'; ctxP.lineWidth = 0.5;
+      ctxP.beginPath(); ctxP.moveTo(ix, signalY + signalH); ctxP.lineTo(ix, kernelY); ctxP.stroke();
+    }
+  }
+  // 标签
+  ctxP.fillStyle = '#8b949e'; ctxP.font = '10px sans-serif';
+  ctxP.fillText('← input[i+k]', 2, signalY + 12);
+  ctxP.fillText('← kernel[k] × input[i+k]', 2, kernelY + 12);
+
+  // ==== ④ 模糊结果 ====
+  const c0c = document.getElementById('c0c');
+  const ctx0c = c0c.getContext('2d');
+  ctx0c.clearRect(0, 0, 280, 80);
+  const blurred = convolve1D(bar, kernel);
+  // 背景刻度
+  ctx0c.strokeStyle = 'rgba(255,255,255,0.04)';
+  for (let gx = 0; gx < 280; gx += 10) { ctx0c.beginPath(); ctx0c.moveTo(gx, 0); ctx0c.lineTo(gx, 80); ctx0c.stroke(); }
+  for (let x = 0; x < 280; x++) {
+    const i = Math.floor(x / 280 * N);
+    const v = blurred[Math.min(i, N - 1)];
+    ctx0c.fillStyle = `rgb(${Math.round(v*255)},${Math.round(v*255)},${Math.round(v*255)})`;
+    ctx0c.fillRect(x, 5, 1, 70);
+  }
+  // 探头标记
+  const probeX = probe / N * 280;
+  ctx0c.strokeStyle = '#58a6ff'; ctx0c.lineWidth = 2;
+  ctx0c.beginPath(); ctx0c.moveTo(probeX, 0); ctx0c.lineTo(probeX, 80); ctx0c.stroke();
+  ctx0c.fillStyle = '#58a6ff'; ctx0c.font = '10px sans-serif';
+  ctx0c.fillText('i=' + probe, Math.min(probeX + 3, 250), 12);
+  // 原始边界虚线
+  ctx0c.strokeStyle = 'rgba(248,81,73,0.4)'; ctx0c.lineWidth = 1; ctx0c.setLineDash([4,3]);
+  const lx = leftEdge / N * 280, rx = rightEdge / N * 280;
+  ctx0c.beginPath(); ctx0c.moveTo(lx, 0); ctx0c.lineTo(lx, 80); ctx0c.stroke();
+  ctx0c.beginPath(); ctx0c.moveTo(rx, 0); ctx0c.lineTo(rx, 80); ctx0c.stroke();
+  ctx0c.setLineDash([]);
+
+  // ==== ⑤ 观测值 ====
+  const probeResult = document.getElementById('probeResult');
+  const probeVal = probe >= 0 && probe < N ? blurred[probe] : 0;
+  probeResult.textContent = probeVal.toFixed(4);
+  probeResult.style.color = probeVal > 0.5 ? '#fff' : probeVal > 0.01 ? '#58a6ff' : '#8b949e';
+
+  // ==== 计算过程文字 ====
+  const calcDiv = document.getElementById('probeCalc');
+  if (probe >= 0 && probe < N && kernel.length <= 21) {
+    let parts = [];
+    let total = 0;
+    for (let k = -r; k <= r; k++) {
+      const i = probe + k;
+      const iv = (i >= 0 && i < N) ? bar[i] : 0;
+      const kv = kernel[k + r];
+      const term = iv * kv;
+      total += term;
+      const s = (k === 0 ? '*' : ' ');
+      const colorTag = iv > 0.5 ? 'style="color:#d2991d"' : 'style="color:#555"';
+      parts.push(`${s}<span ${colorTag}>${iv}×${kv.toFixed(4)}</span>`);
+    }
+    calcDiv.innerHTML = 'result[' + probe + '] = ' + parts.join(' + ') + ' = <b style="color:#58a6ff">' + total.toFixed(4) + '</b>';
+  } else if (kernel.length > 21) {
+    calcDiv.innerHTML = '核窗口太大（' + kernel.length + ' 项），减小 σ 可看到逐项展开';
+  } else {
+    calcDiv.innerHTML = '位置越界';
+  }
+}
+
+/* ============ 第1课 ============ */
+function lesson1() {
+  const blur = parseInt(document.getElementById('blur1').value);
+  const bw = parseInt(document.getElementById('boxW1').value);
+  const bh = parseInt(document.getElementById('boxH1').value);
+  document.getElementById('blur1Val').textContent = blur;
+  document.getElementById('boxW1Val').textContent = bw;
+  document.getElementById('boxH1Val').textContent = bh;
+
+  const W = 180, H = 180;
+  const canvases = ['c1a','c1b','c1c','c1d'].map(id => document.getElementById(id));
+  canvases.forEach(c => { c.width = W; c.height = H; });
+
+  const sigma = blur;
+  const kernel = gaussKernel1D(sigma);
+
+  // 生成无模糊盒子
+  function genBox() {
+    const arr = new Float32Array(H);
+    const y0 = Math.floor((H - bh) / 2);
+    const y1 = y0 + bh;
+    for (let y = 0; y < H; y++) arr[y] = (y >= y0 && y < y1) ? 1 : 0;
+    return arr;
+  }
+
+  const boxY = genBox(); // 垂直轮廓
+
+  // ① 无模糊盒子
+  const ctx1a = canvases[0].getContext('2d');
+  ctx1a.clearRect(0,0,W,H);
+  for (let x = 0; x < W; x++) {
+    const dx = x - W/2;
+    const insideX = Math.abs(dx) < bw/2 ? 1 : 0;
+    for (let y = 0; y < H; y++) {
+      const insideY = boxY[y];
+      const v = insideX * insideY;
+      ctx1a.fillStyle = v > 0.5 ? '#fff' : '#0d1117';
+      ctx1a.fillRect(x, y, 1, 1);
+    }
+  }
+
+  // ② 水平模糊
+  const ctx1b = canvases[1].getContext('2d');
+  ctx1b.clearRect(0,0,W,H);
+  // 水平一维：一个 bar 从 -bw/2 到 +bw/2
+  const rowIn = new Float32Array(W);
+  const x0 = Math.floor(W/2 - bw/2), x1 = Math.floor(W/2 + bw/2);
+  for (let x = 0; x < W; x++) rowIn[x] = (x >= x0 && x < x1) ? 1 : 0;
+  const rowBlur = convolve1D(rowIn, kernel);
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) {
+      const v = rowBlur[x] * boxY[y];
+      ctx1b.fillStyle = v > 0.5 ? '#fff' : `rgba(255,255,255,${v.toFixed(2)})`;
+      ctx1b.fillRect(x, y, 1, 1);
+    }
+  }
+
+  // ③ 垂直模糊
+  const ctx1c = canvases[2].getContext('2d');
+  ctx1c.clearRect(0,0,W,H);
+  const colBlur = convolve1D(boxY, kernel);
+  for (let x = 0; x < W; x++) {
+    const insideX = Math.abs(x - W/2) < bw/2 ? 1 : 0;
+    for (let y = 0; y < H; y++) {
+      const v = insideX * colBlur[y];
+      ctx1c.fillStyle = v > 0.5 ? '#fff' : `rgba(255,255,255,${v.toFixed(2)})`;
+      ctx1c.fillRect(x, y, 1, 1);
+    }
+  }
+
+  // ④ 乘积 = 二维模糊
+  const ctx1d = canvases[3].getContext('2d');
+  ctx1d.clearRect(0,0,W,H);
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) {
+      const v = rowBlur[x] * colBlur[y];
+      ctx1d.fillStyle = v > 0.5 ? '#fff' : `rgba(255,255,255,${v.toFixed(2)})`;
+      ctx1d.fillRect(x, y, 1, 1);
+    }
+  }
+
+  // 画四个框的边界线
+  [ctx1a,ctx1b,ctx1c,ctx1d].forEach(ctx => {
+    ctx.strokeStyle = '#f85149';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    const bx = Math.floor(W/2 - bw/2), by = Math.floor(H/2 - bh/2);
+    ctx.strokeRect(bx, by, bw, bh);
+    ctx.setLineDash([]);
+  });
+}
+
+/* ============ 第2课 ============ */
+function lesson2() {
+  const spread = parseInt(document.getElementById('spread').value);
+  const blur = parseInt(document.getElementById('blur2').value);
+  const offX = parseInt(document.getElementById('offX').value);
+  const offY = parseInt(document.getElementById('offY').value);
+  const radius = parseInt(document.getElementById('radius2').value);
+  document.getElementById('spreadVal').textContent = spread;
+  document.getElementById('blur2Val').textContent = blur;
+  document.getElementById('offXVal').textContent = offX;
+  document.getElementById('offYVal').textContent = offY;
+  document.getElementById('radius2Val').textContent = radius;
+
+  const c = document.getElementById('c2big');
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // 布局：5 步，每步占 200px + 间距
+  const stepW = 200;
+  const gap = 25;
+  const boxW = 90, boxH = 70;
+  const shadowColor = 'rgba(0,0,0,0.5)';
+
+  for (let step = 0; step < 5; step++) {
+    const ox = step * (stepW + gap) + 30;
+    const oy = 10;
+
+    // 标签
+    const labels = ['① 原始盒子', '② Spread 膨胀', '③ 高斯模糊', '④ 偏移 Offset', '⑤ 合成到盒子后'];
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[step], ox + stepW/2, oy - 2);
+
+    // 画背景网格
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 0.5;
+    for (let gx = ox; gx < ox + stepW; gx += 10) { ctx.beginPath(); ctx.moveTo(gx, oy); ctx.lineTo(gx, oy + H - 10); ctx.stroke(); }
+    for (let gy = oy; gy < oy + H - 10; gy += 10) { ctx.beginPath(); ctx.moveTo(ox, gy); ctx.lineTo(ox + stepW, gy); ctx.stroke(); }
+
+    const cx = ox + stepW / 2;
+    const cy = oy + (H - 10) / 2;
+
+    switch (step) {
+      case 0: { // 原始盒子
+        drawRoundRect(ctx, cx - boxW/2, cy - boxH/2, boxW, boxH, radius, '#fff', '#30363d');
+        break;
+      }
+      case 1: { // Spread
+        const sx = cx - boxW/2 - spread;
+        const sy = cy - boxH/2 - spread;
+        const sw = boxW + spread * 2;
+        const sh = boxH + spread * 2;
+        const sr = Math.max(0, radius + spread);
+        drawRoundRect(ctx, sx, sy, sw, sh, sr, shadowColor, 'none');
+        // 画原始盒子虚线
+        ctx.strokeStyle = '#f85149';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3,3]);
+        ctx.beginPath();
+        drawRoundPath(ctx, cx - boxW/2, cy - boxH/2, boxW, boxH, radius);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        if (spread !== 0) {
+          ctx.fillStyle = '#d2991d';
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'center';
+          const arrowY = cy - boxH/2 - spread - 14;
+          ctx.fillText(spread > 0 ? `外扩 ${spread}px` : `内缩 ${Math.abs(spread)}px`, cx, arrowY);
+        }
+        break;
+      }
+      case 2: { // 高斯模糊
+        const sx = cx - boxW/2 - spread;
+        const sy = cy - boxH/2 - spread;
+        const sw = boxW + spread * 2;
+        const sh = boxH + spread * 2;
+        const sr = Math.max(0, radius + spread);
+        if (blur > 0) {
+          drawBlurredRoundRect(ctx, sx, sy, sw, sh, sr, blur, shadowColor);
+        } else {
+          drawRoundRect(ctx, sx, sy, sw, sh, sr, shadowColor, 'none');
+        }
+        // 画原始虚线
+        ctx.strokeStyle = '#f85149';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3,3]);
+        ctx.beginPath();
+        drawRoundPath(ctx, sx, sy, sw, sh, sr);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        if (blur > 0) {
+          ctx.fillStyle = '#d2991d';
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`blur ${blur}px`, cx, sy - 12);
+        }
+        break;
+      }
+      case 3: { // Offset
+        const sx = cx - boxW/2 - spread + offX;
+        const sy = cy - boxH/2 - spread + offY;
+        const sw = boxW + spread * 2;
+        const sh = boxH + spread * 2;
+        const sr = Math.max(0, radius + spread);
+        if (blur > 0) {
+          drawBlurredRoundRect(ctx, sx, sy, sw, sh, sr, blur, shadowColor);
+        } else {
+          drawRoundRect(ctx, sx, sy, sw, sh, sr, shadowColor, 'none');
+        }
+        // 画原始位置虚线
+        ctx.strokeStyle = '#f85149';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3,3]);
+        ctx.beginPath();
+        const ox2 = cx - boxW/2 - spread;
+        const oy2 = cy - boxH/2 - spread;
+        drawRoundPath(ctx, ox2, oy2, sw, sh, sr);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        if (offX !== 0 || offY !== 0) {
+          ctx.fillStyle = '#d2991d';
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`偏移 (${offX}, ${offY})`, cx + offX, sy - 12);
+        }
+        // 箭头
+        ctx.strokeStyle = '#d2991d';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2,2]);
+        ctx.beginPath();
+        ctx.moveTo(ox2 + sw/2, oy2 + sh/2);
+        ctx.lineTo(ox2 + sw/2 + offX, oy2 + sh/2 + offY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        break;
+      }
+      case 4: { // 合成
+        const sx = cx - boxW/2 - spread + offX;
+        const sy = cy - boxH/2 - spread + offY;
+        const sw = boxW + spread * 2;
+        const sh = boxH + spread * 2;
+        const sr = Math.max(0, radius + spread);
+        if (blur > 0) {
+          drawBlurredRoundRect(ctx, sx, sy, sw, sh, sr, blur, shadowColor);
+        } else {
+          drawRoundRect(ctx, sx, sy, sw, sh, sr, shadowColor, 'none');
+        }
+        // 盒子画在上面
+        drawRoundRect(ctx, cx - boxW/2, cy - boxH/2, boxW, boxH, radius, '#fff', '#30363d');
+        break;
+      }
+    }
+  }
+}
+
+function drawRoundRect(ctx, x, y, w, h, r, fill, stroke) {
+  if (r > Math.min(w, h) / 2) r = Math.min(w, h) / 2;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+  if (fill && fill !== 'none') { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke && stroke !== 'none') { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
+}
+
+function drawRoundPath(ctx, x, y, w, h, r) {
+  if (r > Math.min(w, h) / 2) r = Math.min(w, h) / 2;
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function drawBlurredRoundRect(ctx, x, y, w, h, r, blur, color) {
+  // 用多层半透明模拟高斯模糊的视觉效果
+  const layers = Math.min(blur, 12);
+  const baseAlpha = 0.4;
+  for (let i = layers; i >= 0; i--) {
+    const t = i / layers;
+    const expand = blur * t;
+    const alpha = baseAlpha / layers;
+    ctx.fillStyle = `rgba(0,0,0,${alpha.toFixed(3)})`;
+    ctx.beginPath();
+    const rx = x - expand, ry = y - expand;
+    const rw = w + expand * 2, rh = h + expand * 2;
+    const rr = Math.max(0, r + expand);
+    if (rr > Math.min(rw, rh) / 2) {
+      // too small, skip arc
+      ctx.rect(rx, ry, rw, rh);
+    } else {
+      ctx.moveTo(rx + rr, ry);
+      ctx.lineTo(rx + rw - rr, ry);
+      ctx.arcTo(rx + rw, ry, rx + rw, ry + rr, rr);
+      ctx.lineTo(rx + rw, ry + rh - rr);
+      ctx.arcTo(rx + rw, ry + rh, rx + rw - rr, ry + rh, rr);
+      ctx.lineTo(rx + rr, ry + rh);
+      ctx.arcTo(rx, ry + rh, rx, ry + rh - rr, rr);
+      ctx.lineTo(rx, ry + rr);
+      ctx.arcTo(rx, ry, rx + rr, ry, rr);
+      ctx.closePath();
+    }
+    ctx.fill();
+  }
+}
+
+/* ============ 第3课 ============ */
+function lesson3() {
+  const cr = parseInt(document.getElementById('cr').value);
+  const cb = parseInt(document.getElementById('cb').value);
+  document.getElementById('crVal').textContent = cr;
+  document.getElementById('cbVal').textContent = cb;
+
+  const W = 200, H = 200;
+  // 左上角，圆心在 (cr, cr)
+  const cx = cr, cy = cr;
+
+  const c1 = document.getElementById('c3a');
+  const c2 = document.getElementById('c3b');
+  const c3 = document.getElementById('c3c');
+  c1.width = c2.width = c3.width = W;
+  c1.height = c2.height = c3.height = H;
+
+  const ctx1 = c1.getContext('2d');
+  const ctx2 = c2.getContext('2d');
+  const ctx3 = c3.getContext('2d');
+
+  const img1 = ctx1.createImageData(W, H);
+  const img2 = ctx2.createImageData(W, H);
+  const img3 = ctx3.createImageData(W, H);
+
+  let maxD = 0;
+  const distances = [];
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      // SDF: 内部为负（到圆心的距离 - 半径）
+      const sdf = dist - cr;
+      distances.push(sdf);
+      if (dist > maxD) maxD = dist;
+    }
+  }
+
+  for (let i = 0; i < W * H; i++) {
+    const sdf = distances[i];
+    const idx = i * 4;
+
+    // 原始硬角
+    img1.data[idx] = img1.data[idx + 1] = img1.data[idx + 2] = sdf <= 0 ? 255 : 0;
+    img1.data[idx + 3] = 255;
+
+    // SDF 距离场可视化（映射到灰度）
+    const sd = Math.max(-cr * 1.5, Math.min(sdf, cb * 1.5));
+    let g = 128;
+    if (sd < 0) g = 128 + sd / cr * 128; // 内部：亮
+    else g = 128 - sd / (cb * 1.5) * 128; // 外部：暗
+    g = Math.max(20, Math.min(255, g));
+    img2.data[idx] = img2.data[idx + 1] = img2.data[idx + 2] = g;
+    img2.data[idx + 3] = 255;
+
+    // CDF 映射（用误差函数近似）
+    let alpha;
+    if (sdf <= -cb) {
+      alpha = 255;
+    } else if (sdf >= cb) {
+      alpha = 0;
+    } else {
+      // 用高斯 CDF 近似：cdf(t) = 0.5 + 0.5 * erf(t / (sigma * sqrt(2)))
+      // 映射 sdf ∈ [-blur, blur] → t ∈ [-3, 3]
+      const t = sdf / (cb / 3.0);
+      // erf 近似
+      const sign = t < 0 ? -1 : 1;
+      const a = Math.abs(t);
+      const p = 0.3275911;
+      const erf_approx = sign * (1 - 1 / Math.pow(1 + p * a + 0.254829592 * a * a + 0.284496736 * a * a * a, 4));
+      const cdf = 0.5 + 0.5 * erf_approx;
+      alpha = Math.round(cdf * 255);
+    }
+    img3.data[idx] = 50; img3.data[idx + 1] = 50; img3.data[idx + 2] = 50;
+    img3.data[idx + 3] = alpha;
+  }
+
+  ctx1.putImageData(img1, 0, 0);
+  ctx2.putImageData(img2, 0, 0);
+  ctx3.putImageData(img3, 0, 0);
+
+  // 画圆角边界线
+  [ctx1, ctx2, ctx3].forEach(ctx => {
+    ctx.strokeStyle = '#f85149';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr, Math.PI, Math.PI * 1.5);
+    ctx.moveTo(cx, 0); ctx.lineTo(cx, cy);
+    ctx.moveTo(0, cy); ctx.lineTo(cx, cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // 标注圆心
+    ctx.fillStyle = '#d2991d';
+    ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#d2991d';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('圆心', cx + 5, cy - 5);
+  });
+
+  // 在 SDF 图上标 isocontours
+  ctx2.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx2.lineWidth = 0.5;
+  for (let d = -cr; d <= cb * 1.5; d += Math.max(2, (cr + cb) / 6)) {
+    ctx2.beginPath();
+    const r = cr + d;
+    if (r > 0) {
+      ctx2.arc(cx, cy, r, Math.PI, Math.PI * 1.5);
+      ctx2.moveTo(cx, cy - r); ctx2.lineTo(cx, cy + r);
+      ctx2.moveTo(cx - r, cy); ctx2.lineTo(cx + r, cy);
+    }
+    ctx2.stroke();
+  }
+}
+
+/* ============ 事件绑定和初始化 ============ */
+document.getElementById('blur0').addEventListener('input', lesson0);
+document.getElementById('blurType0').addEventListener('change', lesson0);
+document.getElementById('probe0').addEventListener('input', lesson0);
+document.getElementById('blur1').addEventListener('input', lesson1);
+document.getElementById('boxW1').addEventListener('input', lesson1);
+document.getElementById('boxH1').addEventListener('input', lesson1);
+document.getElementById('spread').addEventListener('input', lesson2);
+document.getElementById('blur2').addEventListener('input', lesson2);
+document.getElementById('offX').addEventListener('input', lesson2);
+document.getElementById('offY').addEventListener('input', lesson2);
+document.getElementById('radius2').addEventListener('input', lesson2);
+document.getElementById('cr').addEventListener('input', lesson3);
+document.getElementById('cb').addEventListener('input', lesson3);
+
+lesson0(); lesson1(); lesson2(); lesson3();
+</script>
+</body>
+</html>

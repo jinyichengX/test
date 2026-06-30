@@ -13,7 +13,7 @@ ipgui_mem_t * ipgui_smem = (ipgui_mem_t *)0;
 #define IPGUI_MEM_MNGNODEESZ_MIN 				            (IPGUI_MEM_ALIGNED_UP(sizeof(linknode_t)))
 #define IPGUI_MEM_MNGSZ_MIN 					            (IPGUI_MEM_MNGHEADSZ_MIN + IPGUI_MEM_MNGNODEESZ_MIN)
 #define IPGUI_MEM_ALLOC_FIX_HEAD_MIN 			            (IPGUI_MEM_ALIGNED_UP(sizeof(struct usdinfo)))
-#define IPGUI_MEM_ALLOCSZ_MIN					            (IPGUI_MEM_MNGNODEESZ_MIN)
+#define IPGUI_MEM_ALLOCSZ_MIN                               (IPGUI_MEM_MNGNODEESZ_MIN)
 
 /* set allocate pattern */
 #define IPGUI_MEM_ALLOCPATTERN_SET(pstMem, md) 		        ((pstMem)->strat.alloc_pttn = (AllocStrategy_t)md)
