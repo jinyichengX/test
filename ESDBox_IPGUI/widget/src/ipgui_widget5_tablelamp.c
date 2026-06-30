@@ -159,17 +159,25 @@ void tablelamp_event_handler(struct ipgui_widget * widget, ipgui_widget_evt_t * 
 }
 
 /* OFF 状态下需要持续重绘（锥形渐变动画） */
-int tablelamp_needs_anim(void)
+static int tablelamp_needs_anim(void)
 {
     return !tablelamp_is_on;
 }
 
 /* 每帧开始前复位，返回旧值 */
-int tablelamp_hover_reset(void)
+static int tablelamp_hover_reset(void)
 {
     int prev = tablelamp_hovered;
     tablelamp_hovered = 0;
     return prev;
+}
+
+void widget_tablelamp_update(ipgui_widget_t * w)
+{
+    if (tablelamp_hover_reset())
+        ipgui_widget_mark_dirty(w);
+    if (tablelamp_needs_anim())
+        ipgui_widget_mark_dirty(w);
 }
 
 /* 客厅标签悬停状态 */
@@ -212,9 +220,15 @@ void livingroom_event_handler(struct ipgui_widget * widget, ipgui_widget_evt_t *
 }
 
 /* 每帧开始前复位，返回旧值 */
-int livingroom_hover_reset(void)
+static int livingroom_hover_reset(void)
 {
     int prev = livingroom_hovered;
     livingroom_hovered = 0;
     return prev;
+}
+
+void widget_livingroom_update(ipgui_widget_t * w)
+{
+    if (livingroom_hover_reset())
+        ipgui_widget_mark_dirty(w);
 }

@@ -60,7 +60,7 @@ struct bmp_inf
     ipgui_file_t file;
 
     /* direct info */
-    s32_t pixs_off; /* 颜色偏移/调色板索引偏移 */
+    s32_t pixs_off;          /* 颜色偏移/调色板索引偏移 */
 
     u32_t has_pattle : 1;
     u32_t pat_off : 29; /* 调色板偏移 */

@@ -97,9 +97,15 @@ int knob_get_value(void)
 }
 
 /* 每帧复位，返回旧值，用于 brightness label 的 dirty 标记 */
-int knob_moved_reset(void)
+static int knob_moved_reset(void)
 {
     int prev = knob_moved;
     knob_moved = 0;
     return prev;
+}
+
+void widget_knob_update(ipgui_widget_t * w)
+{
+    if (knob_moved_reset())
+        ipgui_widget_mark_dirty(w);
 }

@@ -106,3 +106,10 @@ void power_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
         0,
         80);
 }
+
+void widget_wave_update(ipgui_widget_t * w)
+{
+    /* 每 4 tick 标记脏，降低渲染频率同时保持位置精确 */
+    if (ipgui_sys_tick % 4 == 0)
+        ipgui_widget_mark_dirty(w);
+}

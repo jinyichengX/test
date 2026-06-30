@@ -1,248 +1,143 @@
 #include "ipgui_animation.h"
-#include "ipgui_memory.h"
+#include "ipgui_membox.h"
 #include "ipgui_list.h"
+#include "ipgui_conf.h"
 
-__IPGUI_STATIC__ LIST_HEAD(anim_ready_list);
-__IPGUI_STATIC__ LIST_HEAD(anim_running_list);
-__IPGUI_STATIC__ LIST_HEAD(anim_paused_list);
+__IPGUI_STATIC__ ipgui_membox_t * anim_box = 0;       /* 内存池 */
 
-typedef enum {
-    IPGUI_ANIM_STATE_READY,
-    IPGUI_ANIM_STATE_RUNNING,
-    IPGUI_ANIM_STATE_PAUSED,
-}ipgui_anim_state_t;
+__IPGUI_STATIC__ LIST_HEAD(anim_ready_list);       /* 已创建、待启动 */
+__IPGUI_STATIC__ LIST_HEAD(anim_running_list);     /* 运行中 */
+
+enum {
+    IPGUI_ANIM_ST_READY,
+    IPGUI_ANIM_ST_RUNNING,
+};
 
 struct ipgui_anim_t {
     struct list_head   node;
     ipgui_anim_dsc_t   dsc;
-    ipgui_anim_state_t state;
-    ipgui_tick_t       anim_start_tick; /* animation start tick */
-    ipgui_tick_t       duration;        /* dsc.t2 - dsc.t1 */
-    u32_t              loop_cnt_left;   /* 剩余循环次数，运行时递减 */
-    ipgui_tick_t       pause_tick;      /* 暂停时刻的时间戳 */
-    s8_t               forward;         /* 实时状态，1=正向(t1->t2), 0=反向(t2->t1) */
-    ipgui_anim_value_t value;           /* 当前动画值 */
+    u8_t               state;       /* READY / RUNNING */
+    ipgui_tick_t       duration;    /* t2 - t1 + 1 */
+    ipgui_tick_t       start;       /* 启动时刻 + start_delay 锚点 */
 };
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ 
-void anim_state_set(ipgui_anim_t * anim, ipgui_anim_state_t state)
+__IPGUI_STATIC__ __IPGUI_INLINE__ void anim_pool_ensure(void)
 {
-    /* remove from old list */
-    list_del(&anim->node);
-
-    /* set state */
-    anim->state = state;
-
-    /* add to new list */
-    switch (state) {
-    case IPGUI_ANIM_STATE_READY:
-        list_add(&anim->node, &anim_ready_list);
-        break;
-    case IPGUI_ANIM_STATE_RUNNING:
-        list_add(&anim->node, &anim_running_list);
-        break;
-    case IPGUI_ANIM_STATE_PAUSED:
-        list_add(&anim->node, &anim_paused_list);
-        break;
+    if (!anim_box) {
+        anim_box = ipgui_membox_create(sizeof(ipgui_anim_t), IPGUI_ANIM_POOL_SIZE);
     }
 }
 
-__IPGUI_STATIC__ void * anim_alloc(u32_t size)
+__IPGUI_STATIC__ void anim_free_to_pool(ipgui_anim_t * anim)
 {
-    return ipgui_mem_alloc_def(size);
-}
-
-__IPGUI_STATIC__ void anim_free(void * ptr)
-{
-    ipgui_mem_free_def(ptr);
+    list_del(&anim->node);
+    ipgui_membox_free(anim_box, anim);
 }
 
 __IPGUI_API__ ipgui_anim_t * ipgui_anim_create(const ipgui_anim_dsc_t * dsc)
 {
-    /* check description's parmeter */
-    if (!dsc) {
+    if (!dsc || !dsc->path_cb || !dsc->anim_func)
         return (ipgui_anim_t *)0;
-    }
-    if ((dsc->t2 <= dsc->t1) || (!dsc->anim_func)) {
+    if (dsc->t2 <= dsc->t1)
         return (ipgui_anim_t *)0;
-    }
 
-    ipgui_anim_t * anim = anim_alloc(sizeof(ipgui_anim_t));
-    if (!anim) {
-        return (ipgui_anim_t *)0;
-    }
+    anim_pool_ensure();
+    if (!anim_box) return (ipgui_anim_t *)0;
 
-    anim->dsc = * dsc;
-    anim->duration = anim->dsc.t2 - anim->dsc.t1;
-    anim->forward = (dsc->loop_type != IPGUI_ANIM_LOOP_TYPE_BACKWARD);
-    anim->state = IPGUI_ANIM_STATE_READY;
-    anim->value = anim->dsc.anim_func(anim->forward ? anim->dsc.t1 : anim->dsc.t2);
-    list_add(&anim->node, &anim_ready_list);
+    ipgui_anim_t * anim = (ipgui_anim_t *)ipgui_membox_alloc(anim_box);
+    if (!anim) return (ipgui_anim_t *)0;
+
+    anim->dsc      = *dsc;
+    anim->state    = IPGUI_ANIM_ST_READY;
+    anim->duration = anim->dsc.t2 - anim->dsc.t1 + 1;
+    anim->start    = 0;
+
+    list_head_init(&anim->node);
+    list_add_tail(&anim->node, &anim_ready_list);
     return anim;
 }
 
 __IPGUI_API__ ipgui_err_t ipgui_anim_start(ipgui_anim_t * anim)
 {
     if (!anim) return IPGUI_ERR_PARAM;
+    if (anim->state != IPGUI_ANIM_ST_READY)
+        return IPGUI_ERR_ANIM_ALREADY_RUNNING;
 
-    switch (anim->state) {
-        case IPGUI_ANIM_STATE_READY:
-            anim->anim_start_tick = ipgui_tick_now() + anim->dsc.start_delay;
-            anim->forward = (anim->dsc.loop_type != IPGUI_ANIM_LOOP_TYPE_BACKWARD);
-            anim->loop_cnt_left = anim->dsc.loop_count;
-            anim->value = anim->dsc.anim_func(anim->forward ? anim->dsc.t1 : anim->dsc.t2);
-            anim_state_set(anim, IPGUI_ANIM_STATE_RUNNING);
-            return IPGUI_ERR_OK;
-        case IPGUI_ANIM_STATE_RUNNING:
-            return IPGUI_ERR_ANIM_ALREADY_RUNNING;
-        case IPGUI_ANIM_STATE_PAUSED:
-            return IPGUI_ERR_ANIM_IS_PAUSED;
-        default:
-            return IPGUI_ERR_NOK;
-    }
-}
-
-__IPGUI_API__ ipgui_err_t ipgui_anim_pause(ipgui_anim_t * anim)
-{
-    if (!anim) return IPGUI_ERR_PARAM;
-
-    switch (anim->state) {
-        case IPGUI_ANIM_STATE_READY:
-            return IPGUI_ERR_ANIM_NOT_RUNNING;
-        case IPGUI_ANIM_STATE_RUNNING:
-            anim->pause_tick = ipgui_tick_now();
-            anim_state_set(anim, IPGUI_ANIM_STATE_PAUSED);
-            return IPGUI_ERR_OK;
-        case IPGUI_ANIM_STATE_PAUSED:
-            return IPGUI_ERR_ANIM_ALREADY_PAUSED;
-        default:
-            return IPGUI_ERR_NOK;
-    }
-}
-
-__IPGUI_API__ ipgui_err_t ipgui_anim_resume(ipgui_anim_t * anim)
-{
-    if (!anim) return IPGUI_ERR_PARAM;
-
-    switch (anim->state) {
-        case IPGUI_ANIM_STATE_READY:
-            return IPGUI_ERR_ANIM_NOT_PAUSED;
-        case IPGUI_ANIM_STATE_RUNNING:
-            return IPGUI_ERR_ANIM_ALREADY_RUNNING;
-        case IPGUI_ANIM_STATE_PAUSED:
-            anim->anim_start_tick += (ipgui_tick_now() - anim->pause_tick);
-            anim_state_set(anim, IPGUI_ANIM_STATE_RUNNING);
-            return IPGUI_ERR_OK;
-        default:
-            return IPGUI_ERR_NOK;
-    }
-}
-
-__IPGUI_API__ void ipgui_anim_destroy(ipgui_anim_t * anim)
-{
-    if (!anim) return;
     list_del(&anim->node);
-    anim_free(anim);
-}
+    anim->state = IPGUI_ANIM_ST_RUNNING;
+    anim->start = ipgui_tick_now() + anim->dsc.start_delay;
+    list_add_tail(&anim->node, &anim_running_list);
 
-__IPGUI_API__ ipgui_err_t ipgui_anim_stop(ipgui_anim_t * anim)
-{
-    if (!anim) return IPGUI_ERR_PARAM;
+    /* 推初始值 */
+    anim->dsc.path_cb(anim, anim->dsc.anim_func(anim->dsc.t1));
 
-    if (anim->state == IPGUI_ANIM_STATE_READY) {
-        return IPGUI_ERR_ANIM_NOT_PAUSED_OR_RUNNING;
-    }
-
-    if (anim->dsc.auto_destroy) {
-        ipgui_anim_destroy(anim);
-        return IPGUI_ERR_OK;
-    }
-
-    anim->loop_cnt_left = anim->dsc.loop_count;
-    anim_state_set(anim, IPGUI_ANIM_STATE_READY);
     return IPGUI_ERR_OK;
-}
-
-__IPGUI_STATIC__ __IPGUI_INLINE__
-void anim_cycle_restart(ipgui_anim_t * anim, ipgui_tick_t now)
-{
-    anim->anim_start_tick = now;
-}
-
-__IPGUI_STATIC__ __IPGUI_INLINE__
-void anim_cycle_end(ipgui_anim_t * anim, ipgui_tick_t now)
-{
-    if (anim->loop_cnt_left > 0) {
-        anim->loop_cnt_left --;
-        if (anim->loop_cnt_left == 0) {
-            if (anim->dsc.auto_destroy) {
-                ipgui_anim_destroy(anim);
-            } else {
-                anim_state_set(anim, IPGUI_ANIM_STATE_READY);
-            }
-            return;
-        }
-    }
-    anim_cycle_restart(anim, now);
 }
 
 __IPGUI_API__ void ipgui_anim_update_all(void)
 {
     ipgui_anim_t * anim;
     ipgui_tick_t now = ipgui_tick_now();
-    ipgui_tick_t passed;
 
     struct list_head * pos, * head;
     list_for_each_safe(pos, head, &anim_running_list) {
         anim = ipgui_container_of(pos, ipgui_anim_t, node);
 
-        /* still in delay time [start_time, start_time + start_delay] 
-         * start time is the time when animation start
-         * use signed cast to handle tick wrap-around correctly
-         */
-        if ((s32_t)(now - anim->anim_start_tick) < 0) {
+        /* 仍在延迟等待中 */
+        if ((s32_t)(now - anim->start) < 0)
             continue;
-        }
 
-        /* calc passed time */
-        passed = now - anim->anim_start_tick;
-        passed = IPGUI_MIN(passed, anim->duration);
+        ipgui_tick_t elapsed = now - anim->start;
 
-        /* calc & store current value */
-        if (anim->forward) {
-            anim->value = anim->dsc.anim_func(anim->dsc.t1 + passed);
-        } else {
-            anim->value = anim->dsc.anim_func(anim->dsc.t2 - passed);
-        }
+        if (IPGUI_ANIM_LOOP_DEFAULT == anim->dsc.loop_type) {
+            ipgui_tick_t cycle  = elapsed / anim->duration;
+            ipgui_tick_t pos_in = elapsed % anim->duration;
 
-        /* one cycle not end */
-        if (passed < anim->duration) {
-            continue;
-        }
-
-        /* one cycle end */
-        switch (anim->dsc.loop_type) {
-        case IPGUI_ANIM_LOOP_TYPE_FORWARD:
-        case IPGUI_ANIM_LOOP_TYPE_BACKWARD:
-            anim_cycle_end(anim, now);
-            break;
-
-        case IPGUI_ANIM_LOOP_TYPE_PING_PONG:
-            if (anim->forward) {
-                /* forward half ended, flip backward & restart */
-                anim->forward = 0;
-                anim_cycle_restart(anim, now);
-            } else {
-                /* backward half ended, flip forward & count one full round-trip */
-                anim->forward = 1;
-                anim_cycle_end(anim, now);
+            /* 有限循环，已完成 */
+            if (anim->dsc.loop_count > 0
+                && cycle >= anim->dsc.loop_count) {
+                /* 跳帧可能漏过终点帧，补推确保终值送达 */
+                anim->dsc.path_cb(anim,
+                    anim->dsc.anim_func(anim->dsc.t2));
+                if (anim->dsc.finish_cb)
+                    anim->dsc.finish_cb(anim, anim->dsc.user_data);
+                anim_free_to_pool(anim);
+                continue;
             }
-            break;
+
+            anim->dsc.path_cb(anim,
+                anim->dsc.anim_func(anim->dsc.t1 + pos_in));
+
+        } else {
+            /* PING_PONG
+             * 往返周期 = 2 * duration - 1，顶点 t2 不重复
+             * 正向: pos ∈ [0, duration-1]   → t1+pos
+             * 反向: pos ∈ [duration, period-1] → t2-(pos-duration+1)
+             */
+            ipgui_tick_t period = anim->duration * 2 - 1;
+            ipgui_tick_t cycle  = elapsed / period;
+            ipgui_tick_t pos    = elapsed % period;
+
+            /* 有限循环，已完成 */
+            if (anim->dsc.loop_count > 0
+                && cycle >= anim->dsc.loop_count) {
+                /* 乒乓完整往返终点 = t1，补推确保终值送达 */
+                anim->dsc.path_cb(anim,
+                    anim->dsc.anim_func(anim->dsc.t1));
+                if (anim->dsc.finish_cb)
+                    anim->dsc.finish_cb(anim, anim->dsc.user_data);
+                anim_free_to_pool(anim);
+                continue;
+            }
+
+            ipgui_anim_value_t v;
+            if (pos < anim->duration) {
+                v = anim->dsc.anim_func(anim->dsc.t1 + pos);
+            } else {
+                v = anim->dsc.anim_func(
+                    anim->dsc.t2 - (pos - anim->duration + 1));
+            }
+            anim->dsc.path_cb(anim, v);
         }
     }
-}
-
-__IPGUI_API__ ipgui_anim_value_t ipgui_anim_get_value(ipgui_anim_t * anim)
-{
-    return anim ? anim->value : 0;
 }

@@ -65,4 +65,9 @@
 #error "EVENT_POOL_SIZE must be greater than 0"
 #endif
 
+#define IPGUI_ANIM_POOL_SIZE 16
+#if IPGUI_ANIM_POOL_SIZE < 1
+#error "IPGUI_ANIM_POOL_SIZE must be greater than 0"
+#endif
+
 #endif
