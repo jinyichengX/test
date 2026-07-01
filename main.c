@@ -15,6 +15,7 @@
 #include "ipgui_image.h"
 #include "ipgui_time.h"
 #include "ipgui_animation.h"
+#include "ipgui_draw_icon.h"
 #undef main
 
 extern __IPGUI_API__ ipgui_err_t ipgui_sdl_mouse_event_poll(void * priv_data, ipgui_input_src_evt_t * raw_evt);
@@ -91,6 +92,63 @@ ipgui_image_data_t main_bg_img;
 ipgui_image_data_t power_img;
 ipgui_image_data_t tablelamp_img;
 ipgui_image_data_t tablelamp_on_img;
+
+#include "icon_play.h"
+void icon_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
+{
+    ipgui_icon_data_t icon_play = {
+       .w = 500, .h = 500,
+       .mask = (u8_t *)icon_play_mask,
+    };
+    ipgui_point_t pivot = {0, 0};
+    ipgui_point_t anchor = {0, 0};
+    ipgui_draw_icon_style_t style;
+    style.blend_mode = IPGUI_BLEND_NORMAL;
+    style.opacity = 255;
+
+    //图片填充
+    ipgui_aabb_t img_aabb;
+    img_aabb.start.x = 0;
+    img_aabb.start.y = 0;
+    img_aabb.end.x = main_bg_img.w - 1;
+    img_aabb.end.y = main_bg_img.h - 1;
+
+    ipgui_image_src_t img_src;
+    img_src.buf       = main_bg_img.pixmap;
+    img_src.img_pxfmt = main_bg_img.fmt;
+    img_src.px_size   = main_bg_img.px_size;
+    img_src.stride    = main_bg_img.stride;
+    img_src.img_aabb  = &img_aabb;
+
+    style.paint.type = IPGUI_PAINT_IMAGE;
+    style.paint.src.image_src = img_src;
+
+    // // 渐变填充
+    // style.paint.type = IPGUI_PAINT_GRADIENT;
+    // style.paint.src.grad_src.grad_type = IPGUI_GRADIENT_TYPE_LINEAR;
+    // ipgui_liner_gradient_init_direct(&style.paint.src.grad_src.grad.liner_grad, 
+    //     0,0, 240,240);
+
+    // ipgui_gradient_color_stop_t stop0;
+    // stop0.pos = 0;
+    // IPGUI_COLOR_SET(stop0.color, 255, 0xff0000);
+    // ipgui_liner_gradient_add_stop(&style.paint.src.grad_src.grad.liner_grad, &stop0);
+
+    // ipgui_gradient_color_stop_t stop255;
+    // stop255.pos = 255;
+    // IPGUI_COLOR_SET(stop255.color, 255, 0xffff00);
+    // ipgui_liner_gradient_add_stop(&style.paint.src.grad_src.grad.liner_grad, &stop255);
+
+    ipgui_draw_icon(
+        ctx->surf,
+        NULL,
+        &icon_play,
+        &pivot,    /* 相对于图标的变换点 如果是子图标那么就是相对于子图标的 */
+        &anchor,
+        NULL,
+        &style);
+}
+
 int main(void)
 {
     ipgui_input_dispatcher_init(&dispatcher);
@@ -294,6 +352,15 @@ int main(void)
     widget_labal_livingroom->y = 435;
     widget_labal_livingroom->w = 200;
     widget_labal_livingroom->h = 60;
+
+    // //测试图标渲染
+    // ipgui_widget_t * widget_icon = ipgui_widget_create(NULL);
+    // widget_icon->name = "小红书";
+    // widget_icon->render = icon_render;
+    // widget_icon->x = 0;
+    // widget_icon->y = 0;
+    // widget_icon->w = 250;
+    // widget_icon->h = 250;
 
     ipgui_input_src_evt_t raw_evt;
     while(1)
