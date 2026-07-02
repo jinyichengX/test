@@ -3,6 +3,7 @@
 
 #include "ipgui_draw_image.h"
 
+/* 和画图片不同，画图标不支持子图标 */
 typedef struct {
     /* icon宽度和高度 */
     ipgui_coord_t       w, h;
@@ -27,7 +28,7 @@ __IPGUI_API__ void ipgui_draw_icon(
     ipgui_surf_t             * surf,
     ipgui_aabb_t             * clip,
     ipgui_icon_data_t        * icon_data,
-    ipgui_point_t            * pivot,    /* 相对于图标的变换点 如果是子图标那么就是相对于子图标的 */
+    ipgui_point_t            * pivot,    /* 相对于图标的变换点*/
     ipgui_point_t            * anchor,
     ipgui_trans_mat_t        * trans,
     ipgui_draw_icon_style_t  * style);
