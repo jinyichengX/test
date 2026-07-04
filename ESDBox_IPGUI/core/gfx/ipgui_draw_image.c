@@ -359,13 +359,12 @@ __IPGUI_API__ void ipgui_draw_image(
                 vd = yo & (~IPGUI_FIXED_MASK);
                 /* scale to 0-255 */
 #if SHIFT > 0
-                    hd = hd << SHIFT;
-                    vd = vd << SHIFT;
+                hd = hd << SHIFT;
+                vd = vd << SHIFT;
 #elif SHIFT < 0
-                    hd = hd >> (-SHIFT);
-                    vd = vd >> (-SHIFT);
+                hd = hd >> (-SHIFT);
+                vd = vd >> (-SHIFT);
 #endif
-
                 /* left top point(a) coordinate */
                 temp_x = IPGUI_FIXED_FLOOR(xo);
                 temp_y = IPGUI_FIXED_FLOOR(yo);
@@ -441,13 +440,12 @@ __IPGUI_API__ void ipgui_draw_image(
                 /* pre-handle alpha and d */
                 alpha = IPGUI_FIXED_PRECI - alpha;
 #if SHIFT > 0
-                    alpha = alpha << SHIFT;
-                    d = d << SHIFT;
+                alpha = alpha << SHIFT;
+                d = d << SHIFT;
 #elif SHIFT < 0
-                    alpha = alpha >> (-SHIFT);
-                    d = d >> (-SHIFT);
+                alpha = alpha >> (-SHIFT);
+                d = d >> (-SHIFT);
 #endif
-
                 /* use src color to lerp color */
                 g_pix_lerp[img_data->fmt].linear(cr_a, cr_b, (u8_t)d, cr);
 

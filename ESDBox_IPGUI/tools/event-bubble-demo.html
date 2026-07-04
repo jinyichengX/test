@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>事件冒泡 - 白话版</title>
+<style>
+body { font-family: 'Microsoft YaHei', sans-serif; background:#222; color:#ddd; padding:30px; }
+h2 { color:#eee; margin:0 0 6px; }
+.note { color:#999; font-size:13px; margin-bottom:20px; }
+
+/* 三个叠在一起的盒子 */
+#a { width:300px; height:180px; background:#2a4a6b; border:2px solid #4a8acf; 
+     display:flex; align-items:center; justify-content:center; border-radius:8px; cursor:pointer; }
+#b { width:200px; height:120px; background:#2a5a2a; border:2px solid #4ab84a;
+     display:flex; align-items:center; justify-content:center; border-radius:6px; cursor:pointer; }
+#c { width:100px; height:60px; background:#6b4a2a; border:2px solid #cf9f4a;
+     display:flex; align-items:center; justify-content:center; border-radius:4px; cursor:pointer;
+     font-size:13px; color:#ffc; }
+
+.flash { box-shadow:0 0 0 4px #fff; transition:box-shadow .0s; }
+
+/* 右侧日志 */
+.flex { display:flex; gap:30px; margin-top:10px; }
+.left { flex:0 0 320px; }
+.right { flex:1; background:#1a1a1a; border-radius:6px; padding:14px; min-height:200px; }
+.right h3 { margin:0 0 10px; font-size:14px; color:#aaa; }
+#log { font-family:Consolas,monospace; font-size:13px; line-height:1.8; }
+.l1 { color:#ff8888; } /* 最里层 */
+.l2 { color:#ffcc66; } /* 中间 */
+.l3 { color:#88ccff; } /* 最外层 */
+
+button { margin-top:10px; padding:6px 14px; background:#444; color:#ccc; border:1px solid #666; border-radius:4px; cursor:pointer; font-size:12px; }
+button:hover { background:#555; }
+
+.legend { margin-top:20px; font-size:12px; color:#999; line-height:1.6; }
+.legend span { font-weight:bold; }
+.legend .red { color:#ff8888; }
+.legend .yellow { color:#ffcc66; }
+.legend .blue { color:#88ccff; }
+</style>
+</head>
+<body>
+
+<h2>事件冒泡是啥意思？</h2>
+<p class="note">点击最里层的小盒子，看右边——事件会<strong>从里到外依次触发</strong>，就像水里的气泡从水底往水面冒。</p>
+
+<div class="flex">
+  <div class="left">
+    <div id="a">
+      外盒A
+      <div id="b">
+        中盒B
+        <div id="c">内盒C ⟵ 点我</div>
+      </div>
+    </div>
+    <div class="legend">
+      颜色说明：<br>
+      <span class="red">红色</span> = 最里层（目标）<br>
+      <span class="yellow">黄色</span> = 中间层<br>
+      <span class="blue">蓝色</span> = 最外层<br>
+      <br>
+      冒泡顺序 = 红色 → 黄色 → 蓝色
+    </div>
+  </div>
+  <div class="right">
+    <h3>谁收到了点击事件？</h3>
+    <div id="log">← 点一下内盒C试试</div>
+    <button onclick="document.getElementById('log').innerHTML='← 点一下内盒C试试'">清空</button>
+  </div>
+</div>
+
+<script>
+let flashTimer = null;
+
+function flash(el) {
+  el.classList.add('flash');
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { el.classList.remove('flash'); }, 300);
+}
+
+// C 被点 → 事件随后冒泡到 B → 再到 A
+document.getElementById('c').addEventListener('click', function() {
+  flash(this);
+  document.getElementById('log').innerHTML += '<div class="l1">● 内盒C 收到了点击（我是被直接命中的那个，叫"目标"）</div>';
+});
+
+document.getElementById('b').addEventListener('click', function() {
+  flash(this);
+  document.getElementById('log').innerHTML += '<div class="l2">  ● 中盒B 收到了点击（从C冒泡上来的，因为C在我里面）</div>';
+});
+
+document.getElementById('a').addEventListener('click', function() {
+  flash(this);
+  document.getElementById('log').innerHTML += '<div class="l3">    ● 外盒A 收到了点击（从B冒泡上来的，因为B在我里面）</div>';
+});
+</script>
+</body>
+</html>

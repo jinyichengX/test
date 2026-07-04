@@ -363,11 +363,11 @@ __IPGUI_API__ void ipgui_draw_icon(
                 vd = yo & (~IPGUI_FIXED_MASK);
                 /* scale to 0-255 */
 #if SHIFT > 0
-                    hd = hd << SHIFT;
-                    vd = vd << SHIFT;
+                hd = hd << SHIFT;
+                vd = vd << SHIFT;
 #elif SHIFT < 0
-                    hd = hd >> (-SHIFT);
-                    vd = vd >> (-SHIFT);
+                hd = hd >> (-SHIFT);
+                vd = vd >> (-SHIFT);
 #endif
 
                 /* left top point(a) coordinate */
@@ -440,11 +440,11 @@ __IPGUI_API__ void ipgui_draw_icon(
                 /* pre-handle alpha and d */
                 alpha = IPGUI_FIXED_PRECI - alpha;
 #if SHIFT > 0
-                    alpha = alpha << SHIFT;
-                    d = d << SHIFT;
+                alpha = alpha << SHIFT;
+                d = d << SHIFT;
 #elif SHIFT < 0
-                    alpha = alpha >> (-SHIFT);
-                    d = d >> (-SHIFT);
+                alpha = alpha >> (-SHIFT);
+                d = d >> (-SHIFT);
 #endif
                 mask_buf[idx ++] = (((u32_t)liner_core(* cr_a, * cr_b, d) * alpha) + 128) >> 8;
             }

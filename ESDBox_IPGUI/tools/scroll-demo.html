@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>滚动 vs 移动控件 — 本质区别</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel-bg: #161822;
+    --border: #2a2d3a;
+    --text: #cdd6f4;
+    --text2: #a6adc8;
+    --accent: #89b4fa;
+    --accent2: #f5c2e7;
+    --accent3: #a6e3a1;
+    --accent4: #f38ba8;
+    --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --font-sans: 'Inter', system-ui, sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 24px;
+    user-select: none;
+  }
+  .container {
+    display: flex;
+    gap: 32px;
+    max-width: 1150px;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* ===== 左侧 ===== */
+  .demo-section {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .mode-tabs {
+    display: flex;
+    gap: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .mode-tab {
+    padding: 8px 18px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text2);
+    border: none;
+    transition: all 0.15s;
+  }
+  .mode-tab.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .mode-tab:not(.active):hover {
+    color: var(--text);
+  }
+
+  /* 视口 */
+  .viewport {
+    width: 430px;
+    height: 340px;
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    background: #080a0f;
+    box-shadow: 0 0 0 1px rgba(137, 180, 250, 0.15);
+  }
+  .viewport.scroll-mode { cursor: grab; }
+  .viewport.scroll-mode:active { cursor: grabbing; }
+  .viewport.move-mode { cursor: default; }
+  .viewport.move-mode .widget { cursor: grab; }
+  .viewport.move-mode .widget:active { cursor: grabbing; }
+  .viewport.move-mode .widget.moving { cursor: grabbing; z-index: 99; }
+
+  /* 内容画布 — 固定网格表示"内容坐标系" */
+  .canvas {
+    position: absolute;
+    width: 700px;
+    height: 550px;
+    background-image:
+      linear-gradient(rgba(137,180,250,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(137,180,250,0.06) 1px, transparent 1px);
+    background-size: 50px 50px;
+    transition: none;
+  }
+  /* 原点标记 */
+  .canvas::before {
+    content: '内容原点 (0,0)';
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(137,180,250,0.35);
+  }
+
+  /* 子控件 */
+  .widget {
+    position: absolute;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    border: 2px solid transparent;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .widget:hover { border-color: rgba(255,255,255,0.5); }
+  .widget.selected {
+    border-color: var(--accent4) !important;
+    box-shadow: 0 0 16px rgba(243, 139, 168, 0.5);
+    z-index: 10;
+  }
+
+  .w1  { background: var(--accent);  color: var(--bg); width:130px; height:60px;  left:40px;  top:40px;  }
+  .w2  { background: var(--accent2); color: var(--bg); width:95px;  height:80px;  left:210px; top:70px;  }
+  .w3  { background: var(--accent3); color: var(--bg); width:150px; height:55px;  left:90px;  top:170px; }
+  .w4  { background: #fab387;        color: var(--bg); width:110px; height:70px;  left:300px; top:190px; }
+  .w5  { background: #cba6f7;        color: var(--bg); width:120px; height:60px;  left:430px; top:90px;  }
+  .w6  { background: #94e2d5;        color: var(--bg); width:100px; height:55px;  left:180px; top:310px; }
+  .w7  { background: #f9e2af;        color: var(--bg); width:130px; height:65px;  left:420px; top:280px; }
+  .w8  { background: #eba0ac;        color: var(--bg); width:90px;  height:90px;  left:560px; top:50px;  }
+  .w9  { background: #74c7ec;        color: var(--bg); width:110px; height:70px;  left:510px; top:390px; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .hint span { display:flex; align-items:center; gap:6px; }
+  .hint .dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .hint .dot.d1 { background:var(--accent); }
+  .hint .dot.d2 { background:var(--accent3); }
+
+  /* ===== 右侧面板 ===== */
+  .info-section {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 350px;
+    max-width: 380px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .info-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .kv-group { display:flex; flex-direction:column; gap:4px; }
+  .kv-label {
+    color: var(--text2);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding-left: 2px;
+  }
+  .kv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background: var(--bg);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .kv-row.scroll  { border-left: 3px solid var(--accent); }
+  .kv-row.widget  { border-left: 3px solid var(--accent3); }
+  .kv-key  { color: var(--text2); }
+  .kv-val  { color: var(--text); font-weight: 600; }
+  .kv-val.c1 { color: var(--accent); }
+  .kv-val.c2 { color: var(--accent3); }
+
+  .formula-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .formula-box .ft { color: var(--text2); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom:6px; }
+
+  .pair {
+    display: flex;
+    gap: 10px;
+  }
+  .pair > div {
+    flex: 1;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+  }
+  .pair .ph  { font-size: 10px; color: var(--text2); margin-bottom:4px; text-transform: uppercase; letter-spacing:0.04em; }
+  .pair .pv  { font-size: 13px; font-weight: 700; }
+  .pair .pv.c1 { color: var(--accent); }
+  .pair .pv.c2 { color: var(--accent3); }
+
+  .log-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 10px;
+    max-height: 120px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+  }
+  .log-box .log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .log-box .log-entry:last-child { border-bottom: none; }
+  .log-entry .op-scroll  { color: var(--accent); }
+  .log-entry .op-move    { color: var(--accent3); }
+  .log-entry .op-reset   { color: var(--accent4); }
+
+  .btn-row { display:flex; gap:10px; }
+  .btn {
+    flex:1;
+    background: var(--border);
+    color: var(--text);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 0.15s;
+    text-align: center;
+  }
+  .btn:hover { background: #3a3d4a; }
+  .btn.danger { background: rgba(243,139,168,0.15); color: var(--accent4); }
+  .btn.danger:hover { background: rgba(243,139,168,0.3); }
+
+  hr { border:none; border-top:1px solid var(--border); margin:0; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ========== 左侧 ========== -->
+  <div class="demo-section">
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-scroll">拖拽空白 = 滚动</button>
+      <button class="mode-tab" id="tab-move">拖拽控件 = 移动控件</button>
+    </div>
+
+    <div class="viewport scroll-mode" id="viewport">
+      <div class="canvas" id="canvas">
+        <div class="widget w1" data-name="Widget 1">Widget 1</div>
+        <div class="widget w2" data-name="Widget 2">Widget 2</div>
+        <div class="widget w3" data-name="Widget 3">Widget 3</div>
+        <div class="widget w4" data-name="Widget 4">Widget 4</div>
+        <div class="widget w5" data-name="Widget 5">Widget 5</div>
+        <div class="widget w6" data-name="Widget 6">Widget 6</div>
+        <div class="widget w7" data-name="Widget 7">Widget 7</div>
+        <div class="widget w8" data-name="Widget 8">Widget 8</div>
+        <div class="widget w9" data-name="Widget 9">Widget 9</div>
+      </div>
+    </div>
+
+    <div class="hint">
+      <span><span class="dot d1"></span> 滚动 = 移动镜头，<b>不改变</b>数据</span>
+      <span><span class="dot d2"></span> 移动控件 = 改变布局，<b>永久</b>生效</span>
+    </div>
+  </div>
+
+  <!-- ========== 右侧 ========== -->
+  <div class="info-section">
+    <div class="info-title">实时状态</div>
+
+    <!-- 两个独立变量 -->
+    <div class="pair">
+      <div>
+        <div class="ph">框架 · 滚动偏移（镜头）</div>
+        <div class="pv c1"><span id="vsx">0</span>, <span id="vsy">0</span></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:4px;">可被 reset 清零</div>
+      </div>
+      <div>
+        <div class="ph">用户 · 被移动的控件</div>
+        <div class="pv c2" id="vmoved">-</div>
+        <div style="font-size:10px;color:var(--text2);margin-top:4px;">reset 无法撤销</div>
+      </div>
+    </div>
+
+    <!-- 公式 -->
+    <div class="formula-box">
+      <div class="ft">渲染公式</div>
+      <code id="live-calc">
+        screen = content − scroll
+      </code>
+    </div>
+
+    <hr>
+
+    <!-- 操作日志 -->
+    <div class="kv-label">操作日志</div>
+    <div class="log-box" id="log-box">
+      <div class="log-entry" style="color:var(--text2);">等待操作...</div>
+    </div>
+
+    <hr>
+
+    <div class="btn-row">
+      <button class="btn" id="btn-reset">⟳ 重置滚动（镜头归零）</button>
+      <button class="btn danger" id="btn-reset-all">重置全部（含控件位置）</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const viewport = document.getElementById('viewport');
+  const canvas = document.getElementById('canvas');
+  const logBox = document.getElementById('log-box');
+  const liveCalc = document.getElementById('live-calc');
+
+  let mode = 'scroll';
+  const maxScrollX = 700 - 430, maxScrollY = 550 - 340;
+
+  let scrollX = 0, scrollY = 0;
+  let movedWidget = null;
+
+  const widgetList = document.querySelectorAll('.widget');
+  const originalPositions = new Map();
+  widgetList.forEach(w => {
+    originalPositions.set(w, { left: w.style.left, top: w.style.top });
+  });
+
+  let dragging = false;
+  let dragStartX = 0, dragStartY = 0;
+  let scrollStartX = 0, scrollStartY = 0;
+  let moveWidgetEl = null;
+  let moveWidgetStartLeft = 0, moveWidgetStartTop = 0;
+
+  function clampScroll() {
+    scrollX = Math.max(0, Math.min(scrollX, maxScrollX));
+    scrollY = Math.max(0, Math.min(scrollY, maxScrollY));
+  }
+  function applyScroll() {
+    canvas.style.transform = `translate(${-scrollX}px, ${-scrollY}px)`;
+  }
+
+  function updateUI() {
+    document.getElementById('vsx').textContent = scrollX;
+    document.getElementById('vsy').textContent = scrollY;
+
+    if (movedWidget) {
+      const name = movedWidget.getAttribute('data-name') || movedWidget.textContent;
+      const cx = parseInt(movedWidget.style.left);
+      const cy = parseInt(movedWidget.style.top);
+      document.getElementById('vmoved').innerHTML = `${name}<br><span style="font-size:10px;font-weight:400;">内容坐标 (${cx}, ${cy})</span>`;
+      liveCalc.innerHTML =
+        `<span style="color:var(--accent3);">(${cx - scrollX}, ${cy - scrollY})</span>` +
+        ` = ` +
+        `<span style="color:var(--accent3);font-weight:600;">(${cx}, ${cy})</span>` +
+        ` − ` +
+        `<span style="color:var(--accent);font-weight:600;">(${scrollX}, ${scrollY})</span>`;
+    } else {
+      document.getElementById('vmoved').textContent = '-';
+      liveCalc.textContent = 'screen = content − scroll （点按控件开始拖拽）';
+    }
+  }
+
+  function addLog(opClass, text) {
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.innerHTML = `<span class="${opClass}">[${new Date().toLocaleTimeString()}]</span> ${text}`;
+    logBox.appendChild(div);
+    logBox.scrollTop = logBox.scrollHeight;
+    while (logBox.children.length > 12) logBox.removeChild(logBox.firstChild);
+  }
+
+  // ===== 模式切换 =====
+  document.getElementById('tab-scroll').onclick = function() {
+    mode = 'scroll';
+    document.getElementById('tab-scroll').classList.add('active');
+    document.getElementById('tab-move').classList.remove('active');
+    viewport.className = 'viewport scroll-mode';
+  };
+  document.getElementById('tab-move').onclick = function() {
+    mode = 'move';
+    document.getElementById('tab-move').classList.add('active');
+    document.getElementById('tab-scroll').classList.remove('active');
+    viewport.className = 'viewport move-mode';
+  };
+
+  // ===== 按钮 =====
+  document.getElementById('btn-reset').onclick = function() {
+    const oldSX = scrollX, oldSY = scrollY;
+    scrollX = 0; scrollY = 0;
+    applyScroll();
+    updateUI();
+    addLog('op-reset', `滚动归零：(${oldSX},${oldSY}) → (0,0)  — 控件内容位置不变`);
+  };
+  document.getElementById('btn-reset-all').onclick = function() {
+    scrollX = 0; scrollY = 0;
+    movedWidget = null;
+    widgetList.forEach(w => {
+      const orig = originalPositions.get(w);
+      if (orig) { w.style.left = orig.left; w.style.top = orig.top; }
+    });
+    applyScroll();
+    updateUI();
+    logBox.innerHTML = '<div class="log-entry" style="color:var(--text2);">已全部重置</div>';
+  };
+
+  // ===== 拖拽：在 viewport 上监听 mousedown（不用 closest，直接判断 class） =====
+  viewport.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    const onWidget = e.target.classList.contains('widget');
+
+    if (mode === 'scroll' && !onWidget) {
+      // 滚动模式：点空白区域
+      dragging = true;
+      dragStartX = e.clientX; dragStartY = e.clientY;
+      scrollStartX = scrollX; scrollStartY = scrollY;
+      moveWidgetEl = null;
+    } else if (mode === 'move' && onWidget) {
+      // 移动控件模式：点控件上
+      dragging = true;
+      moveWidgetEl = e.target;
+      moveWidgetEl.classList.add('moving');
+      // 把 CSS class 里的位置同步到内联 style（否则 parseInt(style.left) 读到空字符串）
+      const cs = getComputedStyle(e.target);
+      if (!e.target.style.left) e.target.style.left = cs.left;
+      if (!e.target.style.top)  e.target.style.top  = cs.top;
+      moveWidgetStartLeft = parseInt(e.target.style.left);
+      moveWidgetStartTop  = parseInt(e.target.style.top);
+      dragStartX = e.clientX; dragStartY = e.clientY;
+    }
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+
+    if (mode === 'scroll') {
+      scrollX = scrollStartX - dx;
+      scrollY = scrollStartY - dy;
+      clampScroll();
+      applyScroll();
+      updateUI();
+    } else if (mode === 'move' && moveWidgetEl) {
+      const nl = Math.max(0, Math.min(moveWidgetStartLeft + dx, 700 - moveWidgetEl.offsetWidth));
+      const nt = Math.max(0, Math.min(moveWidgetStartTop  + dy, 550 - moveWidgetEl.offsetHeight));
+      moveWidgetEl.style.left = nl + 'px';
+      moveWidgetEl.style.top  = nt + 'px';
+      movedWidget = moveWidgetEl;
+      updateUI();
+    }
+  });
+
+  document.addEventListener('mouseup', function(e) {
+    if (!dragging) return;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    const moved = Math.abs(dx) > 2 || Math.abs(dy) > 2;
+
+    if (mode === 'scroll' && moved) {
+      const dSX = scrollX - scrollStartX;
+      const dSY = scrollY - scrollStartY;
+      addLog('op-scroll', `镜头移动 (${dSX>=0?'+':''}${dSX}, ${dSY>=0?'+':''}${dSY}) → scroll=(${scrollX},${scrollY})`);
+    } else if (mode === 'move' && moveWidgetEl && moved) {
+      const name = moveWidgetEl.getAttribute('data-name') || moveWidgetEl.textContent;
+      const nl = parseInt(moveWidgetEl.style.left);
+      const nt = parseInt(moveWidgetEl.style.top);
+      addLog('op-move', `${name} 内容坐标 → (${nl},${nt})`);
+    }
+
+    if (moveWidgetEl) moveWidgetEl.classList.remove('moving');
+    dragging = false;
+    moveWidgetEl = null;
+  });
+
+  applyScroll();
+  updateUI();
+})();
+</script>
+</body>
+</html>
