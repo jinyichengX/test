@@ -1,46 +1,52 @@
 #include "ipgui_anim_bounce.h"
 
+/*
+ * 三次贝塞尔弹簧曲线：knob 冲向目标 → 超越 → 回弹 → 停稳。
+ *
+ * 控制点:
+ *   P0 = 0     起点
+ *   P1 ≈ 0.06·TOTAL   初始粘滞 (慢出)
+ *   P2 ≈ 1.44·TOTAL   过冲幅度, 越大弹簧越猛
+ *   P3 = TOTAL  终点收敛
+ *
+ * 曲线形状:
+ *   y ↑
+ *   96|          ╱‾‾╲___
+ *   80|         ╱       ╲___  ← 冲过头再弹回来停住
+ *   48|        ╱
+ *   16|       ╱
+ *    0|______╱______________→ x
+ *      0    20   40   60   80
+ *
+ * 旧方案: y = x + 振荡   (在路上摇头晃脑, 永远不超终点)
+ * 新方案: y = 贝塞尔过冲 (冲过头再优雅回弹, 真正的弹簧手感)
+ */
 ipgui_anim_value_t ipgui_anim_bounce(ipgui_tick_t t)
 {
     ipgui_anim_value_t x = (ipgui_anim_value_t)t;
-    if (x <= 0) {
-        return 0;
-    }
+    if (x <= 0) return 0;
+
+#define TOTAL 80
+    if (x >= TOTAL) return TOTAL;
 
     /*
-     * 超过峰值点后不再振荡，直接返回线性值，
-     * 保证终点附近 knob 平滑到位、绝不冲出边界。
+     * Cubic Bezier: B(t)=3(1-t)²t·P1+3(1-t)t²·P2+t³·P3
+     * 其中 t = x/TOTAL (归一化进度)
+     *
+     * 整数化: 分子各项乘以 TOTAL³ 后累加, 最后整体除 TOTAL³
      */
-#define BOUNCE_PEAK 80
-    if (x >= BOUNCE_PEAK) {
-        return x;
-    }
 
-    /*
-     * 固定周期 ≈ peak/3，全程 3 次等频振荡，消除"一抖一抖"感。
-     * 固定频率让眼睛感知到的节奏规律、不突兀。
-     */
-#define BOUNCE_PERIOD 27
-    ipgui_tick_t pos  = (ipgui_tick_t)x % BOUNCE_PERIOD;
-    ipgui_tick_t half = BOUNCE_PERIOD >> 1;
+#define P1 5      /* 初始加速度, 小=粘滞慢出 */
+#define P2 150    /* 过冲力度, 约为 1.44×TOTAL */
 
-    /*
-     * 振幅 = 抛物线包络，两端为 0、中间最大。
-     * x=40 时峰值 amp ≈ 20 tick，映射到 knob 位置约 ±12px，明显可见。
-     */
-    ipgui_anim_value_t amp = (x * (BOUNCE_PEAK - x)) / BOUNCE_PEAK;
-    if (amp < 1) {
-        return x;
-    }
+    s32_t d  = TOTAL - x;          /* TOTAL·(1-t) */
+    s32_t d2 = d * d;              /* TOTAL²·(1-t)² */
+    s32_t x2 = x * x;              /* TOTAL²·t² */
 
-    /* 三角波 [-amp, +amp]，pos=0 时输出 +amp */
-    ipgui_anim_value_t ph;
-    if (pos <= half) {
-        ph = amp - (ipgui_anim_value_t)((amp * pos * 2) / half);
-    } else {
-        ipgui_tick_t d = pos - half;
-        ph = (ipgui_anim_value_t)((amp * d * 2) / half) - amp;
-    }
+    /*  3(1-t)²t·P1 + 3(1-t)t²·P2 + t³·P3,  放大 TOTAL³ 倍 */
+    s32_t n  = 3 * d2 * x * P1
+             + 3 * d * x2 * P2
+             + x2 * x * TOTAL;
 
-    return x + ph;
+    return (ipgui_anim_value_t)(n / (TOTAL * TOTAL * TOTAL));
 }

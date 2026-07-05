@@ -16,6 +16,8 @@
 #include "ipgui_time.h"
 #include "ipgui_animation.h"
 #include "ipgui_draw_icon.h"
+#include "ipgui_draw_box_background.h"
+#include "ipgui_memory.h"
 #undef main
 
 extern __IPGUI_API__ ipgui_err_t ipgui_sdl_mouse_event_poll(void * priv_data, ipgui_input_src_evt_t * raw_evt);
@@ -39,7 +41,7 @@ ipgui_scr_drv_t sdl_drv = {
     .flush       = sdl_flush,
 };
 
-static u8_t main_screen_frame_buf[800 * 4];
+static u8_t main_screen_frame_buf[800 * 4 * 480];
 
 void draw_main_screen_backgroud_color(ipgui_scr_t * scr, ipgui_surf_t * surf)
 {
@@ -94,6 +96,94 @@ ipgui_image_data_t tablelamp_img;
 ipgui_image_data_t tablelamp_on_img;
 
 #include "icon_play.h"
+#include "open_sans.h"
+#include "ipgui_draw_builtin_font.h"
+
+/* ========== 测试：滚动 vs 拖拽 ========== */
+typedef struct { u8_t r, g, b; } widget_color_t;
+
+static widget_color_t col_blue   = {0x4a, 0x90, 0xd9};
+static widget_color_t col_red    = {0xe0, 0x5d, 0x5d};
+static widget_color_t col_green  = {0x5d, 0xb8, 0x5d};
+static widget_color_t col_orange = {0xf0, 0x8a, 0x3a};
+static widget_color_t col_purple = {0x9b, 0x59, 0xb6};
+static widget_color_t col_gray   = {0x99, 0x99, 0x99};
+
+/* 通用颜色块渲染 */
+void color_render(ipgui_widget_t * w, ipgui_widget_render_ctx_t * ctx)
+{
+    widget_color_t * c = (widget_color_t *)w->priv_data;
+    ipgui_aabb_t box = {{0,0},{w->w - 1, w->h - 1}};
+    ipgui_box_style_t s; ipgui_memset(&s, 0, sizeof(s));
+    s.left_top_radius = s.right_top_radius = s.left_bottom_radius = s.right_bottom_radius = 12;
+    ipgui_box_bg_style_t bg;
+    bg.paint.type = IPGUI_PAINT_COLOR;
+    IPGUI_COLOR_SET(bg.paint.src.color, 255, ((u32_t)c->r << 16) | ((u32_t)c->g << 8) | c->b);
+    bg.opacity = 100; bg.blend_mode = IPGUI_BLEND_NORMAL;
+    ipgui_draw_box_background(ctx->surf, NULL, &box, &s, &bg);
+
+    /* 居中绘制控件名 */
+    if (w->name) {
+        ipgui_font_style_t fs;
+        ipgui_memset(&fs, 0, sizeof(fs));
+        fs.font = &open_sans_18px;
+        fs.paint.type = IPGUI_PAINT_COLOR;
+        IPGUI_COLOR_SET(fs.paint.src.color, 255, 0xFFFFFF);
+        fs.opacity = 220;
+        fs.blend_mode = IPGUI_BLEND_NORMAL;
+
+        ipgui_coord_t tw = ipgui_builtin_text_width(fs.font, (const s8_t *)w->name);
+        ipgui_coord_t tx = ((w->w - 1) - tw) / 2;
+        ipgui_coord_t ty = ((w->h - 1) - fs.font->line_height) / 2;
+        ipgui_draw_builtin_text(ctx->surf, NULL, &fs, (const s8_t *)w->name, tx, ty);
+    }
+}
+
+/* 滚动事件处理：修改触发控件的 scroll_x/y */
+void scroll_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
+{
+    if (e->type != IPGUI_WIDGET_EVENT_PRESSED) return;
+    ipgui_coord_t dx = e->evt.pressed_evt.x - e->evt.pressed_evt.last_press_x;
+    ipgui_coord_t dy = e->evt.pressed_evt.y - e->evt.pressed_evt.last_press_y;
+    if (dx == 0 && dy == 0) return;
+    w->scroll_x -= dx;
+    w->scroll_y -= dy;
+    ipgui_widget_mark_dirty(w);
+}
+
+/* 滚动 + 拖拽处理：拖拽时同时驱动内容滚动和控件位移，wid1 专用 */
+void scroll_drag_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
+{
+    if (e->type != IPGUI_WIDGET_EVENT_PRESSED) return;
+    ipgui_coord_t dx = e->evt.pressed_evt.x - e->evt.pressed_evt.last_press_x;
+    ipgui_coord_t dy = e->evt.pressed_evt.y - e->evt.pressed_evt.last_press_y;
+    if (dx == 0 && dy == 0) return;
+
+    /* 滚动: 驱动子控件内容 */
+    w->scroll_x -= dx;
+    w->scroll_y -= dy;
+
+    /* 拖拽: 同时移动控件本身 */
+    ipgui_widget_mark_dirty(w);
+    w->x += dx;
+    w->y += dy;
+    ipgui_widget_mark_dirty(w);
+}
+
+/* 拖拽事件处理：直接修改当前控件的 x/y */
+void drag_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
+{
+    if (e->type != IPGUI_WIDGET_EVENT_PRESSED) return;
+    ipgui_coord_t dx = e->evt.pressed_evt.x - e->evt.pressed_evt.last_press_x;
+    ipgui_coord_t dy = e->evt.pressed_evt.y - e->evt.pressed_evt.last_press_y;
+    if (dx == 0 && dy == 0) return;
+    /* 先标脏旧位置，再移动，再标脏新位置，避免旧位置残留 */
+    ipgui_widget_mark_dirty(w);
+    w->x += dx;
+    w->y += dy;
+    ipgui_widget_mark_dirty(w);
+}
+
 void icon_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
 {
     ipgui_icon_data_t icon_play = {
@@ -361,6 +451,51 @@ int main(void)
     // widget_icon->y = 0;
     // widget_icon->w = 250;
     // widget_icon->h = 250;
+
+    /* ========== 测试：滚动 vs 拖拽 ==========
+     * wid1: 屏幕级, SCROLLABLE, 不可拖拽
+     * wid2: wid1 的子控件, SCROLLABLE, 不可拖拽
+     * wid3: wid1 的子控件, 不可滚动, 可拖拽
+     * wid4: wid2 的子控件, 什么都不可
+     */
+    /* wid1: 根级可滚动容器 */
+    ipgui_widget_t * wid1 = ipgui_widget_create(NULL);
+    wid1->name = "wid1_scroll";
+    wid1->x = 380; wid1->y = 20;
+    wid1->w = 380; wid1->h = 420;
+    wid1->flags |= IPGUI_WIDGET_FLAG_SCROLLABLE;
+    wid1->event_handler = scroll_drag_handler;
+    wid1->priv_data = (void *)&col_blue;
+    wid1->render = color_render;
+
+    /* wid2: 嵌套可滚动容器（wid1 的子控件） */
+    ipgui_widget_t * wid2 = ipgui_widget_create(wid1);
+    wid2->name = "wid2_scroll";
+    wid2->x = 10; wid2->y = 100;
+    wid2->w = 200; wid2->h = 220;
+    wid2->flags |= IPGUI_WIDGET_FLAG_SCROLLABLE;
+    wid2->event_handler = scroll_handler;
+    wid2->priv_data = (void *)&col_green;
+    wid2->render = color_render;
+
+
+    /* wid4: wid2 的子控件 */
+    ipgui_widget_t * wid4 = ipgui_widget_create(wid2);
+    wid4->name = "wid4_none";
+    wid4->x = 140; wid4->y = 5;
+    wid4->w = 55; wid4->h = 55;
+    wid4->priv_data = (void *)&col_purple;
+    wid4->render = color_render;
+
+    /* wid3: wid1 的子控件，可拖拽 */
+    ipgui_widget_t * wid3 = ipgui_widget_create(wid1);
+    wid3->name = "wid3_drag";
+    wid3->x = 230; wid3->y = 100;
+    wid3->w = 130; wid3->h = 220;
+    wid3->priv_data = (void *)&col_orange;
+    wid3->render = color_render;
+    wid3->event_handler = drag_handler;
+    /* 不设 SCROLLABLE —— 不可滚动，但 drag_handler 直接改 x/y */
 
     ipgui_input_src_evt_t raw_evt;
     while(1)

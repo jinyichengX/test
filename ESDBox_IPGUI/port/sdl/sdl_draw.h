@@ -9,6 +9,7 @@ struct sdl_private_t {
     SDL_Window * window;
     SDL_Surface * surface;
     SDL_Renderer * renderer;
+    SDL_Texture * texture;
     unsigned int * framebuffer;
 };
 

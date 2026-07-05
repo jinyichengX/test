@@ -48,12 +48,22 @@ int ipgui_sdl_screen_init(ipgui_scr_t * scr)
     if (!priv->surface)
         return -2;
 
+    /* 创建流式纹理用于批量传输像素 */
+    priv->texture = SDL_CreateTexture(priv->renderer,
+        SDL_PIXELFORMAT_ABGR8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        scr->drv->xreso, scr->drv->yreso);
+    if (!priv->texture)
+        return -3;
+
     return 0;
 }
 
 void sdl_flush(ipgui_scr_t * scr)
 {
     struct sdl_private_t * priv = (struct sdl_private_t *)scr->drv->pri_data;
+    /* 将纹理一次性拷贝到渲染器，然后翻页 */
+    SDL_RenderCopy(priv->renderer, priv->texture, NULL, NULL);
     SDL_RenderPresent(priv->renderer);
 }
 
@@ -80,16 +90,9 @@ void sdl_fill_region(ipgui_scr_t * scr,
         ipgui_coord_t x1, ipgui_coord_t y1, ipgui_coord_t x2, ipgui_coord_t y2, 
         unsigned char * pix_buf, int stride)
 {
-    unsigned char * row_pix;
-    for (int y = y1; y <= y2; y ++) {
-        row_pix = pix_buf;
-        for (int x = x1; x <= x2; x ++){
-            sdl_put_pixel(scr, x, y, row_pix);
-            row_pix += 4;/* 4是pix_size，用户指定这个值 */
-            // row_pix += 3;/* 3是pix_size，用户指定这个值 */
-        }
-        pix_buf += stride;
-    }
+    struct sdl_private_t * priv = (struct sdl_private_t *)scr->drv->pri_data;
+    SDL_Rect rect = {x1, y1, x2 - x1 + 1, y2 - y1 + 1};
+    SDL_UpdateTexture(priv->texture, &rect, pix_buf, stride);
 }
 
 // void sdl_exit(ipgui_scr_t * scr)

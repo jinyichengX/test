@@ -1,3 +1,5 @@
+#include "ipgui_widget.h"
+
 /*事件回调函数列表
 
 事件掩码 (支持哪些事件)
@@ -33,3 +35,11 @@
 //     }
 //     return 0;
 // }
+
+__IPGUI_API__ void ipgui_widget_scroll_handler(ipgui_widget_t * widget, ipgui_widget_evt_t * evt)
+{
+    if (widget->flags & IPGUI_WIDGET_FLAG_SCROLLABLE) {
+        // widget->scroll_x += evt->scroll_x;
+        // widget->scroll_y += evt->scroll_y;
+    }
+}

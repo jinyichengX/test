@@ -44,6 +44,7 @@ typedef enum {
     IPGUI_WIDGET_FLAG_OVERFLOW_VISIBLE  = 0x0002,  /* 子控件可超出自身边界绘制（默认裁剪） */
     IPGUI_WIDGET_FLAG_DIRTY             = 0x0004,  /* 需要重绘 */
     IPGUI_WIDGET_FLAG_DISABLED          = 0x0008,  /* 禁用：不响应事件 */
+    IPGUI_WIDGET_FLAG_SCROLLABLE        = 0x0010,  /* 可滚动 */
 } ipgui_widget_flag_t;
 
 /* 控件在父控件中的对齐方式 */
@@ -70,6 +71,9 @@ typedef struct ipgui_widget
     /* ---- 位置和大小（父控件局部坐标系） ---- */
     ipgui_coord_t          x, y;
     ipgui_coord_t          w, h;
+
+    /* ---- 滚动偏移（仅 SCROLLABLE 控件有效） ---- */
+    ipgui_coord_t          scroll_x, scroll_y;
 
     /* ---- 标志位 ---- */
     u32_t                  flags;

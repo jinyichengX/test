@@ -4,10 +4,16 @@
 #include "ipgui_animation.h"
 
 /*
- * 弹性动画函数：输出围绕线性值上下振荡并逐渐收敛。
+ * 弹簧过冲动画函数 (Cubic Bezier Spring).
  *
- * 实现方式：叠加几何衰减的三角形波 —— 周期逐次翻倍、振幅逐次减半，
- * 振荡特性随输入自适应，无硬编码参数，纯整数运算。
+ * knob 冲向终点 → 超越 → 回弹 → 收敛，真正的弹簧手感。
+ * 不再是旧版绕线性路径的原地振荡。
+ *
+ * B(t) = 3(1-t)²t·P1 + 3(1-t)t²·P2 + t³·P3
+ * P1 ≈ 0.06·TOTAL (初始粘滞), P2 ≈ 1.44·TOTAL (过冲力度), P3 = TOTAL (终点).
+ *
+ * f(0)=0, f(TOTAL)=TOTAL, 中途 f(x) > TOTAL 实现物理 overshoot.
+ * 纯整数运算, 无浮点/无除法查表.
  */
 ipgui_anim_value_t ipgui_anim_bounce(ipgui_tick_t t);
 

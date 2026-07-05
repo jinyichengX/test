@@ -20,6 +20,10 @@ __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent)
     widget->w = 0;
     widget->h = 0;
 
+    /* init scroll offset */
+    widget->scroll_x = 0;
+    widget->scroll_y = 0;
+
     /* init flags */
     widget->flags = IPGUI_WIDGET_FLAG_NONE;
 
@@ -103,6 +107,11 @@ __IPGUI_API__ void ipgui_widget_abs_pos(ipgui_widget_t * widget, ipgui_aabb_t * 
         
         abs_x += parent->x;
         abs_y += parent->y;
+
+        if (parent->flags & IPGUI_WIDGET_FLAG_SCROLLABLE) {
+            abs_x -= parent->scroll_x;
+            abs_y -= parent->scroll_y;
+        }
         
         _link = _link->parent;
     }
@@ -136,6 +145,13 @@ __IPGUI_API__ void ipgui_widget_local_to_global(
         out->start.y += parent->y;
         out->end.x   += parent->x;
         out->end.y   += parent->y;
+
+        if (parent->flags & IPGUI_WIDGET_FLAG_SCROLLABLE) {
+            out->start.x -= parent->scroll_x;
+            out->start.y -= parent->scroll_y;
+            out->end.x   -= parent->scroll_x;
+            out->end.y   -= parent->scroll_y;
+        }
         
         _link = _link->parent;
     }
