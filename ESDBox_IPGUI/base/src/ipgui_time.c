@@ -12,12 +12,12 @@ __IPGUI_STATIC__ u32_t sec2millis(u32_t unSecs)
 
 __IPGUI_API__ u32_t ipgui_tick2millis(ipgui_tick_t unTicks)
 {
-    return (unTicks * (IPGUI_MILLISECOND_PER_SECOND / IPGUI_TICK_PER_SECOND));
+    return (unTicks * IPGUI_MILLISECOND_PER_SECOND / IPGUI_TICK_PER_SECOND);
 }
 
 __IPGUI_API__ ipgui_tick_t ipgui_millis2tick(u32_t unMillis)
 {
-    return (ipgui_tick_t)(unMillis * (IPGUI_TICK_PER_SECOND / IPGUI_MILLISECOND_PER_SECOND));
+    return (ipgui_tick_t)(unMillis * IPGUI_TICK_PER_SECOND / IPGUI_MILLISECOND_PER_SECOND);
 }
 
 __IPGUI_API__ ipgui_tick_t ipgui_sec2tick(u32_t unSecs)

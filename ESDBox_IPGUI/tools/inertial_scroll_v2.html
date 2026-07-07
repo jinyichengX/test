@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>惯性滚动 - 匀减速 + EaseOut</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  display:flex; justify-content:center; align-items:center;
+  min-height:100vh; background:#1a1a2e; font-family:monospace;
+}
+.wrap {
+  background:#16213e; border-radius:16px; padding:24px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+.title { color:#e94560; font-size:18px; margin-bottom:16px; text-align:center; }
+.row { display:flex; gap:20px; align-items:flex-start; }
+.panel {
+  background:#0f3460; border-radius:12px; overflow:hidden;
+  position:relative; width:600px; height:460px;
+  border:1px solid #533483;
+}
+.panel canvas { display:block; }
+.slider-group { display:flex; flex-direction:column; gap:14px; min-width:260px; }
+.ctrl label { color:#ccc; font-size:13px; display:flex; justify-content:space-between; }
+.ctrl input[type=range] { width:100%; margin-top:4px; accent-color:#e94560; }
+.val { color:#e94560; font-weight:bold; }
+.info, .log-box {
+  padding:10px; background:#0f3460; border-radius:8px; border:1px solid #533483;
+  margin-top:10px;
+}
+.info div, .log-box div { color:#ccc; font-size:12px; line-height:1.8; }
+.info span, .log-box span { color:#e94560; }
+.log-box { max-height:200px; overflow-y:auto; }
+.log-box .entry { border-bottom:1px solid #1a1a3e; padding:3px 0; font-size:11px; }
+.log-box .entry .ts { color:#666; }
+.curve-box {
+  margin-top:10px; padding:8px; background:#0a0a1a;
+  border-radius:8px; border:1px solid #e94560;
+}
+.curve-box canvas { display:block; }
+.formula-box {
+  margin-top:10px; padding:10px; background:#0a0a1a;
+  border-radius:8px; border:1px solid #e94560;
+  color:#e94560; font-size:11px; line-height:1.7;
+  font-family:monospace;
+}
+.formula-box .cmt { color:#666; }
+.dragging { cursor:grabbing; }
+.idle { cursor:grab; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">惯性滚动模拟 (Y轴) — 匀减速 + EaseOut 动画</div>
+  <div class="row">
+    <div class="panel" id="panel" style="width:360px">
+      <canvas id="cv"></canvas>
+    </div>
+    <div class="slider-group">
+      <div class="ctrl">
+        <label>减速度 a <span class="val" id="aVal">0.0015</span></label>
+        <input type="range" id="aSlider" min="1" max="50" value="15" step="1">
+      </div>
+      <div class="ctrl">
+        <label>内容高度 <span class="val" id="cntVal">11600</span></label>
+        <input type="range" id="cntSlider" min="2000" max="30000" value="11600" step="100">
+      </div>
+
+      <!-- 实时状态 -->
+      <div class="info">
+        <div>手指 vy: <span id="infoVy">--</span> px/1ms</div>
+        <div>滚动 scroll_vy: <span id="infoSVy">--</span></div>
+        <div>距离 s=|vy|/(2a): <span id="infoS">--</span> px</div>
+        <div>时长 t=|vy|/a: <span id="infoT">--</span> ms</div>
+        <div>动画持续: <span id="infoDur">--</span> ms</div>
+        <div>当前偏移: <span id="infoOff">0</span> px</div>
+        <div>动画进度: <span id="infoProg">idle</span></div>
+      </div>
+
+      <!-- EaseOut 曲线 -->
+      <div class="curve-box">
+        <canvas id="curveCv" width="260" height="100"></canvas>
+      </div>
+
+      <!-- 公式 -->
+      <div class="formula-box">
+        <span class="cmt">/* 1 tick = 1ms, a: 减速度 px/ms² */</span><br>
+        s = |vy| / (2 * a)<br>
+        t = |vy| / a<br>
+        offset(n) = 起点 + s * easeOut(n / t)<br>
+        <span class="cmt">/* a=0.0015, easeOut=cubic */</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 日志栏 -->
+  <div class="log-box" id="logBox" style="margin-top:16px; flex:none; width:100%;">
+    <div style="color:#e94560; font-size:13px; margin-bottom:6px;">事件日志</div>
+    <div id="logEntries"></div>
+  </div>
+</div>
+
+<script>
+const panel  = document.getElementById('panel');
+const canvas = document.getElementById('cv');
+const ctx    = canvas.getContext('2d');
+const curveCv = document.getElementById('curveCv');
+const curveCtx = curveCv.getContext('2d');
+
+// ---------- 参数 ----------
+let a_slider  = document.getElementById('aSlider');
+let aVal_disp = document.getElementById('aVal');
+let cnt_slider  = document.getElementById('cntSlider');
+let cntVal_disp = document.getElementById('cntVal');
+
+let a = 0.0015;
+let contentH = 11600;
+
+a_slider.oninput = () => {
+  a = a_slider.value / 10000;
+  aVal_disp.textContent = a.toFixed(4);
+};
+cnt_slider.oninput = () => {
+  contentH = +cnt_slider.value;
+  cntVal_disp.textContent = contentH;
+  maxOffset = Math.max(0, contentH - H);
+};
+
+// ---------- Canvas ----------
+const W = 360, H = 460;
+canvas.width = W; canvas.height = H;
+
+let offset = 0;
+let maxOffset = Math.max(0, contentH - H);
+let dragging = false;
+let lastY = 0;
+
+let animating = false;
+let animStartOff = 0, animTargetOff = 0, animDuration = 0;
+let animStartTime = 0;
+
+let lastFrameTime = 0; // 上帧的时间戳
+
+const colors = ['#e94560','#533483','#0f3460','#16213e','#1a1a2e',
+                '#00b4d8','#e76f51','#f4a261','#2a9d8f','#8338ec',
+                '#ff006e','#3a86ff','#fb5607','#06d6a0','#c77dff'];
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+
+  let itemW = W - 20;
+  let itemH = 58;   // 固定高度: 200×58=11600
+  let items = 200;
+
+  for (let i = 0; i < items; i++) {
+    let y = i * itemH - offset;
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fillRect(2, y, itemW, itemH - 4);
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px monospace';
+    ctx.fillText('Item ' + i, 12, y + itemH / 2 + 5);
+  }
+
+  if (maxOffset > 0) {
+    let thumbH = Math.max(20, H * (H / contentH));
+    let thumbY = (H - thumbH) * (offset / maxOffset);
+    ctx.fillStyle = 'rgba(233,69,96,.5)';
+    ctx.fillRect(W - 6, thumbY, 4, thumbH);
+  }
+
+  if (offset < 0) {
+    ctx.fillStyle = 'rgba(233,69,96,.3)';
+    ctx.fillRect(0, 0, W, -offset);
+  } else if (offset > maxOffset) {
+    let over = offset - maxOffset;
+    ctx.fillStyle = 'rgba(233,69,96,.3)';
+    ctx.fillRect(0, H - over, W, over);
+  }
+  ctx.restore();
+}
+
+// ---------- EaseOut ----------
+function easeOut(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// ---------- 绘制 EaseOut 曲线 ----------
+function drawEaseOutCurve(duration_frames) {
+  let cw = 260, ch = 100;
+  curveCtx.clearRect(0, 0, cw, ch);
+  
+  // 背景网格
+  curveCtx.strokeStyle = '#333';
+  curveCtx.lineWidth = 0.5;
+  for (let x = 0; x <= cw; x += cw/5) {
+    curveCtx.beginPath(); curveCtx.moveTo(x, 0); curveCtx.lineTo(x, ch); curveCtx.stroke();
+  }
+  for (let y = 0; y <= ch; y += ch/5) {
+    curveCtx.beginPath(); curveCtx.moveTo(0, y); curveCtx.lineTo(cw, y); curveCtx.stroke();
+  }
+
+  // ease out 曲线
+  curveCtx.beginPath();
+  curveCtx.strokeStyle = '#e94560';
+  curveCtx.lineWidth = 2;
+  for (let px = 0; px <= cw; px++) {
+    let t = px / cw;
+    let y = easeOut(t) * ch;
+    if (px === 0) curveCtx.moveTo(px, ch - y);
+    else curveCtx.lineTo(px, ch - y);
+  }
+  curveCtx.stroke();
+
+  // 标签
+  curveCtx.fillStyle = '#666';
+  curveCtx.font = '10px monospace';
+  curveCtx.fillText('0', 2, ch - 2);
+  curveCtx.fillText('1', 2, 12);
+  curveCtx.fillText(duration_frames + 'ms', cw - 40, ch - 2);
+  curveCtx.fillStyle = '#e94560';
+  curveCtx.fillText('easeOut cubic', cw / 2 - 40, 14);
+}
+
+// ---------- 惯性动画循环 ----------
+function animLoop(ts) {
+  if (!animating) return;
+  let elapsed = ts - animStartTime;
+  let progress = Math.min(elapsed / animDuration, 1);
+  let eased = easeOut(progress);
+
+  offset = animStartOff + (animTargetOff - animStartOff) * eased;
+
+  if (offset < 0) offset = 0;
+  if (offset > maxOffset) offset = maxOffset;
+
+  draw();
+  updateInfo(progress);
+
+  if (progress < 1) {
+    requestAnimationFrame(animLoop);
+  } else {
+    animating = false;
+    updateInfo(1);
+    addLog('动画结束, offset=' + offset.toFixed(0));
+  }
+}
+
+// ---------- 日志 ----------
+let logCount = 0;
+function addLog(msg) {
+  logCount++;
+  let container = document.getElementById('logEntries');
+  let time = performance.now().toFixed(0);
+  let div = document.createElement('div');
+  div.className = 'entry';
+  div.innerHTML = '<span class="ts">[' + time + ']</span> ' + msg;
+  container.prepend(div);
+  if (container.children.length > 50) container.lastChild.remove();
+}
+
+// ---------- 记录最近两次 pointermove ----------
+let evtPrev = { t: 0, y: 0 };
+let evtLast = { t: 0, y: 0 };
+let lastMoveTime = 0;
+
+// ---------- 事件 ----------
+canvas.addEventListener('pointerdown', e => {
+  animating = false;
+  dragging = true;
+  lastY = e.clientY;
+  let now = performance.now();
+  evtPrev = { t: now, y: lastY };
+  evtLast = { t: now, y: lastY };
+  lastMoveTime = now;
+  panel.classList.add('dragging');
+  canvas.setPointerCapture(e.pointerId);
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  let dy = lastY - e.clientY;
+  lastY = e.clientY;
+  offset += dy;
+  if (offset < -60) offset = -60;
+  if (offset > maxOffset + 60) offset = maxOffset + 60;
+  draw();
+  updateInfo(0);
+  let now = performance.now();
+  evtPrev = evtLast;
+  evtLast = { t: now, y: lastY };
+  lastMoveTime = now;
+});
+
+canvas.addEventListener('pointerup', e => {
+  if (!dragging) return;
+  dragging = false;
+  panel.classList.remove('dragging');
+  canvas.releasePointerCapture(e.pointerId);
+
+  // 手指静止超过 30ms → 清零速度
+  if (performance.now() - lastMoveTime > 30) {
+    evtPrev = evtLast;
+  }
+
+  // 弹回边界
+  if (offset < 0 || offset > maxOffset) {
+    animStartOff = offset;
+    animTargetOff = offset < 0 ? 0 : maxOffset;
+    animDuration = 300;
+    animStartTime = performance.now();
+    animating = true;
+    requestAnimationFrame(animLoop);
+    addLog('越界回弹: offset=' + offset.toFixed(0) + ' → ' + animTargetOff.toFixed(0));
+    return;
+  }
+
+  // ------ 惯性滚动 ------
+  let dt_ms = evtLast.t - evtPrev.t;
+  if (dt_ms <= 0) dt_ms = 1;
+  let vy = (evtLast.y - evtPrev.y) / dt_ms;
+  let scroll_vy = -vy;
+
+  let dist_scroll = Math.abs(scroll_vy) / (2 * a);
+  let t_frames    = Math.abs(scroll_vy) / a;
+  let dur_ms      = t_frames * 1;
+
+  animStartOff = offset;
+  animTargetOff = offset + (scroll_vy > 0 ? dist_scroll : -dist_scroll);
+
+  if (animTargetOff < 0) { animTargetOff = 0; dur_ms = Math.max(dur_ms * 0.5, 200); }
+  if (animTargetOff > maxOffset) { animTargetOff = maxOffset; dur_ms = Math.max(dur_ms * 0.5, 200); }
+
+  // 更新状态显示
+  document.getElementById('infoVy').textContent = vy.toFixed(1);
+  document.getElementById('infoSVy').textContent = scroll_vy.toFixed(1);
+  document.getElementById('infoS').textContent = dist_scroll.toFixed(1);
+  document.getElementById('infoT').textContent = t_frames.toFixed(0);
+  document.getElementById('infoDur').textContent = dur_ms.toFixed(0);
+  document.getElementById('infoOff').textContent = offset.toFixed(1);
+
+  // 画曲线
+  drawEaseOutCurve(t_frames);
+
+  // 日志
+  addLog('RELEASE: 手指vy=' + vy.toFixed(1) + ' scroll_vy=' + scroll_vy.toFixed(1) +
+         ' | s=' + dist_scroll.toFixed(1) + ' t=' + t_frames.toFixed(0) + 'f=' + dur_ms.toFixed(0) + 'ms' +
+         ' | offset: ' + animStartOff.toFixed(0) + '→' + animTargetOff.toFixed(0));
+
+  if (dist_scroll < 1) {
+    addLog('→ 惯性距离太小, 跳过');
+    return;
+  }
+
+  animDuration = dur_ms;
+  animStartTime = performance.now();
+  animating = true;
+  requestAnimationFrame(animLoop);
+});
+
+// ---------- 信息更新 ----------
+function updateInfo(progress) {
+  if (!animating) {
+    document.getElementById('infoOff').textContent = offset.toFixed(1);
+    document.getElementById('infoProg').textContent = 'idle';
+  } else {
+    document.getElementById('infoOff').textContent = offset.toFixed(1);
+    document.getElementById('infoProg').textContent = (progress * 100).toFixed(0) + '%';
+  }
+}
+
+// ---------- 初始化 ----------
+function init() {
+  maxOffset = Math.max(0, contentH - H);
+  offset = 0;
+  draw();
+  drawEaseOutCurve(0);
+  updateInfo(0);
+}
+init();
+
+new ResizeObserver(() => {
+  maxOffset = Math.max(0, contentH - H);
+  if (offset > maxOffset) offset = maxOffset;
+  draw();
+}).observe(panel);
+</script>
+</body>
+</html>

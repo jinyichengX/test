@@ -7,6 +7,7 @@
 #include "ipgui_widget_evt.h"
 #include "ipgui_widget_tree.h"
 #include "ipgui_core.h"
+#include "ipgui_scroll.h"
 
 typedef struct ipgui_scr_ctx ipgui_scr_t;
 
@@ -72,8 +73,9 @@ typedef struct ipgui_widget
     ipgui_coord_t          x, y;
     ipgui_coord_t          w, h;
 
-    /* ---- 滚动偏移（仅 SCROLLABLE 控件有效） ---- */
+    /* ---- 滚动控制（仅 SCROLLABLE 控件有效） ---- */
     ipgui_coord_t          scroll_x, scroll_y;
+    ipgui_scroll_t         scroll;
 
     /* ---- 标志位 ---- */
     u32_t                  flags;

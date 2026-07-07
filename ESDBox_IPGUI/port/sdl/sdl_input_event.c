@@ -33,6 +33,12 @@ __IPGUI_API__ ipgui_err_t ipgui_sdl_mouse_event_poll(void * priv_data, ipgui_inp
             g_sdl_mouse_x = event.motion.x;
             g_sdl_mouse_y = event.motion.y;
         }
+        else if (event.type == SDL_QUIT)
+        {
+            SDL_Quit();
+            /* 结束程序 */
+            exit(0);
+        }
         raw_evt->input_src_id = pointer_id;
         raw_evt->input_src_evt = g_pressed ? IPGUI_INPUT_SRC_EVENT_POINTER_PRESS : IPGUI_INPUT_SRC_EVENT_POINTER_RELEASE;
         raw_evt->evt_info.pointer_pos.x = g_sdl_mouse_x;

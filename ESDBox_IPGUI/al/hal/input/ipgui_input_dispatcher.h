@@ -12,10 +12,12 @@
 
 /* 中间状态 */
 typedef struct {
-    /* 指针事件状态 */
+    /* 通用中间状态 */
+    ipgui_tick_t           last_tick;                /* 上次产生事件的系统时基 */
+
+    /* 指针事件中间状态 */
     ipgui_input_evt_type_t last_state;
     ipgui_input_evt_type_t current_state;
-
     ipgui_widget_t       * grabbed;     /* 当前抓取的控件（按下后锁定，直到鼠标释放才置0） */
     ipgui_coord_t          first_pressed_x;              /* 本次按压起点全局X坐标（PRESS释放前不动） */
     ipgui_coord_t          first_pressed_y;              /* 本次按压起点全局Y坐标 */

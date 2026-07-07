@@ -23,6 +23,7 @@ typedef struct {
 typedef struct {
     ipgui_coord_t x, y; /* 释放瞬间的坐标 */
     ipgui_coord_t first_press_x, first_press_y;
+    ipgui_coord_t prev_press_x, prev_press_y; /* 最后一次按压时的坐标，用于计算滑动末速度 */
 }ipgui_widget_released_evt_t;
 
 /* 悬停事件（仅对鼠标有效，见ipgui_default_event_converter） */

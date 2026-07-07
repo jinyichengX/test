@@ -391,12 +391,18 @@ __IPGUI_API__ ipgui_widget_t * ipgui_screen_point_on(
     return ipgui_screen_point_on_recurse(&scr->tree.root, x, y, &screen_aabb);
 }
 
+extern void ipgui_widget_scroll_handler(ipgui_widget_t * widget, ipgui_widget_evt_t * evt);
+
 __IPGUI_API__ void ipgui_screen_handle_widget_event(ipgui_scr_t * scr, ipgui_widget_evt_t * evt)
 {
     (void)scr;/* 暂时用不到 */
     if (!evt) return;
 
     if (!evt->target) return;
+
+    if (evt->target->flags & IPGUI_WIDGET_FLAG_SCROLLABLE) {
+        ipgui_widget_scroll_handler(evt->target, evt);
+    }
 
     /* 下面的代码调试用，
      * 只用于pressed_evt和released_evt和hover_evt这三个事件 

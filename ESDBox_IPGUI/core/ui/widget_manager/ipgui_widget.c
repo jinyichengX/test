@@ -241,3 +241,41 @@ __IPGUI_API__ void ipgui_widget_set_align(
             break;
     }
 }
+
+/* user shouldn't call this function */
+void ipgui_widget_scroll_handler(ipgui_widget_t * widget, ipgui_widget_evt_t * evt)
+{
+
+    if (evt->type == IPGUI_WIDGET_EVENT_PRESSED) {
+        ipgui_scroll_stop(widget);
+        return;
+    }
+
+    if (evt->type != IPGUI_WIDGET_EVENT_RELEASED)
+        return;
+
+    if (IPGUI_YES == ipgui_scroll_is_active(&widget->scroll))
+    {
+        ipgui_scroll_update(&widget->scroll);
+        return;
+    }
+
+    /* get delta */
+    ipgui_coord_t dx, dy;
+    dx = evt->evt.released_evt.x - evt->evt.released_evt.prev_press_x;
+    dy = evt->evt.released_evt.y - evt->evt.released_evt.prev_press_y;
+
+    /* 手指速度 → 滚动速度 (方向取反)不除以 dt */
+    ipgui_coord_t scroll_vx = -dx;
+    ipgui_coord_t scroll_vy = -dy;
+
+    /* 取主导轴 (|v| 更大者) */
+    ipgui_coord_t abs_vx = scroll_vx >= 0 ? scroll_vx : -scroll_vx;
+    ipgui_coord_t abs_vy = scroll_vy >= 0 ? scroll_vy : -scroll_vy;
+
+    if (abs_vx >= abs_vy) {
+        ipgui_scroll_start(widget, scroll_vx, 0); /* x 轴 */
+    } else {
+        ipgui_scroll_start(widget, scroll_vy, 1); /* y 轴 */
+    }
+}

@@ -331,7 +331,7 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
     ipgui_scr_t * screen = p->dispatcher->scr_node_arr[p->map_node->scr_id].scr;    
     /* 获取当前输入源的状态 */
     converter_state_t * cur_state = &(p->dispatcher->converter_states[p->map_node->input_src_id][p->map_node->scr_id]);
-
+    
     switch (raw_evt->input_src_evt)
     {
         /* pointer pressed */
@@ -418,7 +418,7 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
                     raw_evt->evt_info.pointer_pos.x,
                     raw_evt->evt_info.pointer_pos.y);
                 if (!target) {
-                    ipgui_dbg_error("hit test failed\r\n");
+                    ipgui_dbg_error("hit test failed, no widget hovered\r\n");
                     return IPGUI_ERR_NOK;
                 }
                 widget_evt->target = target;
@@ -434,6 +434,8 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
                 widget_evt->evt.released_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
                 widget_evt->evt.released_evt.first_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
                 widget_evt->evt.released_evt.first_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
+                widget_evt->evt.released_evt.prev_press_x = cur_state->last_pressed_x - widget_global_aabb.start.x;
+                widget_evt->evt.released_evt.prev_press_y = cur_state->last_pressed_y - widget_global_aabb.start.y;
             }
             cur_state->grabbed = (ipgui_widget_t *)0;/*  必须放在后处理后面，否则不知道在哪个控件中释放了 */
             break;
