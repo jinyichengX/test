@@ -38,14 +38,16 @@ __IPGUI_API__ void ipgui_draw_image_at(
     ipgui_image_data_t             * img,
     ipgui_coord_t                    x,
     ipgui_coord_t                    y,
-    const ipgui_image_draw_style_t * style);
+    const ipgui_image_draw_style_t * style,
+    ipgui_image_quality_t            quality);
 
 __IPGUI_API__ void ipgui_draw_image_centered(
     ipgui_surf_t                   * surf,
     ipgui_image_data_t             * img,
     ipgui_coord_t                    cx,
     ipgui_coord_t                    cy,
-    const ipgui_image_draw_style_t * style);
+    const ipgui_image_draw_style_t * style,
+    ipgui_image_quality_t            quality);
 
 __IPGUI_API__ void ipgui_draw_image_in_rect(
     ipgui_surf_t                   * surf,
@@ -53,6 +55,7 @@ __IPGUI_API__ void ipgui_draw_image_in_rect(
     const ipgui_aabb_t             * target,
     ipgui_image_align_t              align,
     ipgui_image_fit_t                fit,
-    const ipgui_image_draw_style_t * style);
+    const ipgui_image_draw_style_t * style,
+    ipgui_image_quality_t            quality);
 
 #endif

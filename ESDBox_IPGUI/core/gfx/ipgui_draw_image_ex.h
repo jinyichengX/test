@@ -12,6 +12,7 @@ extern __IPGUI_API__ void ipgui_draw_image_ex(
     ipgui_point_t            * pivot,    /* 相对于图片的变换点 如果是子图那么就是相对于子图的 */
     ipgui_point_t            * anchor,
     ipgui_trans_mat_t        * trans,
-    ipgui_image_draw_style_t * style);
+    ipgui_image_draw_style_t * style,
+    ipgui_image_quality_t      quality);
 
 #endif

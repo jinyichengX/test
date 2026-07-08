@@ -1,6 +1,5 @@
 #include "ipgui_animation.h"
 #include "ipgui_membox.h"
-#include "ipgui_list.h"
 #include "ipgui_conf.h"
 
 __IPGUI_STATIC__ ipgui_membox_t * anim_box = 0;       /* 内存池 */
@@ -11,14 +10,7 @@ __IPGUI_STATIC__ LIST_HEAD(anim_running_list);     /* 运行中 */
 enum {
     IPGUI_ANIM_ST_READY,
     IPGUI_ANIM_ST_RUNNING,
-};
-
-struct ipgui_anim_t {
-    struct list_head   node;
-    ipgui_anim_dsc_t   dsc;
-    u8_t               state;       /* READY / RUNNING */
-    ipgui_tick_t       duration;    /* t2 - t1 + 1 */
-    ipgui_tick_t       start;       /* 启动时刻 + start_delay 锚点 */
+    IPGUI_ANIM_ST_DEAD = 0xFF,  /* 已销毁标记，拦截重复释放与非法操作 */
 };
 
 __IPGUI_STATIC__ __IPGUI_INLINE__ void anim_pool_ensure(void)
@@ -30,6 +22,9 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ void anim_pool_ensure(void)
 
 __IPGUI_STATIC__ void anim_free_to_pool(ipgui_anim_t * anim)
 {
+    if (anim->state == IPGUI_ANIM_ST_DEAD)
+        return;
+    anim->state = IPGUI_ANIM_ST_DEAD;
     list_del(&anim->node);
     ipgui_membox_free(anim_box, anim);
 }
@@ -57,11 +52,24 @@ __IPGUI_API__ ipgui_anim_t * ipgui_anim_create(const ipgui_anim_dsc_t * dsc)
     return anim;
 }
 
+__IPGUI_API__ void ipgui_anim_delete(ipgui_anim_t * anim)
+{
+    if (!anim) return;
+
+    if (!anim_box) return;
+
+    if (anim->state != IPGUI_ANIM_ST_READY
+     && anim->state != IPGUI_ANIM_ST_RUNNING)
+        return;
+
+    anim_free_to_pool(anim);
+}
+
 __IPGUI_API__ ipgui_err_t ipgui_anim_start(ipgui_anim_t * anim)
 {
     if (!anim) return IPGUI_ERR_PARAM;
     if (anim->state != IPGUI_ANIM_ST_READY)
-        return IPGUI_ERR_ANIM_ALREADY_RUNNING;
+        return IPGUI_ERR_ANIM_NOT_READY;
 
     list_del(&anim->node);
     anim->state = IPGUI_ANIM_ST_RUNNING;
@@ -69,7 +77,13 @@ __IPGUI_API__ ipgui_err_t ipgui_anim_start(ipgui_anim_t * anim)
     list_add_tail(&anim->node, &anim_running_list);
 
     /* 推初始值 */
-    anim->dsc.path_cb(anim, anim->dsc.anim_func(anim->dsc.t1));
+    anim->dsc.path_cb(
+        anim, 
+        anim->dsc.anim_func(
+            anim, 
+            anim->dsc.t1, 
+            anim->dsc.data), 
+        anim->dsc.path_cb_user_data);
 
     return IPGUI_ERR_OK;
 }
@@ -97,16 +111,29 @@ __IPGUI_API__ void ipgui_anim_update_all(void)
             if (anim->dsc.loop_count > 0
                 && cycle >= anim->dsc.loop_count) {
                 /* 跳帧可能漏过终点帧，补推确保终值送达 */
-                anim->dsc.path_cb(anim,
-                    anim->dsc.anim_func(anim->dsc.t2));
+                anim->dsc.path_cb(
+                    anim,
+                    anim->dsc.anim_func(
+                        anim, 
+                        anim->dsc.t2, 
+                        anim->dsc.data), 
+                    anim->dsc.path_cb_user_data);
+
                 if (anim->dsc.finish_cb)
-                    anim->dsc.finish_cb(anim, anim->dsc.user_data);
+                    anim->dsc.finish_cb(
+                        anim, 
+                        anim->dsc.finish_cb_user_data);
                 anim_free_to_pool(anim);
                 continue;
             }
 
-            anim->dsc.path_cb(anim,
-                anim->dsc.anim_func(anim->dsc.t1 + pos_in));
+            anim->dsc.path_cb(
+                anim,
+                anim->dsc.anim_func(
+                    anim, 
+                    anim->dsc.t1 + pos_in, 
+                    anim->dsc.data), 
+                anim->dsc.path_cb_user_data);
 
         } else {
             /* PING_PONG
@@ -123,21 +150,35 @@ __IPGUI_API__ void ipgui_anim_update_all(void)
                 && cycle >= anim->dsc.loop_count) {
                 /* 乒乓完整往返终点 = t1，补推确保终值送达 */
                 anim->dsc.path_cb(anim,
-                    anim->dsc.anim_func(anim->dsc.t1));
+                    anim->dsc.anim_func(
+                        anim, 
+                        anim->dsc.t1, 
+                        anim->dsc.data), 
+                    anim->dsc.path_cb_user_data);
                 if (anim->dsc.finish_cb)
-                    anim->dsc.finish_cb(anim, anim->dsc.user_data);
+                    anim->dsc.finish_cb(
+                        anim, 
+                        anim->dsc.finish_cb_user_data);
                 anim_free_to_pool(anim);
                 continue;
             }
 
             ipgui_anim_value_t v;
             if (pos < anim->duration) {
-                v = anim->dsc.anim_func(anim->dsc.t1 + pos);
+                v = anim->dsc.anim_func(
+                    anim, 
+                    anim->dsc.t1 + pos, 
+                    anim->dsc.data);
             } else {
                 v = anim->dsc.anim_func(
-                    anim->dsc.t2 - (pos - anim->duration + 1));
+                    anim, 
+                    anim->dsc.t2 - (pos - anim->duration + 1), 
+                    anim->dsc.data);
             }
-            anim->dsc.path_cb(anim, v);
+            anim->dsc.path_cb(
+                anim, 
+                v, 
+                anim->dsc.path_cb_user_data);
         }
     }
 }

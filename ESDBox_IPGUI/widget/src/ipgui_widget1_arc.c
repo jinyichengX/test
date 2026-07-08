@@ -7,7 +7,7 @@
 #include "ipgui_draw_filled_circle.h"
 #include "ipgui_draw_builtin_font.h"
 #include "ipgui_anim_bounce.h"
-#include "open_sans.h"
+#include "quicksand_medium.h"
 #include <math.h>
 #include <stddef.h>
 void widget1_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
@@ -22,7 +22,7 @@ void widget_arc_label_render(struct ipgui_widget * widget, ipgui_widget_render_c
 
     // font_style.opacity = 200;
     // font_style.line_spacing = 0;
-    // font_style.font = &open_sans_40px;
+    // font_style.font = &quicksand_medium_40px;
     // font_style.paint.type = IPGUI_PAINT_COLOR;
     // IPGUI_COLOR_SET(font_style.paint.src.color, 255, IPGUI_COLOR_WHITE);
   
@@ -39,7 +39,7 @@ void widget_arc_label_render(struct ipgui_widget * widget, ipgui_widget_render_c
 
     font1_style.opacity = 200;
     font1_style.line_spacing = 0;
-    font1_style.font = &open_sans_18px;
+    font1_style.font = &quicksand_medium_18px;
     font1_style.paint.type = IPGUI_PAINT_COLOR;
     IPGUI_COLOR_SET(font1_style.paint.src.color, 255, IPGUI_COLOR_WHITE);
         ipgui_draw_builtin_text(
@@ -59,7 +59,7 @@ void widget_switch_label_render(struct ipgui_widget * widget, ipgui_widget_rende
 
     font_style.opacity = 255;
     font_style.line_spacing = 0;
-    font_style.font = &open_sans_19px;
+    font_style.font = &quicksand_medium_19px;
     font_style.paint.type = IPGUI_PAINT_GRADIENT;
 
     /* 使用 ipgui_sys_tick 驱动渐变色平滑变化 */

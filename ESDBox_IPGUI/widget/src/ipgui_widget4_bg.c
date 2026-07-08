@@ -22,7 +22,8 @@ void widget4_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ct
         &main_bg_img,
         0,
         0,
-        &style
+        &style,
+        IPGUI_IMAGE_QUALITY_HIGH
     );
 
     // ipgui_point_t p;

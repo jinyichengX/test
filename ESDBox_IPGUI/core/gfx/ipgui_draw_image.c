@@ -203,7 +203,8 @@ __IPGUI_API__ void ipgui_draw_image(
     ipgui_point_t            * pivot,    /* 相对于图片的变换点 如果是子图那么就是相对于子图的 */
     ipgui_point_t            * anchor,
     ipgui_trans_mat_t        * trans,
-    ipgui_image_draw_style_t * style)
+    ipgui_image_draw_style_t * style,
+    ipgui_image_quality_t      quality)
 {
     if ((!surf) || (!img_data) || (!pivot) || (!anchor) || (!style))
         return;
@@ -355,31 +356,60 @@ __IPGUI_API__ void ipgui_draw_image(
 
             if (((xo >= 0) && (xo <= border_x)) \
              && ((yo >= 0) && (yo <= border_y))) {
-                hd = xo & (~IPGUI_FIXED_MASK);
-                vd = yo & (~IPGUI_FIXED_MASK);
-                /* scale to 0-255 */
-#if SHIFT > 0
-                hd = hd << SHIFT;
-                vd = vd << SHIFT;
-#elif SHIFT < 0
-                hd = hd >> (-SHIFT);
-                vd = vd >> (-SHIFT);
-#endif
-                /* left top point(a) coordinate */
-                temp_x = IPGUI_FIXED_FLOOR(xo);
-                temp_y = IPGUI_FIXED_FLOOR(yo);
-
-                /* get src color */
-                cr_a = image_pixmap_get(img_data, temp_x, temp_y); /* the top left point */
-                cr_b = cr_a + px_sz;
-                cr_c = cr_a + stride;
-                cr_d = cr_c + px_sz;
-
                 /* use src color to lerp color */
-                g_pix_lerp[img_data->fmt].bilinear(cr_a, cr_b, cr_c, cr_d, (u8_t)hd, (u8_t)vd, cr);
+                if (IPGUI_IMAGE_QUALITY_LOW == quality) { /* 点采样 */
+                    /* left top point(a) coordinate */
+                    temp_x = IPGUI_FIXED_FLOOR(xo);
+                    temp_y = IPGUI_FIXED_FLOOR(yo);
+                    /* get src color */
+                    cr_a = image_pixmap_get(img_data, temp_x, temp_y); /* the top left point */
+                    /* write to pixel buffer */
+                    ipgui_memcpy(pixmap + idx * px_sz, cr_a, px_sz);
+                } else if (IPGUI_IMAGE_QUALITY_MEDIUM == quality) { /* 最近邻插值 */
+                    hd = xo & (~IPGUI_FIXED_MASK);
+                    vd = yo & (~IPGUI_FIXED_MASK);
+                    /* scale to 0-255 */
+#if SHIFT > 0
+                    hd = hd << SHIFT;
+                    vd = vd << SHIFT;
+#elif SHIFT < 0
+                    hd = hd >> (-SHIFT);
+                    vd = vd >> (-SHIFT);
+#endif
+                    /* left top point(a) coordinate */
+                    temp_x = IPGUI_FIXED_FLOOR(xo);
+                    temp_y = IPGUI_FIXED_FLOOR(yo);
 
-                /* write to pixel buffer */
-                ipgui_memcpy(pixmap + idx * px_sz, cr, px_sz);
+                    if (hd >= 128) temp_x ++;
+                    if (vd >= 128) temp_y ++;
+                    ipgui_memcpy(pixmap + idx * px_sz, 
+                        image_pixmap_get(img_data, temp_x, temp_y), 
+                        px_sz);
+                } else { /* 双线性插值 */
+                    hd = xo & (~IPGUI_FIXED_MASK);
+                    vd = yo & (~IPGUI_FIXED_MASK);
+                    /* scale to 0-255 */
+#if SHIFT > 0
+                    hd = hd << SHIFT;
+                    vd = vd << SHIFT;
+#elif SHIFT < 0
+                    hd = hd >> (-SHIFT);
+                    vd = vd >> (-SHIFT);
+#endif
+                    /* left top point(a) coordinate */
+                    temp_x = IPGUI_FIXED_FLOOR(xo);
+                    temp_y = IPGUI_FIXED_FLOOR(yo);
+
+                    /* get src color */
+                    cr_a = image_pixmap_get(img_data, temp_x, temp_y); /* the top left point */
+                    cr_b = cr_a + px_sz;
+                    cr_c = cr_a + stride;
+                    cr_d = cr_c + px_sz;
+                    /* lerp */
+                    g_pix_lerp[img_data->fmt].bilinear(cr_a, cr_b, cr_c, cr_d, (u8_t)hd, (u8_t)vd, cr);
+                    /* write to pixel buffer */
+                    ipgui_memcpy(pixmap + idx * px_sz, cr, px_sz);
+                }
 
                 mask_buf[idx++] = 255;
             } else {                /* generate edge mask */

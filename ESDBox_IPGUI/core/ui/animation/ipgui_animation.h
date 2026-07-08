@@ -2,15 +2,16 @@
 #define IPGUI_ANIMATION_H
 
 #include "ipgui_time.h"
+#include "ipgui_list.h"
 
 /* f(t), t ∈ [t1, t2], 纯函数无副作用，返回值由调用方解释 */
-typedef ipgui_anim_value_t (* ipgui_anim_func_t)(ipgui_tick_t t);
+typedef ipgui_anim_value_t (* ipgui_anim_func_t)(struct ipgui_anim_t * anim, ipgui_tick_t t, void * data);
 
 /* 每帧推送值回调，anim = 动画对象，value = 当前动画值 */
-typedef void (* ipgui_anim_path_cb_t)(struct ipgui_anim_t * anim, ipgui_anim_value_t value);
+typedef void (* ipgui_anim_path_cb_t)(struct ipgui_anim_t * anim, ipgui_anim_value_t value, void * path_cb_user_data);
 
 /* 动画完成回调（归还池前调用），user_data 来自 dsc */
-typedef void (* ipgui_anim_finish_cb_t)(struct ipgui_anim_t * anim, void * user_data);
+typedef void (* ipgui_anim_finish_cb_t)(struct ipgui_anim_t * anim, void * finish_cb_user_data);
 
 typedef enum {
     IPGUI_ANIM_LOOP_DEFAULT = 0,   /* t1→t2（默认） */
@@ -20,6 +21,8 @@ typedef enum {
 typedef struct {
     /* 动画曲线函数 */
     ipgui_anim_func_t      anim_func;
+    void                 * data;
+
     ipgui_tick_t           t1, t2;        /* 函数定义区间 */
 
     /* 循环 */
@@ -31,13 +34,22 @@ typedef struct {
 
     /* 推模式回调：每帧自动调用，传入当前动画值 */
     ipgui_anim_path_cb_t   path_cb;
+    void                 * path_cb_user_data;
 
     /* 动画完成回调 */
     ipgui_anim_finish_cb_t finish_cb;
-    void                 * user_data;     /* 透传给完成动画完成回调，可以为NULL */
+    void                 * finish_cb_user_data;     /* 透传给完成动画完成回调，可以为NULL */
 } ipgui_anim_dsc_t;
 
 typedef struct ipgui_anim_t ipgui_anim_t;
+
+struct ipgui_anim_t {
+    struct list_head   node;
+    ipgui_anim_dsc_t   dsc;
+    u8_t               state;       /* READY / RUNNING */
+    ipgui_tick_t       duration;    /* t2 - t1 + 1 */
+    ipgui_tick_t       start;       /* 启动时刻 + start_delay 锚点 */
+};
 
 /*
  * ==========================================================================

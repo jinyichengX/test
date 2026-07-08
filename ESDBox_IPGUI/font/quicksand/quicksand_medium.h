@@ -1,0 +1,53 @@
+#ifndef QUICKSAND_MEDIUM_H
+#define QUICKSAND_MEDIUM_H
+
+#include "ipgui_draw_builtin_font.h"
+
+extern ipgui_font_t quicksand_medium_5px;
+extern ipgui_font_t quicksand_medium_6px;
+extern ipgui_font_t quicksand_medium_7px;
+extern ipgui_font_t quicksand_medium_8px;
+extern ipgui_font_t quicksand_medium_9px;
+extern ipgui_font_t quicksand_medium_10px;
+extern ipgui_font_t quicksand_medium_11px;
+extern ipgui_font_t quicksand_medium_12px;
+extern ipgui_font_t quicksand_medium_13px;
+extern ipgui_font_t quicksand_medium_14px;
+extern ipgui_font_t quicksand_medium_15px;
+extern ipgui_font_t quicksand_medium_16px;
+extern ipgui_font_t quicksand_medium_17px;
+extern ipgui_font_t quicksand_medium_18px;
+extern ipgui_font_t quicksand_medium_19px;
+extern ipgui_font_t quicksand_medium_20px;
+extern ipgui_font_t quicksand_medium_21px;
+extern ipgui_font_t quicksand_medium_22px;
+extern ipgui_font_t quicksand_medium_23px;
+extern ipgui_font_t quicksand_medium_24px;
+extern ipgui_font_t quicksand_medium_25px;
+extern ipgui_font_t quicksand_medium_26px;
+extern ipgui_font_t quicksand_medium_27px;
+extern ipgui_font_t quicksand_medium_28px;
+extern ipgui_font_t quicksand_medium_29px;
+extern ipgui_font_t quicksand_medium_30px;
+extern ipgui_font_t quicksand_medium_31px;
+extern ipgui_font_t quicksand_medium_32px;
+extern ipgui_font_t quicksand_medium_33px;
+extern ipgui_font_t quicksand_medium_34px;
+extern ipgui_font_t quicksand_medium_35px;
+extern ipgui_font_t quicksand_medium_36px;
+extern ipgui_font_t quicksand_medium_37px;
+extern ipgui_font_t quicksand_medium_38px;
+extern ipgui_font_t quicksand_medium_39px;
+extern ipgui_font_t quicksand_medium_40px;
+extern ipgui_font_t quicksand_medium_41px;
+extern ipgui_font_t quicksand_medium_42px;
+extern ipgui_font_t quicksand_medium_43px;
+extern ipgui_font_t quicksand_medium_44px;
+extern ipgui_font_t quicksand_medium_45px;
+extern ipgui_font_t quicksand_medium_46px;
+extern ipgui_font_t quicksand_medium_47px;
+extern ipgui_font_t quicksand_medium_48px;
+extern ipgui_font_t quicksand_medium_49px;
+extern ipgui_font_t quicksand_medium_50px;
+
+#endif // QUICKSAND_MEDIUM_H

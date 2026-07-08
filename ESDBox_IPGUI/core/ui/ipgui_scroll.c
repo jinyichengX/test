@@ -1,6 +1,4 @@
 #include "ipgui_scroll.h"
-#include "ipgui_widget.h"
-#include "ipgui_animation.h"
 
 /*
  * 惯性滚动 — 公式:
@@ -16,26 +14,45 @@
 #define A_NUM   15
 #define A_DEN   10000
 
-/* ease_out(x) = 1 - (1-x)³ x∈[0,1]，y∈[0,1] */
-__IPGUI_STATIC__ ipgui_coord_t scroll_ease_out_cubic(ipgui_coord_t progress)
+/* ease_out(x) = 1 - (1-x)³ x∈[0,1]，y∈[0,1] 
+ * return 0-256
+ */
+__IPGUI_STATIC__ u16_t scroll_ease_out_cubic(u16_t progress/* 0-256 */)
 {
 /* ease-out 精度: SCALE 越小精度越低但不会溢出 */
 #define SCROLL_EASE_SCALE 256  /* 2^8, 除法变移位 */
-    ipgui_coord_t one_minus = SCROLL_EASE_SCALE - progress;
-    ipgui_coord_t cube      = one_minus * one_minus * one_minus;
+    u32_t one_minus = SCROLL_EASE_SCALE - progress;
+    u32_t cube      = one_minus * one_minus * one_minus;
     return SCROLL_EASE_SCALE - (cube >> 16);
 }
 
-__IPGUI_API__ ipgui_yes_no_t ipgui_scroll_is_active(ipgui_scroll_t * scroll)
+__IPGUI_STATIC__ ipgui_coord_t ipgui_scroll_anim_func(ipgui_anim_t * anim, ipgui_tick_t t, void * data)
 {
-    if (!scroll->active) return IPGUI_NO;
-    return IPGUI_YES;
+    ipgui_scroll_t * s = (ipgui_scroll_t *)data;
+    u16_t progress = (u32_t)t * SCROLL_EASE_SCALE / anim->duration;
+    return (scroll_ease_out_cubic(progress) * s->dist) >> 8;
+}
+
+__IPGUI_STATIC__ void scroll_path(ipgui_anim_t * anim, ipgui_anim_value_t value, void * path_cb_user_data)
+{
+    ipgui_widget_t * widget = (ipgui_widget_t *)path_cb_user_data;
+    ipgui_scroll_t * s = &widget->scroll;
+    if (!s->active) return;
+    if (s->axis == 0) {
+        widget->scroll_x = widget->scroll.start_off + value;
+    } else {
+        widget->scroll_y = widget->scroll.start_off + value;
+    }
 }
 
 __IPGUI_API__ void ipgui_scroll_stop(struct ipgui_widget * widget)
 {
-    if (!widget) return;
-    widget->scroll.active = 0;
+    // if (!widget) return;
+
+    // if (!widget->scroll.anim) return;
+    
+    // /* delete animation */
+    // ipgui_anim_delete(widget->scroll.anim);
 }
 
 __IPGUI_API__ void ipgui_scroll_start(
@@ -65,54 +82,27 @@ __IPGUI_API__ void ipgui_scroll_start(
     /* 方向回符号 */
     if (scroll_v < 0) dist = -dist;
 
-    widget->scroll.active     = 1;
-    widget->scroll.axis       = axis;
-    widget->scroll.start_off  = (axis == 0) ? widget->scroll_x : widget->scroll_y;
-    widget->scroll.dist       = dist;
-    widget->scroll.start_tick = ipgui_tick_now();
-    widget->scroll.duration   = duration;
+    // widget->scroll.active     = 1;
+    // widget->scroll.axis       = axis;
+    // widget->scroll.start_off  = (axis == 0) ? widget->scroll_x : widget->scroll_y;
+    // widget->scroll.dist       = dist;
+    // widget->scroll.duration   = duration;
 
     ipgui_anim_dsc_t anim_dsc = {
-        .anim_func = NULL,
+        .anim_func = ipgui_scroll_anim_func,
+        .data = (void *)&widget->scroll,
         .t1 = 0,
         .t2 = duration,
         .loop_type = IPGUI_ANIM_LOOP_DEFAULT,
         .loop_count = 1,
         .start_delay = 0,
-        .path_cb = NULL,
-        .finish_cb = NULL
+        .path_cb = (ipgui_anim_path_cb_t)0,
+        .path_cb_user_data = (void *)&widget,
+        .finish_cb = (ipgui_anim_finish_cb_t)0
     };
     ipgui_anim_t * anim;
     anim = ipgui_anim_create(&anim_dsc);
     if (!anim) return;
 
     ipgui_anim_start(anim);
-}
-
-__IPGUI_API__ void ipgui_scroll_update(ipgui_scroll_t * scroll)
-{
-    if (!scroll->active) return;
-
-    // ipgui_tick_t  elapsed_ticks = ipgui_tick_now() - scroll->start_tick;
-    // u32_t         elapsed_ms    = ipgui_tick2millis(elapsed_ticks);
-
-    // if (elapsed_ms >= widget->scroll.duration) {
-    //     /* 动画结束 */
-    //     ipgui_coord_t final_off = widget->scroll.start_off + widget->scroll.dist;
-    //     if (widget->scroll.axis == 0) widget->scroll_x = final_off;
-    //     else                          widget->scroll_y = final_off;
-    //     widget->scroll.active = 0;
-    //     ipgui_widget_mark_dirty(widget);
-    //     return;
-    // }
-
-    // ipgui_coord_t progress = (ipgui_coord_t)(elapsed_ms * SCROLL_EASE_SCALE / widget->scroll.duration);
-    // ipgui_coord_t eased    = ease_out_cubic(progress);
-    // ipgui_coord_t offset   = widget->scroll.start_off
-    //                        + ((widget->scroll.dist * eased) >> 7);  /* /128 */
-
-    // if (widget->scroll.axis == 0) widget->scroll_x = offset;
-    // else                          widget->scroll_y = offset;
-
-    // ipgui_widget_mark_dirty(widget);
 }

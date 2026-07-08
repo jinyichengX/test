@@ -1,0 +1,137 @@
+# Details
+
+Date : 2026-07-08 15:54:49
+
+Directory m:\\test\\ESDbox_IPGUI\\core
+
+Total : 122 files,  14961 codes, 3552 comments, 2718 blanks, all 21231 lines
+
+[Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
+
+## Files
+| filename | language | code | comment | blank | total |
+| :--- | :--- | ---: | ---: | ---: | ---: |
+| [ESDBox\_IPGUI/core/composite/blend\_color/ipgui\_blend\_color.c](/ESDBox_IPGUI/core/composite/blend_color/ipgui_blend_color.c) | C | 578 | 101 | 118 | 797 |
+| [ESDBox\_IPGUI/core/composite/blend\_color/ipgui\_blend\_color.h](/ESDBox_IPGUI/core/composite/blend_color/ipgui_blend_color.h) | C++ | 33 | 0 | 9 | 42 |
+| [ESDBox\_IPGUI/core/composite/blend\_gradient/ipgui\_blend\_gradient\_color.c](/ESDBox_IPGUI/core/composite/blend_gradient/ipgui_blend_gradient_color.c) | C | 223 | 13 | 43 | 279 |
+| [ESDBox\_IPGUI/core/composite/blend\_gradient/ipgui\_blend\_gradient\_color.h](/ESDBox_IPGUI/core/composite/blend_gradient/ipgui_blend_gradient_color.h) | C++ | 36 | 0 | 7 | 43 |
+| [ESDBox\_IPGUI/core/composite/blend\_image/ipgui\_blend\_image.c](/ESDBox_IPGUI/core/composite/blend_image/ipgui_blend_image.c) | C | 1,923 | 61 | 119 | 2,103 |
+| [ESDBox\_IPGUI/core/composite/blend\_image/ipgui\_blend\_image.h](/ESDBox_IPGUI/core/composite/blend_image/ipgui_blend_image.h) | C++ | 49 | 28 | 19 | 96 |
+| [ESDBox\_IPGUI/core/composite/ipgui\_blend.c](/ESDBox_IPGUI/core/composite/ipgui_blend.c) | C | 50 | 0 | 1 | 51 |
+| [ESDBox\_IPGUI/core/composite/ipgui\_blend.h](/ESDBox_IPGUI/core/composite/ipgui_blend.h) | C++ | 34 | 3 | 9 | 46 |
+| [ESDBox\_IPGUI/core/composite/ipgui\_blend\_mode.h](/ESDBox_IPGUI/core/composite/ipgui_blend_mode.h) | C++ | 8 | 0 | 3 | 11 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_box\_style.h](/ESDBox_IPGUI/core/gfx/ipgui_box_style.h) | C++ | 14 | 5 | 4 | 23 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_arc.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_arc.c) | C | 378 | 27 | 58 | 463 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_arc.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_arc.h) | C++ | 40 | 0 | 11 | 51 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_box\_background.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_box_background.c) | C | 199 | 26 | 35 | 260 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_box\_background.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_box_background.h) | C++ | 22 | 3 | 8 | 33 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_box\_border.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_box_border.c) | C | 203 | 25 | 36 | 264 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_box\_border.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_box_border.h) | C++ | 23 | 0 | 6 | 29 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_box\_shadow.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_box_shadow.c) | C | 186 | 52 | 31 | 269 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_box\_shadow.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_box_shadow.h) | C++ | 25 | 8 | 7 | 40 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_builtin\_font.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_builtin_font.c) | C | 148 | 19 | 31 | 198 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_builtin\_font.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_builtin_font.h) | C++ | 63 | 6 | 14 | 83 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_filled\_circle.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_filled_circle.c) | C | 27 | 0 | 3 | 30 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_filled\_circle.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_filled_circle.h) | C++ | 16 | 0 | 6 | 22 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_icon.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_icon.c) | C | 357 | 60 | 59 | 476 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_icon.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_icon.h) | C++ | 21 | 9 | 7 | 37 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_icon\_api.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_icon_api.c) | C | 134 | 1 | 24 | 159 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_icon\_api.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_icon_api.h) | C++ | 40 | 11 | 8 | 59 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_image.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_image.c) | C | 393 | 60 | 58 | 511 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_image.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_image.h) | C++ | 25 | 5 | 7 | 37 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_image\_api.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_image_api.c) | C | 141 | 1 | 24 | 166 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_image\_api.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_image_api.h) | C++ | 43 | 11 | 8 | 62 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_image\_ex.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_image_ex.c) | C | 28 | 3 | 6 | 37 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_image\_ex.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_image_ex.h) | C++ | 15 | 0 | 3 | 18 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_line.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_line.c) | C | 436 | 21 | 62 | 519 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_line.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_line.h) | C++ | 36 | 3 | 13 | 52 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_pixel.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_pixel.c) | C | 34 | 2 | 8 | 44 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_pixel.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_pixel.h) | C++ | 19 | 0 | 5 | 24 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_polygon.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_polygon.c) | C | 772 | 76 | 146 | 994 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_polygon.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_polygon.h) | C | 82 | 23 | 23 | 128 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_triangle.c](/ESDBox_IPGUI/core/gfx/ipgui_draw_triangle.c) | C | 251 | 12 | 35 | 298 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_draw\_triangle.h](/ESDBox_IPGUI/core/gfx/ipgui_draw_triangle.h) | C++ | 22 | 3 | 8 | 33 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_edge\_halfplane\_mask.c](/ESDBox_IPGUI/core/gfx/ipgui_edge_halfplane_mask.c) | C | 160 | 14 | 26 | 200 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_edge\_halfplane\_mask.h](/ESDBox_IPGUI/core/gfx/ipgui_edge_halfplane_mask.h) | C++ | 50 | 2 | 16 | 68 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_edge\_wdf\_mask.c](/ESDBox_IPGUI/core/gfx/ipgui_edge_wdf_mask.c) | C | 309 | 40 | 46 | 395 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_edge\_wdf\_mask.h](/ESDBox_IPGUI/core/gfx/ipgui_edge_wdf_mask.h) | C++ | 40 | 0 | 13 | 53 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_gradient\_color.c](/ESDBox_IPGUI/core/gfx/ipgui_gradient_color.c) | C | 497 | 54 | 79 | 630 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_gradient\_color.h](/ESDBox_IPGUI/core/gfx/ipgui_gradient_color.h) | C++ | 81 | 15 | 33 | 129 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_image\_buf.c](/ESDBox_IPGUI/core/gfx/ipgui_image_buf.c) | C | 31 | 0 | 6 | 37 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_image\_buf.h](/ESDBox_IPGUI/core/gfx/ipgui_image_buf.h) | C++ | 6 | 2 | 4 | 12 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_image\_mask.c](/ESDBox_IPGUI/core/gfx/ipgui_image_mask.c) | C | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_image\_mask.h](/ESDBox_IPGUI/core/gfx/ipgui_image_mask.h) | C++ | 6 | 0 | 2 | 8 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_mask\_buf.c](/ESDBox_IPGUI/core/gfx/ipgui_mask_buf.c) | C | 31 | 0 | 6 | 37 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_mask\_buf.h](/ESDBox_IPGUI/core/gfx/ipgui_mask_buf.h) | C++ | 6 | 2 | 4 | 12 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_mask\_gradient.c](/ESDBox_IPGUI/core/gfx/ipgui_mask_gradient.c) | C | 303 | 9 | 55 | 367 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_mask\_gradient.h](/ESDBox_IPGUI/core/gfx/ipgui_mask_gradient.h) | C++ | 93 | 25 | 30 | 148 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_pixel\_lerp.h](/ESDBox_IPGUI/core/gfx/ipgui_pixel_lerp.h) | C++ | 251 | 36 | 28 | 315 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_ring\_mask.c](/ESDBox_IPGUI/core/gfx/ipgui_ring_mask.c) | C | 632 | 49 | 101 | 782 |
+| [ESDBox\_IPGUI/core/gfx/ipgui\_ring\_mask.h](/ESDBox_IPGUI/core/gfx/ipgui_ring_mask.h) | C++ | 34 | 1 | 8 | 43 |
+| [ESDBox\_IPGUI/core/image/decoder/bmp/ipgui\_bmp\_dec.c](/ESDBox_IPGUI/core/image/decoder/bmp/ipgui_bmp_dec.c) | C | 432 | 129 | 90 | 651 |
+| [ESDBox\_IPGUI/core/image/decoder/bmp/ipgui\_bmp\_dec.h](/ESDBox_IPGUI/core/image/decoder/bmp/ipgui_bmp_dec.h) | C++ | 11 | 0 | 5 | 16 |
+| [ESDBox\_IPGUI/core/image/decoder/gif/ipgui\_gif.h](/ESDBox_IPGUI/core/image/decoder/gif/ipgui_gif.h) | C++ | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/image/decoder/gif/ipgui\_gif\_dec.c](/ESDBox_IPGUI/core/image/decoder/gif/ipgui_gif_dec.c) | C | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/image/decoder/gif/ipgui\_gif\_enc.c](/ESDBox_IPGUI/core/image/decoder/gif/ipgui_gif_enc.c) | C | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/image/decoder/ipgui\_image\_dec.c](/ESDBox_IPGUI/core/image/decoder/ipgui_image_dec.c) | C | 38 | 3 | 7 | 48 |
+| [ESDBox\_IPGUI/core/image/decoder/ipgui\_image\_dec.h](/ESDBox_IPGUI/core/image/decoder/ipgui_image_dec.h) | C++ | 38 | 2 | 9 | 49 |
+| [ESDBox\_IPGUI/core/image/decoder/jpeg/ipgui\_jpeg.c](/ESDBox_IPGUI/core/image/decoder/jpeg/ipgui_jpeg.c) | C | 789 | 54 | 94 | 937 |
+| [ESDBox\_IPGUI/core/image/decoder/jpeg/ipgui\_jpeg.h](/ESDBox_IPGUI/core/image/decoder/jpeg/ipgui_jpeg.h) | C++ | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/image/decoder/png/ipgui\_inflate.c](/ESDBox_IPGUI/core/image/decoder/png/ipgui_inflate.c) | C | 253 | 24 | 54 | 331 |
+| [ESDBox\_IPGUI/core/image/decoder/png/ipgui\_png\_dec.c](/ESDBox_IPGUI/core/image/decoder/png/ipgui_png_dec.c) | C | 189 | 15 | 32 | 236 |
+| [ESDBox\_IPGUI/core/image/decoder/png/ipgui\_png\_dec.h](/ESDBox_IPGUI/core/image/decoder/png/ipgui_png_dec.h) | C++ | 38 | 6 | 13 | 57 |
+| [ESDBox\_IPGUI/core/image/decoder/png/ipgui\_png\_filter.c](/ESDBox_IPGUI/core/image/decoder/png/ipgui_png_filter.c) | C | 301 | 29 | 50 | 380 |
+| [ESDBox\_IPGUI/core/image/decoder/qoi/ipgui\_qoi.h](/ESDBox_IPGUI/core/image/decoder/qoi/ipgui_qoi.h) | C++ | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/image/decoder/qoi/ipgui\_qoi\_dec.c](/ESDBox_IPGUI/core/image/decoder/qoi/ipgui_qoi_dec.c) | C | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/image/decoder/qoi/ipgui\_qoi\_enc.c](/ESDBox_IPGUI/core/image/decoder/qoi/ipgui_qoi_enc.c) | C | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/image/ipgui\_image.c](/ESDBox_IPGUI/core/image/ipgui_image.c) | C | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/image/ipgui\_image.h](/ESDBox_IPGUI/core/image/ipgui_image.h) | C | 16 | 0 | 6 | 22 |
+| [ESDBox\_IPGUI/core/image/proc/ipgui\_image\_enhance.c](/ESDBox_IPGUI/core/image/proc/ipgui_image_enhance.c) | C | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/image/proc/ipgui\_image\_geometry\_transform.c](/ESDBox_IPGUI/core/image/proc/ipgui_image_geometry_transform.c) | C | 411 | 96 | 62 | 569 |
+| [ESDBox\_IPGUI/core/image/proc/ipgui\_image\_geometry\_transform.h](/ESDBox_IPGUI/core/image/proc/ipgui_image_geometry_transform.h) | C++ | 31 | 4 | 6 | 41 |
+| [ESDBox\_IPGUI/core/ipgui\_core.c](/ESDBox_IPGUI/core/ipgui_core.c) | C | 23 | 3 | 6 | 32 |
+| [ESDBox\_IPGUI/core/misc/ipgui\_angle.h](/ESDBox_IPGUI/core/misc/ipgui_angle.h) | C++ | 22 | 19 | 8 | 49 |
+| [ESDBox\_IPGUI/core/misc/ipgui\_graphic2.h](/ESDBox_IPGUI/core/misc/ipgui_graphic2.h) | C | 6 | 14 | 3 | 23 |
+| [ESDBox\_IPGUI/core/misc/ipgui\_lcd\_pix\_fmt.h](/ESDBox_IPGUI/core/misc/ipgui_lcd_pix_fmt.h) | C++ | 14 | 11 | 6 | 31 |
+| [ESDBox\_IPGUI/core/misc/ipgui\_line\_clip.c](/ESDBox_IPGUI/core/misc/ipgui_line_clip.c) | C | 106 | 23 | 16 | 145 |
+| [ESDBox\_IPGUI/core/misc/ipgui\_line\_clip.h](/ESDBox_IPGUI/core/misc/ipgui_line_clip.h) | C++ | 15 | 0 | 4 | 19 |
+| [ESDBox\_IPGUI/core/misc/ipgui\_pattle.h](/ESDBox_IPGUI/core/misc/ipgui_pattle.h) | C | 541 | 0 | 5 | 546 |
+| [ESDBox\_IPGUI/core/misc/ipgui\_prim.c](/ESDBox_IPGUI/core/misc/ipgui_prim.c) | C | 154 | 14 | 26 | 194 |
+| [ESDBox\_IPGUI/core/misc/ipgui\_prim.h](/ESDBox_IPGUI/core/misc/ipgui_prim.h) | C | 91 | 1 | 23 | 115 |
+| [ESDBox\_IPGUI/core/ui/animation/builtin\_anim/ipgui\_anim\_bounce.c](/ESDBox_IPGUI/core/ui/animation/builtin_anim/ipgui_anim_bounce.c) | C | 17 | 28 | 8 | 53 |
+| [ESDBox\_IPGUI/core/ui/animation/builtin\_anim/ipgui\_anim\_bounce.h](/ESDBox_IPGUI/core/ui/animation/builtin_anim/ipgui_anim_bounce.h) | C++ | 5 | 12 | 4 | 21 |
+| [ESDBox\_IPGUI/core/ui/animation/builtin\_anim/ipgui\_anim\_ease.c](/ESDBox_IPGUI/core/ui/animation/builtin_anim/ipgui_anim_ease.c) | C | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/ui/animation/builtin\_anim/ipgui\_anim\_liner.c](/ESDBox_IPGUI/core/ui/animation/builtin_anim/ipgui_anim_liner.c) | C | 5 | 0 | 2 | 7 |
+| [ESDBox\_IPGUI/core/ui/animation/builtin\_anim/ipgui\_anim\_liner.h](/ESDBox_IPGUI/core/ui/animation/builtin_anim/ipgui_anim_liner.h) | C++ | 5 | 1 | 4 | 10 |
+| [ESDBox\_IPGUI/core/ui/animation/ipgui\_anim\_curve.c](/ESDBox_IPGUI/core/ui/animation/ipgui_anim_curve.c) | C | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/ui/animation/ipgui\_anim\_curve.h](/ESDBox_IPGUI/core/ui/animation/ipgui_anim_curve.h) | C++ | 0 | 0 | 1 | 1 |
+| [ESDBox\_IPGUI/core/ui/animation/ipgui\_animation.c](/ESDBox_IPGUI/core/ui/animation/ipgui_animation.c) | C | 144 | 11 | 30 | 185 |
+| [ESDBox\_IPGUI/core/ui/animation/ipgui\_animation.h](/ESDBox_IPGUI/core/ui/animation/ipgui_animation.h) | C++ | 35 | 57 | 19 | 111 |
+| [ESDBox\_IPGUI/core/ui/ipgui\_dirty\_rect.c](/ESDBox_IPGUI/core/ui/ipgui_dirty_rect.c) | C | 193 | 38 | 25 | 256 |
+| [ESDBox\_IPGUI/core/ui/ipgui\_dirty\_rect.h](/ESDBox_IPGUI/core/ui/ipgui_dirty_rect.h) | C++ | 31 | 10 | 8 | 49 |
+| [ESDBox\_IPGUI/core/ui/ipgui\_scroll.c](/ESDBox_IPGUI/core/ui/ipgui_scroll.c) | C | 67 | 22 | 16 | 105 |
+| [ESDBox\_IPGUI/core/ui/ipgui\_scroll.h](/ESDBox_IPGUI/core/ui/ipgui_scroll.h) | C++ | 18 | 2 | 6 | 26 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget.c](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget.c) | C | 216 | 35 | 53 | 304 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget.h](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget.h) | C | 59 | 42 | 23 | 124 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_event.c](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_event.c) | C | 1 | 33 | 5 | 39 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_evt.h](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_evt.h) | C++ | 33 | 3 | 9 | 45 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_geometry.c](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_geometry.c) | C | 1 | 9 | 0 | 10 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_geometry.h](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_geometry.h) | C++ | 19 | 4 | 6 | 29 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_ref.c](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_ref.c) | C | 0 | 5 | 0 | 5 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_state.c](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_state.c) | C | 0 | 235 | 33 | 268 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_state.h](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_state.h) | C++ | 0 | 159 | 30 | 189 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_style.c](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_style.c) | C | 0 | 673 | 57 | 730 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_style.h](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_style.h) | C++ | 7 | 319 | 66 | 392 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_tree.c](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_tree.c) | C | 235 | 38 | 40 | 313 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/ipgui\_widget\_tree.h](/ESDBox_IPGUI/core/ui/widget_manager/ipgui_widget_tree.h) | C++ | 32 | 0 | 6 | 38 |
+| [ESDBox\_IPGUI/core/ui/widget\_manager/readme.md](/ESDBox_IPGUI/core/ui/widget_manager/readme.md) | Markdown | 2 | 0 | 0 | 2 |
+| [ESDBox\_IPGUI/core/vector\_render/ipgui\_curve.c](/ESDBox_IPGUI/core/vector_render/ipgui_curve.c) | C | 115 | 50 | 28 | 193 |
+| [ESDBox\_IPGUI/core/vector\_render/ipgui\_curve.h](/ESDBox_IPGUI/core/vector_render/ipgui_curve.h) | C | 20 | 0 | 3 | 23 |
+| [ESDBox\_IPGUI/core/vector\_render/ipgui\_path.c](/ESDBox_IPGUI/core/vector_render/ipgui_path.c) | C | 156 | 268 | 62 | 486 |
+| [ESDBox\_IPGUI/core/vector\_render/ipgui\_path.h](/ESDBox_IPGUI/core/vector_render/ipgui_path.h) | C | 57 | 12 | 11 | 80 |
+| [ESDBox\_IPGUI/core/vector\_render/ipgui\_stroker.c](/ESDBox_IPGUI/core/vector_render/ipgui_stroker.c) | C | 96 | 48 | 34 | 178 |
+| [ESDBox\_IPGUI/core/vector\_render/ipgui\_stroker.h](/ESDBox_IPGUI/core/vector_render/ipgui_stroker.h) | C | 39 | 23 | 8 | 70 |
+| [ESDBox\_IPGUI/core/vector\_render/ipgui\_transform.c](/ESDBox_IPGUI/core/vector_render/ipgui_transform.c) | C | 151 | 41 | 38 | 230 |
+| [ESDBox\_IPGUI/core/vector\_render/ipgui\_transform.h](/ESDBox_IPGUI/core/vector_render/ipgui_transform.h) | C | 26 | 0 | 7 | 33 |
+
+[Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)

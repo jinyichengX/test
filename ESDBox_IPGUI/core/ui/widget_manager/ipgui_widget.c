@@ -80,6 +80,30 @@ __IPGUI_API__ ipgui_scr_t * ipgui_widget_get_screen(ipgui_widget_t * widget)
     return scr;
 }
 
+__IPGUI_API__ void ipgui_widget_set_top(ipgui_widget_t * widget)
+{
+    if (!widget) return;
+    ipgui_widget_link_set_last(&widget->link);
+}
+
+__IPGUI_API__ void ipgui_widget_set_bottom(ipgui_widget_t * widget)
+{
+    if (!widget) return;
+    ipgui_widget_link_set_first(&widget->link);
+}
+
+__IPGUI_API__ void ipgui_widget_set_behind(ipgui_widget_t * widget, ipgui_widget_t * front)
+{
+    if (!widget || !front) return;
+    ipgui_widget_link_insert_prev(&widget->link, &front->link);
+}
+
+__IPGUI_API__ void ipgui_widget_set_front(ipgui_widget_t * widget, ipgui_widget_t * behind)
+{
+    if (!widget || !behind) return;
+    ipgui_widget_link_insert_next(&widget->link, &behind->link);
+}
+
 /**
  * @brief 计算控件在屏幕中的绝对像素坐标(AABB包围盒)，且不考虑被父控件裁剪
  * @param widget 目标控件句柄
@@ -245,23 +269,22 @@ __IPGUI_API__ void ipgui_widget_set_align(
 /* user shouldn't call this function */
 void ipgui_widget_scroll_handler(ipgui_widget_t * widget, ipgui_widget_evt_t * evt)
 {
+    if ((IPGUI_WIDGET_EVENT_PRESSED != evt->type) &&
+        (IPGUI_WIDGET_EVENT_RELEASED != evt->type))
+        return;
 
+    ipgui_coord_t dx, dy;
+    
     if (evt->type == IPGUI_WIDGET_EVENT_PRESSED) {
+        dx = evt->evt.pressed_evt.x - evt->evt.pressed_evt.last_press_x;
+        dy = evt->evt.pressed_evt.y - evt->evt.pressed_evt.last_press_y;
+        widget->scroll_x -= dx;
+        widget->scroll_y -= dy;
         ipgui_scroll_stop(widget);
         return;
     }
 
-    if (evt->type != IPGUI_WIDGET_EVENT_RELEASED)
-        return;
-
-    if (IPGUI_YES == ipgui_scroll_is_active(&widget->scroll))
-    {
-        ipgui_scroll_update(&widget->scroll);
-        return;
-    }
-
     /* get delta */
-    ipgui_coord_t dx, dy;
     dx = evt->evt.released_evt.x - evt->evt.released_evt.prev_press_x;
     dy = evt->evt.released_evt.y - evt->evt.released_evt.prev_press_y;
 

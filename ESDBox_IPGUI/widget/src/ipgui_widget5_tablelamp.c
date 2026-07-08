@@ -5,7 +5,7 @@
 #include "ipgui_draw_box_background.h"
 #include "ipgui_draw_box_border.h"
 #include "ipgui_draw_builtin_font.h"
-#include "open_sans.h"
+#include "quicksand_medium.h"
 #include "ipgui_draw_box_shadow.h"
 #include "ipgui_time.h"
 extern ipgui_image_data_t tablelamp_img;
@@ -124,13 +124,14 @@ void tablelamp_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * 
         tablelamp_is_on ? &tablelamp_img : &tablelamp_on_img,
         32,
         15,
-        &img_style);
+        &img_style,
+        IPGUI_IMAGE_QUALITY_HIGH);
 
     ipgui_font_style_t font_style;
     font_style.blend_mode = IPGUI_BLEND_NORMAL;
     font_style.opacity = 200;
     font_style.line_spacing = 0;
-    font_style.font = &open_sans_15px;
+    font_style.font = &quicksand_medium_15px;
     font_style.paint.type = IPGUI_PAINT_COLOR;
     if (tablelamp_is_on) {
         IPGUI_COLOR_SET(font_style.paint.src.color, 255, IPGUI_COLOR_WHITE);
@@ -185,7 +186,7 @@ static int livingroom_hovered = 0;
 
 void _label_livingroom_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
 {
-    const ipgui_font_t * font = livingroom_hovered ? &open_sans_28px : &open_sans_25px;
+    const ipgui_font_t * font = livingroom_hovered ? &quicksand_medium_28px : &quicksand_medium_25px;
 
     ipgui_font_style_t font_style;
     font_style.blend_mode = IPGUI_BLEND_NORMAL;

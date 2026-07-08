@@ -5,7 +5,7 @@
 #include "ipgui_image_geometry_transform.h"
 #include "ipgui_draw_arc.h"
 #include "ipgui_time.h"
-#include "open_sans.h"
+#include "quicksand_medium.h"
 extern ipgui_image_data_t wave_img;
 
 void widget3_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
@@ -50,7 +50,8 @@ void widget3_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ct
             &target,
             IPGUI_IMG_ALIGN_CENTER,
             IPGUI_IMG_FIT_STRETCH,
-            &style
+            &style,
+            IPGUI_IMAGE_QUALITY_HIGH
         );
     }
 }
@@ -67,7 +68,8 @@ void power_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
     &power_img,
     45,
     35,
-    &style);
+    &style,
+    IPGUI_IMAGE_QUALITY_HIGH);
 
     ipgui_arc_t arc;
     arc.cx = 60;
@@ -94,7 +96,7 @@ void power_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
     font_style.blend_mode = IPGUI_BLEND_NORMAL;
     font_style.opacity = 255;
     font_style.line_spacing = 0;
-    font_style.font = &open_sans_20px;
+    font_style.font = &quicksand_medium_20px;
     font_style.paint.type = IPGUI_PAINT_COLOR;
     IPGUI_COLOR_SET(font_style.paint.src.color, 255, 0x761ac7);
 

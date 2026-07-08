@@ -6,7 +6,8 @@ __IPGUI_API__ void ipgui_draw_image_at(
     ipgui_image_data_t             * img,
     ipgui_coord_t                    x,
     ipgui_coord_t                    y,
-    const ipgui_image_draw_style_t * style)
+    const ipgui_image_draw_style_t * style,
+    ipgui_image_quality_t            quality)
 {
     if (!surf || !img || !style) return;
 
@@ -16,7 +17,8 @@ __IPGUI_API__ void ipgui_draw_image_at(
     ipgui_draw_image(surf, (ipgui_aabb_t *)0, img,
                      &pivot, &anchor,
                      (ipgui_trans_mat_t *)0,
-                     (ipgui_image_draw_style_t *)style);
+                     (ipgui_image_draw_style_t *)style,
+                      quality);
 }
 
 __IPGUI_API__ void ipgui_draw_image_centered(
@@ -24,7 +26,8 @@ __IPGUI_API__ void ipgui_draw_image_centered(
     ipgui_image_data_t             * img,
     ipgui_coord_t                    cx,
     ipgui_coord_t                    cy,
-    const ipgui_image_draw_style_t * style)
+    const ipgui_image_draw_style_t * style,
+    ipgui_image_quality_t            quality)
 {
     if (!surf || !img || !style) return;
 
@@ -34,7 +37,8 @@ __IPGUI_API__ void ipgui_draw_image_centered(
     ipgui_draw_image(surf, (ipgui_aabb_t *)0, img,
                      &pivot, &anchor,
                      (ipgui_trans_mat_t *)0,
-                     (ipgui_image_draw_style_t *)style);
+                     (ipgui_image_draw_style_t *)style,
+                      quality);
 }
 
 __IPGUI_STATIC__ void ipgui_compute_align_offset(
@@ -65,7 +69,8 @@ __IPGUI_API__ void ipgui_draw_image_in_rect(
     const ipgui_aabb_t             * target,
     ipgui_image_align_t              align,
     ipgui_image_fit_t                fit,
-    const ipgui_image_draw_style_t * style)
+    const ipgui_image_draw_style_t * style,
+    ipgui_image_quality_t            quality)
 {
     ipgui_coord_t tw, th;
     ipgui_coord_t iw, ih;
@@ -94,7 +99,8 @@ __IPGUI_API__ void ipgui_draw_image_in_rect(
         ipgui_draw_image(surf, (ipgui_aabb_t *)target, img,
                          &pivot, &anchor,
                          (ipgui_trans_mat_t *)0,
-                         (ipgui_image_draw_style_t *)style);
+                         (ipgui_image_draw_style_t *)style,
+                          quality);
         return;
     }
 
@@ -153,6 +159,7 @@ __IPGUI_API__ void ipgui_draw_image_in_rect(
         ipgui_draw_image(surf, (ipgui_aabb_t *)target, img,
                          &geo_trans.pivot, &anchor,
                          (ipgui_trans_mat_t *)&geo_trans.mat,
-                         (ipgui_image_draw_style_t *)style);
+                         (ipgui_image_draw_style_t *)style,
+                          quality);
     }
 }

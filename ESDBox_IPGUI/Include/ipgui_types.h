@@ -63,12 +63,12 @@ typedef enum
     IPGUI_ERR_INVALID_PFB_PIX_FMT,
 
     /* 动画相关 */
-    IPGUI_ERR_ANIM_ALREADY_RUNNING, /* 动画已经在运行 */
-    IPGUI_ERR_ANIM_ALREADY_PAUSED,  /* 动画已是暂停态 */
-    IPGUI_ERR_ANIM_IS_PAUSED,       /* 动画处于暂停态 */
-    IPGUI_ERR_ANIM_NOT_PAUSED,      /* 动画未处于暂停态 */
-    IPGUI_ERR_ANIM_NOT_RUNNING,     /* 动画未在运行中 */
-    IPGUI_ERR_ANIM_NOT_PAUSED_OR_RUNNING, /* 动画未暂停也未运行 */
+    IPGUI_ERR_ANIM_NOT_READY, /* 动画未就绪 */
+    // IPGUI_ERR_ANIM_ALREADY_PAUSED,  /* 动画已是暂停态 */
+    // IPGUI_ERR_ANIM_IS_PAUSED,       /* 动画处于暂停态 */
+    // IPGUI_ERR_ANIM_NOT_PAUSED,      /* 动画未处于暂停态 */
+    // IPGUI_ERR_ANIM_NOT_RUNNING,     /* 动画未在运行中 */
+    // IPGUI_ERR_ANIM_NOT_PAUSED_OR_RUNNING, /* 动画未暂停也未运行 */
 }ipgui_err_t;
 
 typedef enum {
