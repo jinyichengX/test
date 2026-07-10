@@ -2,6 +2,7 @@
 #define IPGUI_INPUT_SRC_EVENT_H
 
 #include "ipgui_coord.h"
+#include "ipgui_time.h"
 
 typedef s32_t ipgui_input_src_id_t;
 typedef s32_t ipgui_scr_id_t;
@@ -36,6 +37,7 @@ typedef struct {
         ipgui_key_code_t    key_code;
     }evt_info;
 
+    ipgui_tick_t evt_tick;
 }ipgui_input_src_evt_t;
 
 #endif

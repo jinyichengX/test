@@ -43,9 +43,8 @@ typedef enum {
     IPGUI_WIDGET_FLAG_NONE              = 0x0000,
     IPGUI_WIDGET_FLAG_INVISIBLE         = 0x0001,  /* 不可见：跳过渲染，但保留布局空间 */
     IPGUI_WIDGET_FLAG_OVERFLOW_VISIBLE  = 0x0002,  /* 子控件可超出自身边界绘制（默认裁剪） */
-    IPGUI_WIDGET_FLAG_DIRTY             = 0x0004,  /* 需要重绘 */
-    IPGUI_WIDGET_FLAG_DISABLED          = 0x0008,  /* 禁用：不响应事件 */
-    IPGUI_WIDGET_FLAG_SCROLLABLE        = 0x0010,  /* 可滚动 */
+    IPGUI_WIDGET_FLAG_DISABLED          = 0x0004,  /* 禁用：不响应事件 */
+    IPGUI_WIDGET_FLAG_SCROLLABLE        = 0x0008,  /* 可滚动 */
 } ipgui_widget_flag_t;
 
 /* 控件在父控件中的对齐方式 */
@@ -61,6 +60,13 @@ typedef enum {
     IPGUI_WIDGET_ALIGN_RIGHT_BOTTOM,               /* 右下对齐 */
 } ipgui_widget_align_t;
 
+typedef enum {
+    // IPGUI_SCROLL_DIR_AUTO_XY = 0, /* 自动选择滚动轴x或y */
+    IPGUI_SCROLL_DIR_X,           /* 沿x轴滚动 */
+    IPGUI_SCROLL_DIR_Y,           /* 沿y轴滚动 */
+    IPGUI_SCROLL_DIR_GESTURE,     /* 沿手势滚动 */
+} ipgui_scroll_dir_t;
+
 typedef struct ipgui_widget
 {
     /* ---- 扩展数据 ---- */
@@ -75,7 +81,9 @@ typedef struct ipgui_widget
 
     /* ---- 滚动控制（仅 SCROLLABLE 控件有效） ---- */
     ipgui_coord_t          scroll_x, scroll_y;
+    ipgui_scroll_dir_t     scroll_dir;
     ipgui_scroll_t         scroll;
+    u8_t                   scroll_auto_xy;/* 是否自动选择滚动轴 0：不自动选择 1：自动选择滚动轴 */
 
     /* ---- 标志位 ---- */
     u32_t                  flags;

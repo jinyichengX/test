@@ -21,7 +21,7 @@
  * 旧方案: y = x + 振荡   (在路上摇头晃脑, 永远不超终点)
  * 新方案: y = 贝塞尔过冲 (冲过头再优雅回弹, 真正的弹簧手感)
  */
-ipgui_anim_value_t ipgui_anim_bounce(ipgui_tick_t t)
+ipgui_anim_value_t ipgui_anim_bounce(struct ipgui_anim_t * anim, ipgui_tick_t t, void * data)
 {
     ipgui_anim_value_t x = (ipgui_anim_value_t)t;
     if (x <= 0) return 0;

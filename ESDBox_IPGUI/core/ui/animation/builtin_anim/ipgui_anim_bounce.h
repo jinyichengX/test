@@ -15,6 +15,6 @@
  * f(0)=0, f(TOTAL)=TOTAL, 中途 f(x) > TOTAL 实现物理 overshoot.
  * 纯整数运算, 无浮点/无除法查表.
  */
-ipgui_anim_value_t ipgui_anim_bounce(ipgui_tick_t t);
+ipgui_anim_value_t ipgui_anim_bounce(struct ipgui_anim_t * anim, ipgui_tick_t t, void * data);
 
 #endif

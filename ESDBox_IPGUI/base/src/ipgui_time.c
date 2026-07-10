@@ -24,12 +24,13 @@ __IPGUI_API__ ipgui_tick_t ipgui_sec2tick(u32_t unSecs)
 {
     return ipgui_millis2tick(sec2millis(unSecs));
 }
-
+// #include <SDL.h>
 /* this function need to be called periodically by user */
 __IPGUI_API__ void ipgui_tick_inc(void)
 {
     ipgui_sys_tick_last = ipgui_sys_tick;
     ipgui_sys_tick ++;
+    // ipgui_sys_tick = SDL_GetTicks();
 }
 
 __IPGUI_API__ ipgui_tick_t ipgui_tick_now(void)

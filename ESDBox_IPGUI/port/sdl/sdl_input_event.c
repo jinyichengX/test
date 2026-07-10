@@ -43,6 +43,7 @@ __IPGUI_API__ ipgui_err_t ipgui_sdl_mouse_event_poll(void * priv_data, ipgui_inp
         raw_evt->input_src_evt = g_pressed ? IPGUI_INPUT_SRC_EVENT_POINTER_PRESS : IPGUI_INPUT_SRC_EVENT_POINTER_RELEASE;
         raw_evt->evt_info.pointer_pos.x = g_sdl_mouse_x;
         raw_evt->evt_info.pointer_pos.y = g_sdl_mouse_y;
+        raw_evt->evt_tick = ipgui_tick_now();
     }
 }
 

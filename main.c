@@ -464,7 +464,7 @@ int main(void)
     wid1->x = 380; wid1->y = 20;
     wid1->w = 380; wid1->h = 420;
     wid1->flags |= IPGUI_WIDGET_FLAG_SCROLLABLE;
-    wid1->event_handler = scroll_drag_handler;
+    wid1->event_handler = NULL;
     wid1->priv_data = (void *)&col_blue;
     wid1->render = color_render;
 
@@ -474,18 +474,32 @@ int main(void)
     wid2->x = 10; wid2->y = 100;
     wid2->w = 200; wid2->h = 220;
     wid2->flags |= IPGUI_WIDGET_FLAG_SCROLLABLE;
-    wid2->event_handler = scroll_handler;
+    wid2->scroll_dir = IPGUI_SCROLL_DIR_X;
+    wid2->event_handler = NULL;
     wid2->priv_data = (void *)&col_green;
     wid2->render = color_render;
 
 
-    /* wid4: wid2 的子控件 */
-    ipgui_widget_t * wid4 = ipgui_widget_create(wid2);
-    wid4->name = "wid4_none";
-    wid4->x = 140; wid4->y = 5;
-    wid4->w = 55; wid4->h = 55;
-    wid4->priv_data = (void *)&col_purple;
-    wid4->render = color_render;
+    /* wid2 的子控件：模拟长列表内容，超出 wid2 可视区即可触发滚动 */
+    static widget_color_t item_colors[] = {
+        {0xe0, 0x5d, 0x5d}, {0x5d, 0xb8, 0x5d}, {0x4a, 0x90, 0xd9},
+        {0xf0, 0x8a, 0x3a}, {0x9b, 0x59, 0xb6}, {0xe9, 0x45, 0x60},
+        {0x00, 0xb4, 0xd8}, {0xf4, 0xa2, 0x61}, {0x2a, 0x9d, 0x8f},
+        {0x83, 0x38, 0xec}, {0xff, 0x00, 0x6e}, {0x3a, 0x86, 0xff},
+        {0xfb, 0x56, 0x07}, {0x06, 0xd6, 0xa0}, {0xc7, 0x7d, 0xff},
+    };
+    static char item_names[15][20];
+    for (int i = 0; i < 15; i++) {
+        ipgui_widget_t * item = ipgui_widget_create(wid2);
+        snprintf(item_names[i], sizeof(item_names[i]), "Item %d", i);
+        item->name = item_names[i];
+        item->x = 5 + i * 85;
+        item->y = 5;
+        item->w = 80;
+        item->h = 210;
+        item->priv_data = (void *)&item_colors[i % 15];
+        item->render = color_render;
+    }
 
     /* wid3: wid1 的子控件，可拖拽 */
     ipgui_widget_t * wid3 = ipgui_widget_create(wid1);

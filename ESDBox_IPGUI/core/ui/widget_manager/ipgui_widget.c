@@ -63,6 +63,18 @@ __IPGUI_API__ void ipgui_widget_set_event_handler(
         widget->event_handler = handler;
 }
 
+// __IPGUI_API__ void ipgui_set_scroll_dir(ipgui_widget_t * widget, ipgui_scroll_dir_t dir)
+// {
+//     if (!widget) return;
+
+//     widget->scroll_dir = dir;
+//     if (dir == IPGUI_SCROLL_DIR_AUTO_XY) {
+//         widget->scroll_auto_xy = 1;
+//     } else {
+//         widget->scroll_auto_xy = 0;
+//     }
+// }
+
 /* 获取控件所在屏幕 */
 __IPGUI_API__ ipgui_scr_t * ipgui_widget_get_screen(ipgui_widget_t * widget)
 {
@@ -189,9 +201,6 @@ __IPGUI_API__ void ipgui_widget_mark_dirty(ipgui_widget_t * widget)
     if(IPGUI_YES == ipgui_widget_link_is_detached(&widget->link))
         return;
 
-    /* 标记自身为脏 */
-    widget->flags |= IPGUI_WIDGET_FLAG_DIRTY;
-
     /* 获取控件所在的树的根节点tree->link 
      * 再由根节点找到对应的屏幕
      */
@@ -266,39 +275,72 @@ __IPGUI_API__ void ipgui_widget_set_align(
     }
 }
 
-/* user shouldn't call this function */
-void ipgui_widget_scroll_handler(ipgui_widget_t * widget, ipgui_widget_evt_t * evt)
+__IPGUI_STATIC__ void ipgui_widget_drag_scroll_handler(
+    ipgui_widget_t     * widget, 
+    ipgui_widget_evt_t * evt)
 {
-    if ((IPGUI_WIDGET_EVENT_PRESSED != evt->type) &&
-        (IPGUI_WIDGET_EVENT_RELEASED != evt->type))
-        return;
-
     ipgui_coord_t dx, dy;
-    
-    if (evt->type == IPGUI_WIDGET_EVENT_PRESSED) {
-        dx = evt->evt.pressed_evt.x - evt->evt.pressed_evt.last_press_x;
-        dy = evt->evt.pressed_evt.y - evt->evt.pressed_evt.last_press_y;
+    dx = evt->evt.pressed_evt.x - evt->evt.pressed_evt.last_press_x;
+    dy = evt->evt.pressed_evt.y - evt->evt.pressed_evt.last_press_y;
+
+    switch (widget->scroll_dir) {
+    case IPGUI_SCROLL_DIR_X:
+        widget->scroll_x -= dx;
+        break;
+    case IPGUI_SCROLL_DIR_Y:
+        widget->scroll_y -= dy;
+        break;
+    case IPGUI_SCROLL_DIR_GESTURE:
         widget->scroll_x -= dx;
         widget->scroll_y -= dy;
-        ipgui_scroll_stop(widget);
+        break;
+    // case IPGUI_SCROLL_DIR_AUTO_XY:
+    //     if (IPGUI_ABS(dx) > IPGUI_ABS(dy)) {
+    //         widget->scroll_dir = IPGUI_SCROLL_DIR_X;
+    //         widget->scroll_x -= dx;
+    //     } else {
+    //         widget->scroll_dir = IPGUI_SCROLL_DIR_Y;
+    //         widget->scroll_y -= dy;
+    //     }
+    //     break;
+    }
+
+    ipgui_widget_mark_dirty(widget);
+}
+
+/* user shouldn't call this function */
+void ipgui_widget_scroll_handler(
+    ipgui_widget_t     * widget, 
+    ipgui_widget_evt_t * evt)
+{
+    if (evt->type == IPGUI_WIDGET_EVENT_PRESSED) {
+        /* handle the drag scroll */
+        ipgui_widget_drag_scroll_handler(widget, evt);
+        /* stop the inertia scroll */
+        ipgui_inertia_scroll_stop(widget);
         return;
     }
 
+    if (IPGUI_WIDGET_EVENT_RELEASED != evt->type)
+        return;
+
+    // /* 如果是自动选择滚动轴，恢复自动选择 */
+    // if (widget->scroll_auto_xy) {
+    //     ipgui_set_scroll_dir(widget, IPGUI_SCROLL_DIR_AUTO_XY);
+    // }
+
     /* get delta */
+    ipgui_coord_t dx, dy;
     dx = evt->evt.released_evt.x - evt->evt.released_evt.prev_press_x;
     dy = evt->evt.released_evt.y - evt->evt.released_evt.prev_press_y;
 
-    /* 手指速度 → 滚动速度 (方向取反)不除以 dt */
-    ipgui_coord_t scroll_vx = -dx;
-    ipgui_coord_t scroll_vy = -dy;
+    /* 如果用户反馈滚动太灵敏或者太迟钝，只需要修改x_dv和y_dv这两个值即可 */
+    s32_t x_dv = dx / 5;//这里的5只是调试用，应该改为时间差
+    s32_t y_dv = dy / 5;//这里的5只是调试用，应该改为时间差
 
-    /* 取主导轴 (|v| 更大者) */
-    ipgui_coord_t abs_vx = scroll_vx >= 0 ? scroll_vx : -scroll_vx;
-    ipgui_coord_t abs_vy = scroll_vy >= 0 ? scroll_vy : -scroll_vy;
+    if (x_dv == 0 && y_dv == 0)
+        return;
 
-    if (abs_vx >= abs_vy) {
-        ipgui_scroll_start(widget, scroll_vx, 0); /* x 轴 */
-    } else {
-        ipgui_scroll_start(widget, scroll_vy, 1); /* y 轴 */
-    }
+    ipgui_scroll_start(widget, x_dv, 0); /* x 轴 */
+    // ipgui_scroll_start(widget, y_dv, 1); /* y 轴 */
 }

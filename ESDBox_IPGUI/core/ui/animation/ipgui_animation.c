@@ -167,7 +167,7 @@ __IPGUI_API__ void ipgui_anim_update_all(void)
             if (pos < anim->duration) {
                 v = anim->dsc.anim_func(
                     anim, 
-                    anim->dsc.t1 + pos, 
+                    anim->dsc.t1 + pos,
                     anim->dsc.data);
             } else {
                 v = anim->dsc.anim_func(

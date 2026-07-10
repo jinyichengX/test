@@ -114,15 +114,15 @@ static ipgui_coord_t knob_anim_target_pos = 0;
 #define KNOB_ANIM_DURATION 80
 
 /* 动画推模式回调：每帧框架调用，直接更新 knob_cx */
-static void knob_anim_path_cb(ipgui_anim_t *anim, ipgui_anim_value_t v)
+static void knob_anim_path_cb(struct ipgui_anim_t * anim, ipgui_anim_value_t value, void * path_cb_user_data)
 {
     ipgui_coord_t diff = knob_anim_target_pos - knob_anim_start_pos;
     knob_cx = knob_anim_start_pos
-        + (ipgui_coord_t)(diff * (s32_t)v / KNOB_ANIM_DURATION);
+        + (ipgui_coord_t)(diff * (s32_t)value / KNOB_ANIM_DURATION);
 }
 
 /* 动画完成回调：框架通知动画结束 */
-static void knob_anim_done_cb(ipgui_anim_t *anim, void *user_data)
+static void knob_anim_done_cb(struct ipgui_anim_t * anim, void * finish_cb_user_data)
 {
     knob_animating = 0;
 }
