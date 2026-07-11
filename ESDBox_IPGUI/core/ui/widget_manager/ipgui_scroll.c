@@ -28,16 +28,20 @@ __IPGUI_STATIC__ void scroll_path(
     ipgui_anim_value_t value,
     void             * p)
 {
-    ipgui_widget_t * widget = (ipgui_widget_t *)p;
-    if (widget->scroll.axis == 0) {
-        widget->scroll_x = widget->scroll.start_off - value;
-    } else {
-        widget->scroll_y = widget->scroll.start_off - value;
-    }
-    ipgui_widget_mark_dirty(widget);
+    if (value == 0) return;
+
+    ipgui_widget_t * w = (ipgui_widget_t *)p;
+    ipgui_scroll_t * s = (anim == w->x_scroll.anim) ? &w->x_scroll : &w->y_scroll;
+
+    if (s->axis == 0)
+        w->scroll_x = s->start_off - value;
+    else
+        w->scroll_y = s->start_off - value;
+
+    ipgui_widget_mark_dirty(w);
 }
 
-__IPGUI_STATIC__ void scroll_anim_finish_callback(
+__IPGUI_STATIC__ void scroll_finish(
     ipgui_anim_t * anim, 
     void         * p)
 {
@@ -47,11 +51,14 @@ __IPGUI_STATIC__ void scroll_anim_finish_callback(
 
 void ipgui_inertia_scroll_stop(struct ipgui_widget * widget)
 {
-    if (!widget->scroll.anim)
-        return;
-
-    ipgui_anim_delete(widget->scroll.anim);
-    widget->scroll.anim = (ipgui_anim_t *)0;
+    if (widget->x_scroll.anim) {
+        ipgui_anim_delete(widget->x_scroll.anim);
+        widget->x_scroll.anim = (ipgui_anim_t *)0;
+    }
+    if (widget->y_scroll.anim) {
+        ipgui_anim_delete(widget->y_scroll.anim);
+        widget->y_scroll.anim = (ipgui_anim_t *)0;
+    }
 }
 
 __IPGUI_API__ void ipgui_scroll_start(
@@ -61,12 +68,19 @@ __IPGUI_API__ void ipgui_scroll_start(
 {
     if (!widget) return;
 
+    /* 先停止同一轴的旧动画 */
+    ipgui_scroll_t * sc = (axis == 0) ? &widget->x_scroll : &widget->y_scroll;
+    if (sc->anim) {
+        ipgui_anim_delete(sc->anim);
+        sc->anim = (ipgui_anim_t *)0;
+    }
+
     /* |scroll_v| */
     s32_t abs_v = scroll_v >= 0 ? scroll_v : -scroll_v;
     
     if (abs_v == 0) return;
     /*
-     * 惯性滚动 — 公式:
+     * 惯性滚动参考：https://juejin.cn/post/6844904185121488910
      *   v  = dx (px/tick, 1 tick = 1ms, 不除以 dt)
      *   a  = 0.0015 (常数减速度)
      *   s  = |v| / (2 * a)        → 滚动距离 (px)
@@ -87,16 +101,16 @@ __IPGUI_API__ void ipgui_scroll_start(
     /* 方向回符号 */
     if (scroll_v < 0) dist = -dist;
 
-    widget->scroll.axis       = axis;
-    widget->scroll.start_off  = (axis == 0) ? widget->scroll_x : widget->scroll_y;
-    widget->scroll.dist       = dist;
-    widget->scroll.duration   = duration;
+    sc->axis       = axis;
+    sc->start_off  = (axis == 0) ? widget->scroll_x : widget->scroll_y;
+    sc->dist       = dist;
+    sc->duration   = duration;
     /* 预计算 1/duration 定点倒数，避免 per-tick 64 位除法 */
-    widget->scroll.recip_fp   = (u32_t)((1ULL << 32) / (u64_t)(duration + 1));
+    sc->recip_fp   = (u32_t)((1ULL << 32) / (u64_t)(duration + 1));
 
     ipgui_anim_dsc_t anim_dsc = {
         .anim_func = scroll_anim_func,
-        .data = (void *)&widget->scroll,
+        .data = (void *)sc,
         .t1 = 0,
         .t2 = duration,
         .loop_type = IPGUI_ANIM_LOOP_DEFAULT,
@@ -104,13 +118,13 @@ __IPGUI_API__ void ipgui_scroll_start(
         .start_delay = 0,
         .path_cb = scroll_path,
         .path_cb_user_data = (void *)widget,
-        .finish_cb = scroll_anim_finish_callback,
-        .finish_cb_user_data = (void *)&widget->scroll,
+        .finish_cb = scroll_finish,
+        .finish_cb_user_data = (void *)sc,
     };
     ipgui_anim_t * anim;
     anim = ipgui_anim_create(&anim_dsc);
     if (!anim) return;
 
-    widget->scroll.anim = anim;
+    sc->anim = anim;
     ipgui_anim_start(anim);
 }

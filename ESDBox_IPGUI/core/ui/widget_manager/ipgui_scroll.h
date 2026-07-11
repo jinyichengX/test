@@ -7,8 +7,7 @@
 #include "ipgui_animation.h"
 
 typedef struct {
-    // ipgui_scroll_dir_t dir;
-    ipgui_coord_t  start_off;    /* 动画起始 scroll_x/y */
+    ipgui_coord_t  start_off;    /* 动画起始 scroll 偏移 */
     ipgui_coord_t  dist;         /* 带符号的滚动距离 s (px) */
     ipgui_tick_t   duration;     /* 动画总时长 (ms) */
     u32_t          recip_fp;     /* (1<<32)/dur 定点倒数，避免 per-tick 64 除 */
@@ -19,7 +18,9 @@ typedef struct {
 /* 停止当前惯性滚动 */
 extern __IPGUI_API__ void ipgui_inertia_scroll_stop(struct ipgui_widget * widget);
 
-/* 启动惯性滚动 (v: 滚动方向速度 px/tick, axis: 0=x 1=y) */
-extern __IPGUI_API__ void ipgui_scroll_start(struct ipgui_widget * widget, ipgui_coord_t scroll_v, u8_t axis);
+extern __IPGUI_API__ void ipgui_scroll_start(
+    struct ipgui_widget * widget,
+    s32_t                 scroll_v,
+    u8_t                  axis);
 
 #endif

@@ -347,23 +347,25 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
 
             /* hit test */
             if(cur_state->last_state == IPGUI_INPUT_SRC_EVENT_POINTER_PRESS) {
-                cur_state->last_pressed_x = cur_state->cur_x;
-                cur_state->last_pressed_y = cur_state->cur_y;
-                cur_state->cur_x = raw_evt->evt_info.pointer_pos.x;
-                cur_state->cur_y = raw_evt->evt_info.pointer_pos.y;
+                if (cur_state->grabbed != (ipgui_widget_t *)0) {
+                    cur_state->last_pressed_x = cur_state->cur_x;
+                    cur_state->last_pressed_y = cur_state->cur_y;
+                    cur_state->cur_x = raw_evt->evt_info.pointer_pos.x;
+                    cur_state->cur_y = raw_evt->evt_info.pointer_pos.y;
 
-                target = cur_state->grabbed;
+                    target = cur_state->grabbed;
 
-                /* 后处理，主要是填充事件和坐标转化，转化为控件的相对坐标 */
-                widget_evt->target = cur_state->grabbed;
-                widget_evt->type = IPGUI_WIDGET_EVENT_PRESSED;
-                ipgui_widget_abs_pos(widget_evt->target, &widget_global_aabb);
-                widget_evt->evt.pressed_evt.x = cur_state->cur_x - widget_global_aabb.start.x;
-                widget_evt->evt.pressed_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
-                widget_evt->evt.pressed_evt.first_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
-                widget_evt->evt.pressed_evt.first_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
-                widget_evt->evt.pressed_evt.last_press_x = cur_state->last_pressed_x - widget_global_aabb.start.x;
-                widget_evt->evt.pressed_evt.last_press_y = cur_state->last_pressed_y - widget_global_aabb.start.y;
+                    /* 后处理，主要是填充事件和坐标转化，转化为控件的相对坐标 */
+                    widget_evt->target = cur_state->grabbed;
+                    widget_evt->type = IPGUI_WIDGET_EVENT_PRESSED;
+                    ipgui_widget_abs_pos(widget_evt->target, &widget_global_aabb);
+                    widget_evt->evt.pressed_evt.x = cur_state->cur_x - widget_global_aabb.start.x;
+                    widget_evt->evt.pressed_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
+                    widget_evt->evt.pressed_evt.first_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
+                    widget_evt->evt.pressed_evt.first_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
+                    widget_evt->evt.pressed_evt.last_press_x = cur_state->last_pressed_x - widget_global_aabb.start.x;
+                    widget_evt->evt.pressed_evt.last_press_y = cur_state->last_pressed_y - widget_global_aabb.start.y;
+                }
             } else {
                 cur_state->cur_x = raw_evt->evt_info.pointer_pos.x;
                 cur_state->cur_y = raw_evt->evt_info.pointer_pos.y;
@@ -390,8 +392,8 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
                 widget_evt->evt.pressed_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
                 widget_evt->evt.pressed_evt.first_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
                 widget_evt->evt.pressed_evt.first_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
-                widget_evt->evt.pressed_evt.last_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
-                widget_evt->evt.pressed_evt.last_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
+                widget_evt->evt.pressed_evt.last_press_x = widget_evt->evt.pressed_evt.first_press_x;
+                widget_evt->evt.pressed_evt.last_press_y = widget_evt->evt.pressed_evt.first_press_y;
             }
 
             break;
@@ -427,15 +429,17 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
                 widget_evt->evt.hover_evt.x = cur_state->cur_x - widget_global_aabb.start.x;
                 widget_evt->evt.hover_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
             } else {
-                widget_evt->target = cur_state->grabbed;
-                widget_evt->type = IPGUI_WIDGET_EVENT_RELEASED;
-                ipgui_widget_abs_pos(widget_evt->target, &widget_global_aabb);
-                widget_evt->evt.released_evt.x = cur_state->cur_x - widget_global_aabb.start.x;
-                widget_evt->evt.released_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
-                widget_evt->evt.released_evt.first_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
-                widget_evt->evt.released_evt.first_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
-                widget_evt->evt.released_evt.prev_press_x = cur_state->last_pressed_x - widget_global_aabb.start.x;
-                widget_evt->evt.released_evt.prev_press_y = cur_state->last_pressed_y - widget_global_aabb.start.y;
+                if (cur_state->grabbed != (ipgui_widget_t *)0) {
+                    widget_evt->target = cur_state->grabbed;
+                    widget_evt->type = IPGUI_WIDGET_EVENT_RELEASED;
+                    ipgui_widget_abs_pos(widget_evt->target, &widget_global_aabb);
+                    widget_evt->evt.released_evt.x = cur_state->cur_x - widget_global_aabb.start.x;
+                    widget_evt->evt.released_evt.y = cur_state->cur_y - widget_global_aabb.start.y;
+                    widget_evt->evt.released_evt.first_press_x = cur_state->first_pressed_x - widget_global_aabb.start.x;
+                    widget_evt->evt.released_evt.first_press_y = cur_state->first_pressed_y - widget_global_aabb.start.y;
+                    widget_evt->evt.released_evt.prev_press_x = cur_state->last_pressed_x - widget_global_aabb.start.x;
+                    widget_evt->evt.released_evt.prev_press_y = cur_state->last_pressed_y - widget_global_aabb.start.y;
+                }
             }
             cur_state->grabbed = (ipgui_widget_t *)0;/*  必须放在后处理后面，否则不知道在哪个控件中释放了 */
             break;

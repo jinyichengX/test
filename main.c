@@ -474,7 +474,7 @@ int main(void)
     wid2->x = 10; wid2->y = 100;
     wid2->w = 200; wid2->h = 220;
     wid2->flags |= IPGUI_WIDGET_FLAG_SCROLLABLE;
-    wid2->scroll_dir = IPGUI_SCROLL_DIR_X;
+    wid2->scroll_dir = IPGUI_SCROLL_DIR_GESTURE;
     wid2->event_handler = NULL;
     wid2->priv_data = (void *)&col_green;
     wid2->render = color_render;

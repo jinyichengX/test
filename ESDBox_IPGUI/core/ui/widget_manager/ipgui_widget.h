@@ -82,8 +82,8 @@ typedef struct ipgui_widget
     /* ---- 滚动控制（仅 SCROLLABLE 控件有效） ---- */
     ipgui_coord_t          scroll_x, scroll_y;
     ipgui_scroll_dir_t     scroll_dir;
-    ipgui_scroll_t         scroll;
-    u8_t                   scroll_auto_xy;/* 是否自动选择滚动轴 0：不自动选择 1：自动选择滚动轴 */
+    ipgui_scroll_t         x_scroll;       /* X 轴惯性滚动状态 */
+    ipgui_scroll_t         y_scroll;       /* Y 轴惯性滚动状态 */
 
     /* ---- 标志位 ---- */
     u32_t                  flags;

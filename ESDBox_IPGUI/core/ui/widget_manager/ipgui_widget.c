@@ -283,6 +283,8 @@ __IPGUI_STATIC__ void ipgui_widget_drag_scroll_handler(
     dx = evt->evt.pressed_evt.x - evt->evt.pressed_evt.last_press_x;
     dy = evt->evt.pressed_evt.y - evt->evt.pressed_evt.last_press_y;
 
+    if (dx == 0 && dy == 0) return;
+
     switch (widget->scroll_dir) {
     case IPGUI_SCROLL_DIR_X:
         widget->scroll_x -= dx;
@@ -341,6 +343,18 @@ void ipgui_widget_scroll_handler(
     if (x_dv == 0 && y_dv == 0)
         return;
 
-    ipgui_scroll_start(widget, x_dv, 0); /* x 轴 */
-    // ipgui_scroll_start(widget, y_dv, 1); /* y 轴 */
+    switch (widget->scroll_dir) {
+    case IPGUI_SCROLL_DIR_X:
+        ipgui_scroll_start(widget, x_dv, 0); /* x 轴 */
+        break;
+    case IPGUI_SCROLL_DIR_Y:
+        ipgui_scroll_start(widget, y_dv, 1); /* y 轴 */
+        break;
+    case IPGUI_SCROLL_DIR_GESTURE:
+        ipgui_scroll_start(widget, x_dv, 0); /* x 轴 */
+        ipgui_scroll_start(widget, y_dv, 1); /* y 轴 */
+        break;
+    default:
+        break;
+    }
 }
