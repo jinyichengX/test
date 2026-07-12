@@ -4,32 +4,35 @@
 
 __IPGUI_STATIC__ ipgui_membox_t * anim_box = 0;       /* 内存池 */
 
-__IPGUI_STATIC__ LIST_HEAD(anim_ready_list);       /* 已创建、待启动 */
-__IPGUI_STATIC__ LIST_HEAD(anim_running_list);     /* 运行中 */
+__IPGUI_STATIC__ LIST_HEAD(ready_list);       /* 已创建、待启动 */
+__IPGUI_STATIC__ LIST_HEAD(running_list);     /* 运行中 */
 
 enum {
-    IPGUI_ANIM_ST_READY,
-    IPGUI_ANIM_ST_RUNNING,
-    IPGUI_ANIM_ST_DEAD = 0xFF,  /* 已销毁标记，拦截重复释放与非法操作 */
+    ANIM_ST_READY,
+    ANIM_ST_RUNNING,
+    ANIM_ST_DEAD = 0xFF,  /* 已销毁标记，拦截重复释放与非法操作 */
 };
 
-__IPGUI_STATIC__ __IPGUI_INLINE__ void anim_pool_ensure(void)
+__IPGUI_STATIC__ void anim_pool_ensure(void)
 {
     if (!anim_box) {
-        anim_box = ipgui_membox_create(sizeof(ipgui_anim_t), IPGUI_ANIM_POOL_SIZE);
+        anim_box = ipgui_membox_create(
+            sizeof(ipgui_anim_t), 
+            IPGUI_ANIM_POOL_SIZE);
     }
 }
 
 __IPGUI_STATIC__ void anim_free_to_pool(ipgui_anim_t * anim)
 {
-    if (anim->state == IPGUI_ANIM_ST_DEAD)
+    if (anim->state == ANIM_ST_DEAD)
         return;
-    anim->state = IPGUI_ANIM_ST_DEAD;
+    anim->state = ANIM_ST_DEAD;
     list_del(&anim->node);
     ipgui_membox_free(anim_box, anim);
 }
 
-__IPGUI_API__ ipgui_anim_t * ipgui_anim_create(const ipgui_anim_dsc_t * dsc)
+__IPGUI_API__ ipgui_anim_t * 
+ipgui_anim_create(const ipgui_anim_dsc_t * dsc)
 {
     if (!dsc || !dsc->path_cb || !dsc->anim_func)
         return (ipgui_anim_t *)0;
@@ -37,44 +40,50 @@ __IPGUI_API__ ipgui_anim_t * ipgui_anim_create(const ipgui_anim_dsc_t * dsc)
         return (ipgui_anim_t *)0;
 
     anim_pool_ensure();
-    if (!anim_box) return (ipgui_anim_t *)0;
+    if (!anim_box) 
+        return (ipgui_anim_t *)0;
 
-    ipgui_anim_t * anim = (ipgui_anim_t *)ipgui_membox_alloc(anim_box);
-    if (!anim) return (ipgui_anim_t *)0;
+    ipgui_anim_t * anim = (ipgui_anim_t *)
+        ipgui_membox_alloc(anim_box);
+    if (!anim)
+        return (ipgui_anim_t *)0;
 
     anim->dsc      = *dsc;
-    anim->state    = IPGUI_ANIM_ST_READY;
+    anim->state    = ANIM_ST_READY;
     anim->duration = anim->dsc.t2 - anim->dsc.t1 + 1;
     anim->start    = 0;
 
     list_head_init(&anim->node);
-    list_add_tail(&anim->node, &anim_ready_list);
+    list_add_tail (&anim->node, &ready_list);
     return anim;
 }
 
-__IPGUI_API__ void ipgui_anim_delete(ipgui_anim_t * anim)
+__IPGUI_API__ void 
+ipgui_anim_delete(ipgui_anim_t * anim)
 {
     if (!anim) return;
 
     if (!anim_box) return;
 
-    if (anim->state != IPGUI_ANIM_ST_READY
-     && anim->state != IPGUI_ANIM_ST_RUNNING)
+    if (anim->state != ANIM_ST_READY
+     && anim->state != ANIM_ST_RUNNING)
         return;
 
     anim_free_to_pool(anim);
 }
 
-__IPGUI_API__ ipgui_err_t ipgui_anim_start(ipgui_anim_t * anim)
+__IPGUI_API__ ipgui_err_t 
+ipgui_anim_start(ipgui_anim_t * anim)
 {
     if (!anim) return IPGUI_ERR_PARAM;
-    if (anim->state != IPGUI_ANIM_ST_READY)
+    if (anim->state != ANIM_ST_READY)
         return IPGUI_ERR_ANIM_NOT_READY;
 
     list_del(&anim->node);
-    anim->state = IPGUI_ANIM_ST_RUNNING;
-    anim->start = ipgui_tick_now() + anim->dsc.start_delay;
-    list_add_tail(&anim->node, &anim_running_list);
+    anim->state = ANIM_ST_RUNNING;
+    anim->start = ipgui_tick_now() 
+        + anim->dsc.start_delay;
+    list_add_tail(&anim->node, &running_list);
 
     /* 推初始值 */
     anim->dsc.path_cb(
@@ -94,7 +103,7 @@ __IPGUI_API__ void ipgui_anim_update_all(void)
     ipgui_tick_t now = ipgui_tick_now();
 
     struct list_head * pos, * head;
-    list_for_each_safe(pos, head, &anim_running_list) {
+    list_for_each_safe(pos, head, &running_list) {
         anim = ipgui_container_of(pos, ipgui_anim_t, node);
 
         /* 仍在延迟等待中 */

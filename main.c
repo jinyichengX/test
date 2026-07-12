@@ -18,6 +18,7 @@
 #include "ipgui_draw_icon.h"
 #include "ipgui_draw_box_background.h"
 #include "ipgui_memory.h"
+#include <math.h>
 #undef main
 
 extern __IPGUI_API__ ipgui_err_t ipgui_sdl_mouse_event_poll(void * priv_data, ipgui_input_src_evt_t * raw_evt);
@@ -98,6 +99,29 @@ ipgui_image_data_t tablelamp_on_img;
 #include "icon_play.h"
 #include "open_sans.h"
 #include "ipgui_draw_builtin_font.h"
+
+/* ========== SDL 音频示例：440Hz 正弦波 ========== */
+static double audio_phase = 0.0;
+#define AUDIO_FREQ   440.0     /* 正弦波频率 Hz */
+#define AUDIO_RATE   44100     /* 采样率 */
+
+void audio_callback(void * userdata, Uint8 * stream, int len)
+{
+    /* len 是字节数，S16 格式每个采样 2 字节 */
+    Sint16 * buf = (Sint16 *)stream;
+    int samples = len / 2;
+    static double phase_step = (2.0 * 3.1415926535 * AUDIO_FREQ) / AUDIO_RATE;
+
+    (void)userdata;
+    for (int i = 0; i < samples; i++) {
+        /* 正弦波，幅度 3000（S16 范围 -32768~32767） */
+        buf[i] = (Sint16)(3000.0 * sin(audio_phase));
+        audio_phase += phase_step;
+        if (audio_phase > 2.0 * 3.1415926535)
+            audio_phase -= 2.0 * 3.1415926535;
+    }
+}
+/* ========== 音频示例结束 ========== */
 
 /* ========== 测试：滚动 vs 拖拽 ========== */
 typedef struct { u8_t r, g, b; } widget_color_t;
@@ -510,6 +534,31 @@ int main(void)
     wid3->render = color_render;
     wid3->event_handler = drag_handler;
     /* 不设 SCROLLABLE —— 不可滚动，但 drag_handler 直接改 x/y */
+
+    /* ========== SDL 音频初始化 ========== */
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+        printf("SDL audio subsystem init failed: %s\n", SDL_GetError());
+    }
+
+    SDL_AudioSpec desired, obtained;
+    SDL_memset(&desired, 0, sizeof(desired));
+    desired.freq     = AUDIO_RATE;
+    desired.format   = AUDIO_S16SYS;      /* 16bit 有符号，系统字节序 */
+    desired.channels = 1;                 /* 单声道 */
+    desired.samples  = 1024;             /* 缓冲区 1024 采样点 */
+    desired.callback = audio_callback;
+
+    SDL_AudioDeviceID audio_dev = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
+    if (audio_dev == 0) {
+        printf("SDL audio init failed: %s\n", SDL_GetError());
+    } else {
+        printf("SDL audio opened: %d Hz, %s format, %d channels\n",
+               obtained.freq,
+               (obtained.format & 0xFF) == 16 ? "S16" : "other",
+               obtained.channels);
+        SDL_PauseAudioDevice(audio_dev, 0); /* 0 = 取消暂停，开始播放 */
+    }
+    /* ========== 音频初始化结束 ========== */
 
     ipgui_input_src_evt_t raw_evt;
     while(1)
