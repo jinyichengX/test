@@ -41,12 +41,12 @@ void tablelamp_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * 
     shadow_style.opacity = 100;
     IPGUI_COLOR_SET(shadow_style.color, 255, IPGUI_COLOR_526);
 
-    ipgui_draw_box_shadow(
-        ctx->surf,
-        (ipgui_aabb_t *)0,
-        &box,
-        &box_style,
-        &shadow_style);
+    // ipgui_draw_box_shadow(
+    //     ctx->surf,
+    //     (ipgui_aabb_t *)0,
+    //     &box,
+    //     &box_style,
+    //     &shadow_style);
 
     ipgui_box_bg_style_t box_bg_style;
     box_bg_style.blend_mode = IPGUI_BLEND_NORMAL;

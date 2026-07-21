@@ -337,8 +337,8 @@ void ipgui_widget_scroll_handler(
     dy = evt->evt.released_evt.y - evt->evt.released_evt.prev_press_y;
 
     /* 如果用户反馈滚动太灵敏或者太迟钝，只需要修改x_dv和y_dv这两个值即可 */
-    s32_t x_dv = dx / 5;//这里的5只是调试用，应该改为时间差
-    s32_t y_dv = dy / 5;//这里的5只是调试用，应该改为时间差
+    s32_t x_dv = dx / 2;//这里的5只是调试用，应该改为时间差
+    s32_t y_dv = dy / 2;//这里的5只是调试用，应该改为时间差
 
     if (x_dv == 0 && y_dv == 0)
         return;
