@@ -80,8 +80,8 @@ p.desc{font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6}
 
     <div class="formula-line" style="margin-top:4px">
       <span class="formula-label">σ 是什么：</span>
-      σ 越大，曲线越"胖"，模糊范围越大。经验规则：<code>σ ≈ blur_px / 3</code>。
-      意思是：如果你要模糊 9 像素，σ 就设 3。为什么是除以 3？因为高斯曲线 ±3σ 范围外的高度几乎为零（不到峰值的 1%），再往外取没有意义——所以核的半径 r = 3σ 就够了。
+      σ 越大，曲线越"胖"，模糊范围越大。CSS 规范中 <code>σ ≈ blur_px / 2</code>。
+      比如 blur = 10，σ = 5。那核半径取 ±3σ = ±15 像素，高斯曲线在这个范围外的高度不到峰值的 1%，截断不影响精度。
     </div>
 
     <div class="formula-line" style="margin-top:4px">
@@ -194,7 +194,7 @@ p.desc{font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6}
 
 <div class="controls-row">
   <label>模糊半径</label>
-  <input type="range" id="blur1" min="1" max="50" value="6" step="1">
+  <input type="range" id="blur1" min="1" max="200" value="6" step="1">
   <span class="val" id="blur1Val">6</span>
   <span class="sep"></span>
   <label>盒子宽度</label>
@@ -204,6 +204,16 @@ p.desc{font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6}
   <label>盒子高度</label>
   <input type="range" id="boxH1" min="20" max="120" value="60" step="2">
   <span class="val" id="boxH1Val">60</span>
+  <span class="sep"></span>
+  <label>背景色</label>
+  <input type="color" id="bgColor1" value="#ffffff" style="width:28px;height:22px;border:none;cursor:pointer;vertical-align:middle">
+  <span class="sep"></span>
+  <label>阴影色</label>
+  <input type="color" id="shadowColor1" value="#000000" style="width:28px;height:22px;border:none;cursor:pointer;vertical-align:middle">
+  <span class="sep"></span>
+  <label>不透明度</label>
+  <input type="range" id="opacity1" min="5" max="100" value="80" step="1">
+  <span class="val" id="opacity1Val">80%</span>
 </div>
 <div class="step-grid">
   <div class="step-card">
@@ -234,6 +244,90 @@ p.desc{font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6}
   步骤③画的是纯垂直模糊剖面：整行 y 的值都是 <code>colBlur[y]</code>（水平条纹）。<br>
   两者逐像素相乘：<code>(x,y) 处 = rowBlur[x] × colBlur[y]</code>，恰好就是完整的二维高斯模糊结果。<br>
   <span style="font-size:11px;color:var(--dim)">数学依据：矩形盒子 <code>rect(x,y)=X(x)·Y(y)</code> 和高斯核 <code>G(x,y)=G(x)·G(y)</code> 都是可分离的，<br>二维卷积 = [∫X·G dx] × [∫Y·G dy] = rowBlur[x] × colBlur[y]。</span>
+</div>
+
+<!-- ====== 通用方法：标准两遍分离卷积 ====== -->
+<h2>通用方法：标准两遍分离卷积（对所有形状都正确）</h2>
+<p class="desc">
+  第 1 课的 <code>rowBlur × colBlur</code> 是纯矩形的特例加速，不具备通用性。
+  真正的通用做法是——先横向模糊一遍，再对中间结果纵向模糊一遍。
+  这个方法对<strong>任何形状</strong>（矩形、圆角、椭圆、不规则图形）都正确。
+  下面用矩形验证：结果和第 1 课完全一致。
+</p>
+
+<div class="controls-row">
+  <label>模糊半径</label>
+  <input type="range" id="blur1b" min="1" max="200" value="6" step="1">
+  <span class="val" id="blur1bVal">6</span>
+  <span class="sep"></span>
+  <label>盒子宽度</label>
+  <input type="range" id="boxW1b" min="20" max="120" value="60" step="2">
+  <span class="val" id="boxW1bVal">60</span>
+  <span class="sep"></span>
+  <label>盒子高度</label>
+  <input type="range" id="boxH1b" min="20" max="120" value="60" step="2">
+  <span class="val" id="boxH1bVal">60</span>
+  <span class="sep"></span>
+  <label>背景色</label>
+  <input type="color" id="bgColor1b" value="#ffffff" style="width:28px;height:22px;border:none;cursor:pointer;vertical-align:middle">
+  <span class="sep"></span>
+  <label>阴影色</label>
+  <input type="color" id="shadowColor1b" value="#000000" style="width:28px;height:22px;border:none;cursor:pointer;vertical-align:middle">
+  <span class="sep"></span>
+  <label>不透明度</label>
+  <input type="range" id="opacity1b" min="5" max="100" value="80" step="1">
+  <span class="val" id="opacity1bVal">80%</span>
+</div>
+
+<div class="formula-box">
+  <div class="formula-title">操作步骤（所有图像处理库的标准做法）</div>
+  <div class="formula-content">
+    <div class="formula-line">
+      <span class="formula-label">步骤 ①：</span>
+      光栅化矩形 mask（0 = 盒子外，1 = 盒子内）
+    </div>
+    <div class="formula-line" style="margin-top:4px">
+      <span class="formula-label">步骤 ②：</span>
+      对每一行独立做 1D 高斯卷积 → 横向已模糊，纵向仍是硬边界
+    </div>
+    <div class="formula-line" style="margin-top:4px">
+      <span class="formula-label">步骤 ③：</span>
+      对中间结果的每一列独立做 1D 高斯卷积 → 最终阴影
+    </div>
+    <div class="formula-line" style="margin-top:8px;color:var(--yellow)">
+      <strong>为什么正确？</strong> 高斯核 G(x,y)=G(x)·G(y)，做二维卷积等价于先对 x 方向做、再对 y 方向做。
+      这是一个数学恒等式，和高斯核本身有关，跟输入是什么形状无关。
+    </div>
+  </div>
+</div>
+
+<div class="step-grid">
+  <div class="step-card">
+    <h3>① 矩形 mask（0 = 透明，1 = 不透明）</h3>
+    <canvas id="c1b_a" width="200" height="200"></canvas>
+    <div class="label">硬边界二值图：盒子内部 = 1，外部 = 0</div>
+  </div>
+  <div class="step-card">
+    <h3>② 水平方向 1D 高斯模糊</h3>
+    <canvas id="c1b_b" width="200" height="200"></canvas>
+    <div class="label">每一行独立做一维卷积。左右边界已经变软，上下仍是硬边界。</div>
+  </div>
+  <div class="step-card">
+    <h3>③ 垂直方向 1D 高斯模糊 = 最终阴影</h3>
+    <canvas id="c1b_c" width="200" height="200" style="cursor:crosshair"></canvas>
+    <div class="label">在 ② 的结果上，每一列独立做一维卷积。鼠标悬停查看像素值。</div>
+  </div>
+</div>
+
+<div id="probe1bInfo" style="margin:0 auto;max-width:640px;padding:8px 14px;background:var(--surface);border-radius:8px;font:11px monospace;color:var(--dim);min-height:18px;line-height:1.6"></div>
+
+<div class="explain-box" style="margin-bottom:16px">
+  <strong style="color:var(--green)">和第 1 课的区别与联系</strong><br>
+  第 1 课的 <code>rowBlur[x] × colBlur[y]</code> = 纯矩形下的等价写法（因为矩形 mask = X(x)·Y(y)，可分）。
+  本节的 <code>conv1D_horiz → conv1D_vert</code> = 对任意形状都正确的标准写法。<br>
+  <span style="font-size:11px;color:var(--dim)">
+    第 1 课的乘法可以作为一个理解用的推导，第 1 课的特殊乘法只在纯矩形时等价。
+  </span>
 </div>
 
 <!-- ====== 第2课：完整阴影渲染管线 ====== -->
@@ -274,11 +368,10 @@ p.desc{font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6}
   <span><span class="swatch" style="background:var(--yellow)"></span> 边界框</span>
 </div>
 
-<!-- ====== 第3课：四角模糊 ====== -->
-<h2>第 3 课：圆角怎么模糊 — 先回到 Lesson 0</h2>
+<!-- ====== 第3课：圆角矩形阴影 ====== -->
+<h2>第 3 课：圆角矩形阴影 — 方案一：SDF + CDF</h2>
 <p class="desc">
-  第 1 课的分离卷积法只适用于直角矩形，因为圆角不是 X×Y 可拆的。
-  这里换一个完全等价的思路，关键道具你已经见过了。
+  对每个像素算距离 → 查 CDF 表得透明度。O(1) 每像素，不需要中间缓冲。
 </p>
 
 <div class="formula-box" id="f3">
@@ -353,27 +446,60 @@ p.desc{font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6}
 </div>
 
 <div class="formula-box" id="f3c" style="margin-top:12px">
-  <div class="formula-title">第三步：圆角怎么用 CDF</div>
+  <div class="formula-title">第三步：圆角矩形 SDF — 一个公式搞定全部</div>
   <div class="formula-content">
 
     <div class="formula-line">
       <span class="formula-label">SDF（Signed Distance Field，带符号距离场）：</span>
-      对画面里每个像素，算出它到圆角边界的距离。在边界内部的像素距离为负数，外部的为正数。
-      比如：像素在圆心正上方 5 像素处，圆角半径是 16，那么 SDF = 5 − 16 = −11（负数 = 在里面）。
+      对画面里每个像素，算出它到圆角矩形边界的最近距离。
+      边界内 = 负数，边界外 = 正数，边界上 = 0。
+    </div>
+
+    <div class="formula-line" style="margin-top:8px">
+      <span class="formula-label">准备：</span>
+      盒子中心 (cx, cy)，半宽 hw，半高 hh，圆角半径 r。
+      对像素 (x, y)，先取绝对值变成第一象限（四个象限对称）：
+    </div>
+    <div class="formula-line" style="padding-left:16px; font-family:monospace; color:var(--accent)">
+      px = |x − cx|<br>
+      py = |y − cy|<br>
+      qx = px − (hw − r)&nbsp;&nbsp;&nbsp;&nbsp;← 到"内缩矩形"右边的距离<br>
+      qy = py − (hh − r)&nbsp;&nbsp;&nbsp;&nbsp;← 到"内缩矩形"上边的距离
+    </div>
+    <div class="formula-line" style="margin-top:6px">
+      （内缩矩形 = 原矩形四边各内缩 r 像素。圆角的圆心就在这个内缩矩形的四个角上。）
+    </div>
+
+    <div class="formula-line" style="margin-top:8px">
+      <span class="formula-label">最终公式（一行）：</span>
+    </div>
+    <div class="formula-line" style="padding-left:16px; font-family:monospace; color:var(--green); font-size:13px">
+      SDF = min(max(qx, qy), 0) + sqrt(max(qx,0)² + max(qy,0)²) − r
+    </div>
+
+    <div class="formula-line" style="margin-top:8px">
+      <span class="formula-label">这一行怎么同时处理所有区域：</span>
+    </div>
+    <div class="formula-line" style="padding-left:16px">
+      <strong>① 内部</strong>（qx&lt;0, qy&lt;0）：max(qx,0)=0, max(qy,0)=0，所以 sqrt 部分 = 0；
+      min(max(qx,qy),0) = max(qx,qy)（负数）。
+      SDF = max(qx,qy) − r = 负数 − r = 更负 = "在内部多深"。<br>
+      <strong>② 直边外侧</strong>（比如 qx&gt;0, qy&lt;0）：max(qy,0)=0，sqrt = qx；
+      min 部分 = 0。SDF = qx − r = 到直边的距离。<br>
+      <strong>③ 角落外侧</strong>（qx&gt;0, qy&gt;0）：sqrt(qx²+qy²) = 到圆心的距离；
+      min 部分 = 0。SDF = 到圆心距离 − r = 到圆弧的距离。
+    </div>
+
+    <div class="formula-line" style="margin-top:8px">
+      <span class="formula-label">关键：不是"先画矩形再贴圆角"。</span>
+      整个距离场是<strong>一个连续函数</strong>。在边界上，无论直边还是角落，SDF 都 = 0。
+      从直边走向角落，距离值平滑过渡，没有跳跃。这就是为什么阴影看起来是自然融合的。
     </div>
 
     <div class="formula-line" style="margin-top:6px">
-      <span class="formula-label">为什么需要"SDF + CDF"而不直接用卷积：</span>
-      圆角的形状不是矩形，不能像第 1 课那样拆成水平×垂直。但圆角在局部放大看，边界附近的每一小段都近似一条直线——
-      就像一节台阶边缘。所以只要知道"像素离边界多远"，就能用 CDF 表查到该处的透明度。
-      <strong>SDF 负责回答"多远"，CDF 负责回答"多远 → 多透明"。</strong>
-    </div>
-
-    <div class="formula-line" style="margin-top:6px">
-      <span class="formula-label">查表规则：</span>
-      SDF 值 ≤ −blur → 太靠里，全阴影；SDF 值 ≥ +blur → 太靠外，全透明；
-      SDF 值在 [−blur, +blur] 之间 → 在过渡带，查 CDF 表。
-      圆角半径不同、椭圆率不同，只影响 SDF 的计算方式；CDF 表本身只依赖 blur，不受形状影响。拖动椭圆率滑块试试。
+      <span class="formula-label">然后查 CDF 表：</span>
+      SDF ≤ −blur → 全阴影 | SDF ≥ +blur → 全透明 | −blur ≤ SDF ≤ +blur → 查 CDF 表。
+      CDF 表只依赖 blur，和盒子形状无关。
     </div>
 
   </div>
@@ -388,9 +514,13 @@ p.desc{font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6}
   <input type="range" id="cb" min="0" max="24" value="8" step="1">
   <span class="val" id="cbVal">8</span>
   <span class="sep"></span>
-  <label>椭圆率 ry/rx</label>
-  <input type="range" id="cratio" min="0.4" max="2.5" value="1" step="0.1">
-  <span class="val" id="cratioVal">1.0</span>
+  <label>盒宽</label>
+  <input type="range" id="cboxW" min="60" max="220" value="120" step="2">
+  <span class="val" id="cboxWVal">120</span>
+  <span class="sep"></span>
+  <label>盒高</label>
+  <input type="range" id="cboxH" min="40" max="160" value="80" step="2">
+  <span class="val" id="cboxHVal">80</span>
 </div>
 
 <!-- 1D 对比：台阶边缘的曲线 = CDF -->
@@ -409,28 +539,198 @@ p.desc{font-size:13px;color:var(--dim);margin-bottom:16px;line-height:1.6}
 
 <div class="step-grid">
   <div class="step-card">
-    <h3>① 左上圆角：原始硬角</h3>
-    <canvas id="c3a" width="200" height="200"></canvas>
-    <div class="label">白色 = 阴影（值=1），黑色 = 透明（值=0）<br>红色虚线 = 边界</div>
+    <h3>① 完整圆角矩形：硬边界</h3>
+    <canvas id="c3a" width="260" height="200"></canvas>
+    <div class="label">白色 = 阴影区域（值=1），黑色 = 透明（值=0）<br>红色虚线 = 边界</div>
   </div>
   <div class="step-card">
     <h3>② 每像素到边界的距离 SDF</h3>
-    <canvas id="c3b" width="200" height="200"></canvas>
-    <div class="label">亮 = 阴影内部（距离为负）<br>暗 = 阴影外部（距离为正）<br>白线 = 等距线（同色 = 同距离）</div>
+    <canvas id="c3b" width="260" height="200"></canvas>
+    <div class="label">亮 = 阴影内部（距离为负）<br>暗 = 阴影外部（距离为正）<br>等距线：直边处是平行线，角落处是同心弧</div>
   </div>
   <div class="step-card">
-    <h3>③ 距离 → 查 CDF 表 → 透明度</h3>
-    <canvas id="c3c" width="200" height="200"></canvas>
-    <div class="label">②的每个像素，拿它的距离值去 CDF 表里查，<br>得到透明度，硬边界就变成了柔软渐变</div>
+    <h3>③ 距离 → 查 CDF 表 → 最终阴影</h3>
+    <canvas id="c3c" width="260" height="200" style="cursor:crosshair"></canvas>
+    <div class="label">鼠标悬停查看逐像素计算过程</div>
   </div>
 </div>
 
+<div class="probe-result" id="probe3Info" style="margin:8px auto;max-width:780px;padding:8px 14px;background:var(--surface);border-radius:8px;font:11px monospace;color:var(--dim);min-height:18px;line-height:1.6"></div>
+
 <div class="explain-box">
-  <span class="step-num">1</span> 对每个像素，算它到圆角边界的<strong>距离</strong>：<code>dist = sqrt((x−cx)²+(y−cy)²) − radius</code><br>
-  <span class="step-num">2</span> <code>dist &lt; −blur</code> → 太靠里了，全阴影 &nbsp;|&nbsp; <code>dist &gt; blur</code> → 太靠外了，全透明<br>
-  <span class="step-num">3</span> <code>−blur ≤ dist ≤ blur</code> → 在过渡带，<strong>查 CDF 表</strong>得到透明度<br>
+  <span class="step-num">1</span> 对每个像素，用<strong>一行公式</strong>算出 SDF：<code>min(max(qx,qy),0) + sqrt(max(qx,0)²+max(qy,0)²) − r</code><br>
+  <span class="step-num">2</span> SDF 是一个连续函数 — 直边和角落自然融合，不存在"拼接"<br>
+  <span class="step-num">3</span> 拿 SDF 值去查 CDF 表 → 得到透明度 → 逐像素填入，阴影就出来了
+</div>
+
+<!-- ====== 方案二 ====== -->
+<h2>第 3 课：圆角矩形阴影 — 方案二：两遍分离卷积</h2>
+<p class="desc">
+  先光栅化出圆角矩形 mask，再对 mask 做水平→垂直两遍一维高斯卷积。
+  和第 1 课纯矩形的原理一样，只不过 mask 换成了圆角矩形。
+</p>
+
+<div class="formula-box">
+  <div class="formula-title">方案二的原理（和第 1 课核心机制完全一样）</div>
+  <div class="formula-content">
+
+    <div class="formula-line">
+      <span class="formula-label">第 1 课回顾：</span>
+      纯矩形的 mask = X(x)·Y(y)，所以 rowBlur × colBlur 直接出结果。
+      这是分离卷积的<strong>特例</strong>（因为输入图像本身就可分）。
+    </div>
+
+    <div class="formula-line" style="margin-top:6px">
+      <span class="formula-label">圆角矩形怎么办：</span>
+      圆角矩形的 mask 不能分解为 X(x)·Y(y)，所以<strong>不能</strong>直接 rowBlur×colBlur。
+      但高斯核本身是可分离的：G(x,y) = G(x)·G(y)。这意味着可以先对每行做 1D 高斯模糊，
+      再对中间结果的每列做 1D 高斯模糊——两遍下来等于一遍 2D 高斯模糊。
+    </div>
+
+    <div class="formula-line" style="margin-top:6px">
+      <span class="formula-label">操作步骤：</span><br>
+      ① 光栅化圆角矩形 → 0/1 mask（和方案一的 c3a 完全一样）<br>
+      ② 对 mask 的<strong>每一行</strong>独立做 1D 高斯卷积 → 中间结果（水平已模糊）<br>
+      ③ 对中间结果的<strong>每一列</strong>独立做 1D 高斯卷积 → 最终阴影
+    </div>
+
+    <div class="formula-line" style="margin-top:6px">
+      <span class="formula-label">代价：</span>
+      需要一个和画布一样大的<strong>中间缓冲</strong>存放水平模糊后的结果。
+    </div>
+
+  </div>
+</div>
+
+<div class="step-grid">
+  <div class="step-card">
+    <h3>① 圆角矩形 mask（0/1 硬边界）</h3>
+    <canvas id="c3m2a" width="260" height="200"></canvas>
+    <div class="label">和方案一的 c3a 完全一样</div>
+  </div>
+  <div class="step-card">
+    <h3>② 水平方向 1D 高斯模糊（第一遍）</h3>
+    <canvas id="c3m2b" width="260" height="200"></canvas>
+    <div class="label">每行独立做一维卷积。只在水平方向模糊，垂直方向仍保持硬边界。</div>
+  </div>
+  <div class="step-card">
+    <h3>③ 垂直方向 1D 高斯模糊（第二遍） = 最终阴影</h3>
+    <canvas id="c3m2c" width="260" height="200" style="cursor:crosshair"></canvas>
+    <div class="label">在第②步的结果上，对每列独立做一维卷积。鼠标悬停查看像素值。</div>
+  </div>
+</div>
+
+<div class="probe-result" id="probe3bInfo" style="margin:8px auto;max-width:780px;padding:8px 14px;background:var(--surface);border-radius:8px;font:11px monospace;color:var(--dim);min-height:18px;line-height:1.6"></div>
+
+<div class="explain-box">
+  <span class="step-num">1</span> 光栅化圆角矩形 mask（和方案一共享同一个 mask）<br>
+  <span class="step-num">2</span> 对每行做 <code>convolve1D(row, kernel)</code> → 中间缓冲<br>
+  <span class="step-num">3</span> 对每列做 <code>convolve1D(col, kernel)</code> → 最终阴影<br>
   <div style="margin-top:8px;font-size:11px;color:var(--dim)">
-    这就是 <code>cdf_lut[256]</code> 的作用：输入距离（换算成 0~255 的索引），输出透明度。一次数组下标访问，比卷积快得多。
+    每像素 O(r) 次乘法，但需要 W×H 的中间缓冲。对任意形状（圆角、椭圆、不规则）都适用。
+  </div>
+</div>
+
+<!-- ====== 对比总结 ====== -->
+<div class="formula-box" style="margin-top:16px;border-color:var(--yellow)">
+  <div class="formula-title" style="color:var(--yellow)">两种方案对比</div>
+  <div class="formula-content">
+
+    <div class="formula-line">
+      <span class="formula-label">方案一 SDF+CDF：</span>
+      每像素 O(1)，<strong>不需要中间缓冲</strong>。但对非圆角矩形形状（如椭圆、不规则形状）需要换 SDF 公式。
+    </div>
+
+    <div class="formula-line" style="margin-top:6px">
+      <span class="formula-label">方案二 两遍卷积：</span>
+      每像素 O(r)，<strong>需要 W×H 中间缓冲</strong>。但<strong style="color:var(--green)">对任意形状都适用</strong>
+      — 只要你能光栅化出 mask，就能用同样的两遍卷积流程，不需要针对每种形状推导 SDF 公式。
+    </div>
+
+    <div class="formula-line" style="margin-top:8px;font-size:13px">
+      <span class="formula-label" style="color:var(--green)">更普适的做法：</span>
+      <strong style="color:var(--green)">方案二（两遍分离卷积）</strong>。
+      理由：高斯核的可分离性是通用数学性质，不依赖输入形状。圆角矩形、椭圆、文字、
+      任意路径——只要先光栅化成 mask，后续流程完全一样。方案一需要为每种形状找一个 SDF 公式，不是所有形状都有简单的 SDF 公式。
+    </div>
+
+  </div>
+</div>
+
+<!-- ====== 毛玻璃演示 ====== -->
+<h2>毛玻璃（Frosted Glass）演示</h2>
+<p class="desc">
+  毛玻璃 = 对背景做高斯模糊 + 半透明叠加。和盒阴影完全一样的通用方法：两遍分离卷积。
+  <br>① 提取玻璃下方的背景像素 → ② 水平 1D 高斯卷积 → ③ 垂直 1D 高斯卷积 → ④ 叠加玻璃色 = 毛玻璃。
+</p>
+
+<div class="controls-row">
+  <label>模糊半径</label>
+  <input type="range" id="fgBlur" min="2" max="60" value="20" step="1">
+  <span class="val" id="fgBlurVal">20</span>
+  <span class="sep"></span>
+  <label>透明度</label>
+  <input type="range" id="fgOpacity" min="5" max="100" value="50" step="1">
+  <span class="val" id="fgOpacityVal">50%</span>
+  <span class="sep"></span>
+  <label>玻璃颜色</label>
+  <input type="color" id="fgColor" value="#ffffff" style="width:28px;height:22px;border:none;cursor:pointer;vertical-align:middle">
+  <span class="sep"></span>
+  <label>圆角</label>
+  <input type="range" id="fgRadius" min="0" max="40" value="16" step="1">
+  <span class="val" id="fgRadiusVal">16</span>
+</div>
+<div class="controls-row">
+  <label>面板宽</label>
+  <input type="range" id="fgWidth" min="60" max="340" value="180" step="5">
+  <span class="val" id="fgWidthVal">180</span>
+  <span class="sep"></span>
+  <label>面板高</label>
+  <input type="range" id="fgHeight" min="60" max="340" value="180" step="5">
+  <span class="val" id="fgHeightVal">180</span>
+</div>
+
+<div class="explain-box">
+  <span class="step-num">1</span> 提取覆盖区域 + 模糊所需边距的矩形像素块<br>
+  <span class="step-num">2</span> R、G、B 三通道各自走一遍 水平→垂直 两遍分离卷积<br>
+  <span class="step-num">3</span> 将模糊后的像素写回结果画布（仅面板内区域）<br>
+  <span class="step-num">4</span> 面板内叠加玻璃色调 → 毛玻璃效果<br>
+  <span style="font-size:11px;color:var(--dim)">
+    阴影模糊 mask → 得到透明度；毛玻璃模糊 RGB → 得到模糊内容。核心机制一样，操作对象不同。
+  </span>
+</div>
+
+<div class="step-grid">
+  <div class="step-card">
+    <h3>① 原始背景</h3>
+    <canvas id="fg_a" width="340" height="340"></canvas>
+    <div class="label">渐变底色 + 彩色圆形 + 文字 + 网格点</div>
+  </div>
+  <div class="step-card">
+    <h3>② 提取的像素块</h3>
+    <canvas id="fg_extract"></canvas>
+    <div class="label">面板覆盖区域 + 模糊所需边距的原始像素（R 通道显示）</div>
+  </div>
+</div>
+
+<div class="step-grid">
+  <div class="step-card">
+    <h3>③ 水平 1D 高斯卷积</h3>
+    <canvas id="fg_horiz"></canvas>
+    <div class="label">每行独立做一维卷积。水平已模糊，垂直方向像素值不变。</div>
+  </div>
+  <div class="step-card">
+    <h3>④ 垂直 1D 高斯卷积</h3>
+    <canvas id="fg_vert"></canvas>
+    <div class="label">在 ③ 的基础上每列独立卷积。至此背景已完全模糊。</div>
+  </div>
+</div>
+
+<div class="step-grid">
+  <div class="step-card" style="grid-column:1/-1;">
+    <h3>⑤ 模糊背景 + 玻璃色叠加 = 毛玻璃</h3>
+    <canvas id="fg_b" width="340" height="340" style="cursor:grab"></canvas>
+    <div class="label">面板内 = 模糊背景 + 玻璃色，面板外 = 原始背景。鼠标拖拽移动面板。</div>
   </div>
 </div>
 
@@ -738,15 +1038,30 @@ function lesson1() {
   const blur = parseInt(document.getElementById('blur1').value);
   const bw = parseInt(document.getElementById('boxW1').value);
   const bh = parseInt(document.getElementById('boxH1').value);
+  const bgHex = document.getElementById('bgColor1').value;
+  const shHex = document.getElementById('shadowColor1').value;
+  const opacity = parseInt(document.getElementById('opacity1').value) / 100;
   document.getElementById('blur1Val').textContent = blur;
   document.getElementById('boxW1Val').textContent = bw;
   document.getElementById('boxH1Val').textContent = bh;
+  document.getElementById('opacity1Val').textContent = Math.round(opacity * 100) + '%';
+
+  // hex → RGB
+  const bgR = parseInt(bgHex.slice(1,3), 16), bgG = parseInt(bgHex.slice(3,5), 16), bgB = parseInt(bgHex.slice(5,7), 16);
+  const shR = parseInt(shHex.slice(1,3), 16), shG = parseInt(shHex.slice(3,5), 16), shB = parseInt(shHex.slice(5,7), 16);
+
+  // alpha blending: result = bg * (1 - a*opacity) + shadow * (a*opacity)
+  function blend(a) {
+    const ma = a * opacity;
+    const ia = 1 - ma;
+    return { r: Math.round(bgR * ia + shR * ma), g: Math.round(bgG * ia + shG * ma), b: Math.round(bgB * ia + shB * ma) };
+  }
 
   const W = 180, H = 180;
   const canvases = ['c1a','c1b','c1c','c1d'].map(id => document.getElementById(id));
   canvases.forEach(c => { c.width = W; c.height = H; });
 
-  const sigma = blur;
+  const sigma = blur / 3.0;
   const kernel = gaussKernel1D(sigma);
 
   // 生成无模糊盒子
@@ -758,60 +1073,62 @@ function lesson1() {
     return arr;
   }
 
-  const boxY = genBox(); // 垂直轮廓
+  const boxY = genBox();
 
   // ① 无模糊盒子
   const ctx1a = canvases[0].getContext('2d');
-  ctx1a.clearRect(0,0,W,H);
+  const img1a = ctx1a.createImageData(W, H);
   for (let x = 0; x < W; x++) {
     const dx = x - W/2;
     const insideX = Math.abs(dx) < bw/2 ? 1 : 0;
     for (let y = 0; y < H; y++) {
-      const insideY = boxY[y];
-      const v = insideX * insideY;
-      ctx1a.fillStyle = v > 0.5 ? '#fff' : '#0d1117';
-      ctx1a.fillRect(x, y, 1, 1);
+      const v = insideX * boxY[y];
+      const c = blend(v);
+      const idx = (y * W + x) * 4;
+      img1a.data[idx] = c.r; img1a.data[idx+1] = c.g; img1a.data[idx+2] = c.b; img1a.data[idx+3] = 255;
     }
   }
+  ctx1a.putImageData(img1a, 0, 0);
 
-  // ② 水平模糊剖面：全图每列 = rowBlur[x]
+  // ② 水平模糊剖面
   const ctx1b = canvases[1].getContext('2d');
-  ctx1b.clearRect(0,0,W,H);
   const rowIn = new Float32Array(W);
   const x0 = Math.floor(W/2 - bw/2), x1 = Math.floor(W/2 + bw/2);
   for (let x = 0; x < W; x++) rowIn[x] = (x >= x0 && x < x1) ? 1 : 0;
   const rowBlur = convolve1D(rowIn, kernel);
+  const img1b = ctx1b.createImageData(W, H);
   for (let x = 0; x < W; x++) {
-    const v = rowBlur[x];
-    ctx1b.fillStyle = v > 0.5 ? '#fff' : `rgba(255,255,255,${v.toFixed(2)})`;
-    ctx1b.fillRect(x, 0, 1, H);
+    const c = blend(rowBlur[x]);
+    for (let y = 0; y < H; y++) {
+      const idx = (y * W + x) * 4;
+      img1b.data[idx] = c.r; img1b.data[idx+1] = c.g; img1b.data[idx+2] = c.b; img1b.data[idx+3] = 255;
+    }
   }
+  ctx1b.putImageData(img1b, 0, 0);
 
-  // ③ 垂直模糊剖面：全图每行 = colBlur[y]
+  // ③ 垂直模糊剖面
   const ctx1c = canvases[2].getContext('2d');
-  ctx1c.clearRect(0,0,W,H);
   const colBlur = convolve1D(boxY, kernel);
+  const img1c = ctx1c.createImageData(W, H);
   for (let y = 0; y < H; y++) {
-    const v = colBlur[y];
-    ctx1c.fillStyle = v > 0.5 ? '#fff' : `rgba(255,255,255,${v.toFixed(2)})`;
-    ctx1c.fillRect(0, y, W, 1);
+    const c = blend(colBlur[y]);
+    for (let x = 0; x < W; x++) {
+      const idx = (y * W + x) * 4;
+      img1c.data[idx] = c.r; img1c.data[idx+1] = c.g; img1c.data[idx+2] = c.b; img1c.data[idx+3] = 255;
+    }
   }
+  ctx1c.putImageData(img1c, 0, 0);
 
   // ④ 乘积 = 二维模糊
   const c1d = canvases[3];
   const ctx1d = c1d.getContext('2d');
-  ctx1d.clearRect(0,0,W,H);
-  // 预计算全图 pixel data，存到 ImageData 用于快速重绘
   const imgData1d = ctx1d.createImageData(W, H);
   for (let x = 0; x < W; x++) {
     for (let y = 0; y < H; y++) {
       const v = rowBlur[x] * colBlur[y];
+      const c = blend(v);
       const idx = (y * W + x) * 4;
-      const c = Math.round(v * 255);
-      imgData1d.data[idx] = c;
-      imgData1d.data[idx + 1] = c;
-      imgData1d.data[idx + 2] = c;
-      imgData1d.data[idx + 3] = 255;
+      imgData1d.data[idx] = c.r; imgData1d.data[idx+1] = c.g; imgData1d.data[idx+2] = c.b; imgData1d.data[idx+3] = 255;
     }
   }
   ctx1d.putImageData(imgData1d, 0, 0);
@@ -862,16 +1179,128 @@ function lesson1() {
     }
   };
   c1d.onmouseleave = function() { redraw1dProbe(null, null); };
+}
 
-  // 画四个框的边界线
-  [ctx1a,ctx1b,ctx1c,ctx1d].forEach(ctx => {
-    ctx.strokeStyle = '#f85149';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3,3]);
-    const bx = Math.floor(W/2 - bw/2), by = Math.floor(H/2 - bh/2);
-    ctx.strokeRect(bx, by, bw, bh);
-    ctx.setLineDash([]);
-  });
+/* ============ 通用方法：标准两遍分离卷积 ============ */
+function lesson1b() {
+  const blur = parseInt(document.getElementById('blur1b').value);
+  const boxW = parseInt(document.getElementById('boxW1b').value);
+  const boxH = parseInt(document.getElementById('boxH1b').value);
+  const bgHex = document.getElementById('bgColor1b').value;
+  const shadowHex = document.getElementById('shadowColor1b').value;
+  const opacity = parseInt(document.getElementById('opacity1b').value) / 100;
+
+  document.getElementById('blur1bVal').textContent = blur;
+  document.getElementById('boxW1bVal').textContent = boxW;
+  document.getElementById('boxH1bVal').textContent = boxH;
+  document.getElementById('opacity1bVal').textContent = Math.round(opacity * 100) + '%';
+
+  const W = 200, H = 200;
+  const boxLeft = Math.floor((W - boxW) / 2);
+  const boxTop = Math.floor((H - boxH) / 2);
+  const sigma = blur / 3.0;
+  const kernel = gaussKernel1D(sigma);
+
+  // 步骤①：光栅化矩形 mask（0/1）
+  const mask = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const inside = (x >= boxLeft && x < boxLeft + boxW && y >= boxTop && y < boxTop + boxH);
+      mask[y * W + x] = inside ? 1 : 0;
+    }
+  }
+
+  // 步骤②：水平 1D 卷积
+  const horiz = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const row = new Float32Array(W);
+    for (let x = 0; x < W; x++) row[x] = mask[y * W + x];
+    const blurred = convolve1D(row, kernel);
+    for (let x = 0; x < W; x++) horiz[y * W + x] = blurred[x];
+  }
+
+  // 步骤③：垂直 1D 卷积
+  const final = new Float32Array(W * H);
+  for (let x = 0; x < W; x++) {
+    const col = new Float32Array(H);
+    for (let y = 0; y < H; y++) col[y] = horiz[y * W + x];
+    const blurred = convolve1D(col, kernel);
+    for (let y = 0; y < H; y++) final[y * W + x] = blurred[y];
+  }
+
+  // 渲染工具函数
+  const bgR = parseInt(bgHex.slice(1, 3), 16), bgG = parseInt(bgHex.slice(3, 5), 16), bgB = parseInt(bgHex.slice(5, 7), 16);
+  const shR = parseInt(shadowHex.slice(1, 3), 16), shG = parseInt(shadowHex.slice(3, 5), 16), shB = parseInt(shadowHex.slice(5, 7), 16);
+
+  function compositeAlpha(a) {
+    const srcAlpha = Math.min(1, Math.max(0, a)) * opacity;
+    const r = Math.round(shR * srcAlpha + bgR * (1 - srcAlpha));
+    const g = Math.round(shG * srcAlpha + bgG * (1 - srcAlpha));
+    const b = Math.round(shB * srcAlpha + bgB * (1 - srcAlpha));
+    return [r, g, b];
+  }
+
+  function renderCanvas(canvasId, buf) {
+    const cv = document.getElementById(canvasId);
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    const img = ctx.createImageData(W, H);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const v = buf[y * W + x];
+        const [r, g, b] = compositeAlpha(v);
+        const idx = (y * W + x) * 4;
+        img.data[idx] = r; img.data[idx + 1] = g; img.data[idx + 2] = b;
+        img.data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return img;
+  }
+
+  renderCanvas('c1b_a', mask);
+  renderCanvas('c1b_b', horiz);
+  const imgFinal = renderCanvas('c1b_c', final);
+
+  // 探针
+  const c1b_c = document.getElementById('c1b_c');
+  const ctxProbe = c1b_c.getContext('2d');
+  c1b_c.onmousemove = function (e) {
+    ctxProbe.putImageData(imgFinal, 0, 0);
+    const rect = c1b_c.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width;
+    const sy = (e.clientY - rect.top) / rect.height;
+    const px = Math.floor(sx * W);
+    const py = Math.floor(sy * H);
+    if (px < 0 || px >= W || py < 0 || py >= H) {
+      document.getElementById('probe1bInfo').textContent = '';
+      return;
+    }
+    const mv = mask[py * W + px];
+    const hv = horiz[py * W + px];
+    const fv = final[py * W + px];
+
+    // 画十字线和交叉点
+    ctxProbe.strokeStyle = '#e94560';
+    ctxProbe.lineWidth = 1;
+    ctxProbe.setLineDash([3, 2]);
+    ctxProbe.beginPath(); ctxProbe.moveTo(px, 0); ctxProbe.lineTo(px, H); ctxProbe.stroke();
+    ctxProbe.beginPath(); ctxProbe.moveTo(0, py); ctxProbe.lineTo(W, py); ctxProbe.stroke();
+    ctxProbe.setLineDash([]);
+    ctxProbe.fillStyle = '#e94560';
+    ctxProbe.beginPath(); ctxProbe.arc(px, py, 3, 0, Math.PI * 2); ctxProbe.fill();
+
+    document.getElementById('probe1bInfo').innerHTML =
+      `<span style="color:var(--dim)">像素(${px},${py})</span>  ` +
+      `mask=<b>${mv}</b>  →  ` +
+      `横向=<b style="color:var(--accent)">${hv.toFixed(4)}</b>  →  ` +
+      `纵向=<b style="color:var(--green)">${fv.toFixed(4)}</b>` +
+      `<span style="margin-left:12px;color:var(--dim);font-size:10px">（对比第1课同位置的 rowBlur×colBlur，值一致）</span>`;
+  };
+  c1b_c.onmouseleave = function () {
+    ctxProbe.putImageData(imgFinal, 0, 0);
+    document.getElementById('probe1bInfo').textContent = '';
+  };
 }
 
 /* ============ 第2课 ============ */
@@ -1113,24 +1542,38 @@ function cdfGauss(d, blur) {
 function lesson3() {
   const cr = parseInt(document.getElementById('cr').value);
   const cb = parseInt(document.getElementById('cb').value);
-  const ratio = parseFloat(document.getElementById('cratio').value);
+  const boxW = parseInt(document.getElementById('cboxW').value);
+  const boxH = parseInt(document.getElementById('cboxH').value);
   document.getElementById('crVal').textContent = cr;
   document.getElementById('cbVal').textContent = cb;
-  document.getElementById('cratioVal').textContent = ratio.toFixed(1);
+  document.getElementById('cboxWVal').textContent = boxW;
+  document.getElementById('cboxHVal').textContent = boxH;
 
   draw1DVerification(cb);
   drawCDFCurve(cb);
 
-  const W = 200, H = 200;
-  const rx = cr, ry = Math.round(cr * ratio);
-  const cx = rx, cy = ry;
+  const W = 260, H = 200;
+  const cx = W / 2, cy = H / 2;
+  const hw = boxW / 2, hh = boxH / 2;
+  const r = cr;
 
-  // 更新圆心标注位置
+  // 圆角矩形 SDF（Inigo Quilez 公式）
+  function sdfRoundRect(x, y) {
+    const px = Math.abs(x - cx);
+    const py = Math.abs(y - cy);
+    const qx = px - (hw - r);
+    const qy = py - (hh - r);
+    const ax = Math.max(qx, 0);
+    const ay = Math.max(qy, 0);
+    return Math.min(Math.max(qx, qy), 0) + Math.sqrt(ax * ax + ay * ay) - r;
+  }
+
   const c1 = document.getElementById('c3a');
   const c2 = document.getElementById('c3b');
   const c3 = document.getElementById('c3c');
-  c1.width = c2.width = c3.width = W;
-  c1.height = c2.height = c3.height = H;
+  c1.width = W; c1.height = H;
+  c2.width = W; c2.height = H;
+  c3.width = W; c3.height = H;
 
   const ctx1 = c1.getContext('2d');
   const ctx2 = c2.getContext('2d');
@@ -1140,32 +1583,27 @@ function lesson3() {
   const img2 = ctx2.createImageData(W, H);
   const img3 = ctx3.createImageData(W, H);
 
-  const sRef = Math.min(rx, ry); // 缩放参考值
+  const sdfArr = new Float32Array(W * H);
+  const displayRange = Math.max(r, cb) * 2;
 
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      // 椭圆 SDF：缩放坐标到单位圆，算距离，再缩放回去
-      const sx = (x - cx) / rx;
-      const sy = (y - cy) / ry;
-      const dist_scaled = Math.sqrt(sx * sx + sy * sy);
-      const sdf = (dist_scaled - 1) * sRef;
+      const sdf = sdfRoundRect(x, y);
+      sdfArr[y * W + x] = sdf;
       const idx = (y * W + x) * 4;
 
-      // ① 硬角
+      // ① 硬边界
       const hard = sdf <= 0 ? 255 : 0;
       img1.data[idx] = img1.data[idx + 1] = img1.data[idx + 2] = hard;
       img1.data[idx + 3] = 255;
 
-      // ② SDF 灰度图
-      const sd = Math.max(-sRef * 1.5, Math.min(sdf, cb * 1.5));
-      let g = 128;
-      if (sd < 0) g = 128 + sd / (sRef * 1.5) * 128;
-      else g = 128 - sd / (cb * 1.5) * 128;
-      g = Math.max(20, Math.min(255, g));
+      // ② SDF 灰度图：边界=中灰(128)，内部=亮，外部=暗
+      let g = 128 - (sdf / displayRange) * 120;
+      g = Math.max(8, Math.min(248, g));
       img2.data[idx] = img2.data[idx + 1] = img2.data[idx + 2] = g;
       img2.data[idx + 3] = 255;
 
-      // ③ CDF 查表
+      // ③ CDF 查表 → 最终阴影
       const alpha = Math.round(cdfGauss(sdf, cb) * 255);
       img3.data[idx] = 50; img3.data[idx + 1] = 50; img3.data[idx + 2] = 50;
       img3.data[idx + 3] = alpha;
@@ -1176,35 +1614,194 @@ function lesson3() {
   ctx2.putImageData(img2, 0, 0);
   ctx3.putImageData(img3, 0, 0);
 
-  // 画边界线（椭圆弧）
+  // 画边界线
   [ctx1, ctx2, ctx3].forEach(ctx => {
     ctx.strokeStyle = '#f85149';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([3,3]);
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, Math.PI * 1.5);
-    ctx.moveTo(cx, 0); ctx.lineTo(cx, cy);
-    ctx.moveTo(0, cy); ctx.lineTo(cx, cy);
+    drawRoundPath(ctx, cx - hw, cy - hh, boxW, boxH, r);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#d2991d';
-    ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#d2991d';
-    ctx.font = '10px sans-serif';
-    ctx.fillText('圆心', cx + 5, cy - 5);
   });
 
-  // SDF 等距线（椭圆同心线）
-  ctx2.strokeStyle = 'rgba(255,255,255,0.3)';
+  // SDF 等距线（用膨胀/收缩的圆角矩形画）
+  ctx2.strokeStyle = 'rgba(100,180,255,0.35)';
   ctx2.lineWidth = 0.5;
-  for (let d = -sRef; d <= cb * 1.5; d += Math.max(2, (sRef + cb) / 6)) {
-    const scale = 1 + d / sRef;
-    if (scale > 0) {
+  const step = Math.max(2, (r + cb) / 6);
+  for (let d = -r; d <= cb * 1.5; d += step) {
+    const er = Math.max(0.5, r + d);
+    const ew = boxW + d * 2;
+    const eh = boxH + d * 2;
+    if (ew > 2 && eh > 2) {
+      const sx = cx - ew / 2, sy = cy - eh / 2;
       ctx2.beginPath();
-      ctx2.ellipse(cx, cy, rx * scale, ry * scale, 0, Math.PI, Math.PI * 1.5);
+      drawRoundPath(ctx2, sx, sy, ew, eh, er);
       ctx2.stroke();
     }
   }
+
+  // 探针
+  function redraw3Probe(px, py) {
+    ctx3.putImageData(img3, 0, 0);
+    if (px == null || py == null) {
+      document.getElementById('probe3Info').textContent = '';
+      return;
+    }
+    const sd = sdfArr[py * W + px];
+    const alpha = cdfGauss(sd, cb);
+    const qx = Math.abs(px - cx) - (hw - r);
+    const qy = Math.abs(py - cy) - (hh - r);
+
+    let region;
+    if (qx > 0 && qy > 0) region = '角落外侧';
+    else if (qx > 0) region = '直边外侧';
+    else if (qy > 0) region = '直边外侧';
+    else region = '内部';
+
+    ctx3.strokeStyle = '#58a6ff';
+    ctx3.lineWidth = 1;
+    ctx3.setLineDash([3,2]);
+    ctx3.beginPath(); ctx3.moveTo(px, 0); ctx3.lineTo(px, H); ctx3.stroke();
+    ctx3.beginPath(); ctx3.moveTo(0, py); ctx3.lineTo(W, py); ctx3.stroke();
+    ctx3.setLineDash([]);
+    ctx3.fillStyle = '#58a6ff';
+    ctx3.beginPath(); ctx3.arc(px, py, 3, 0, Math.PI * 2); ctx3.fill();
+
+    const distClr = sd < 0 ? 'var(--green)' : sd > 0 ? 'var(--yellow)' : '#fff';
+    const alphaClr = alpha > 0.5 ? '#fff' : alpha > 0.05 ? '#58a6ff' : 'var(--dim)';
+
+    document.getElementById('probe3Info').innerHTML =
+      `<span style="color:var(--dim)">像素(${px},${py})</span>  ` +
+      `<span style="color:var(--dim)">qx=${qx.toFixed(1)} qy=${qy.toFixed(1)}</span>  →  ` +
+      `<span style="color:var(--dim)">区域:<b style="color:var(--accent)">${region}</b></span>  →  ` +
+      `<span style="color:var(--dim)">SDF=<b style="color:${distClr}">${sd.toFixed(2)}</b></span>  →  ` +
+      `<span style="color:var(--dim)">查CDF表→alpha=<b style="color:${alphaClr}">${alpha.toFixed(4)}</b></span>`;
+  }
+
+  c3.onmousemove = function(e) {
+    const rect = c3.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width;
+    const sy = (e.clientY - rect.top) / rect.height;
+    const px = Math.floor(sx * W);
+    const py = Math.floor(sy * H);
+    if (px >= 0 && px < W && py >= 0 && py < H) redraw3Probe(px, py);
+  };
+  c3.onmouseleave = function() { redraw3Probe(null, null); };
+}
+
+/* ============ 第3课 方案二：两遍分离卷积 ============ */
+function lesson3b() {
+  const cr = parseInt(document.getElementById('cr').value);
+  const cb = parseInt(document.getElementById('cb').value);
+  const boxW = parseInt(document.getElementById('cboxW').value);
+  const boxH = parseInt(document.getElementById('cboxH').value);
+
+  const W = 260, H = 200;
+  const cx = W / 2, cy = H / 2;
+  const hw = boxW / 2, hh = boxH / 2;
+  const r = cr;
+  const sigma = cb / 3.0;
+  const kernel = gaussKernel1D(sigma);
+  const kr = Math.floor(kernel.length / 2);
+
+  // 光栅化圆角矩形 mask（0/1 浮点值）
+  const mask = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const px = Math.abs(x - cx);
+      const py = Math.abs(y - cy);
+      const qx = px - (hw - r);
+      const qy = py - (hh - r);
+      const ax = Math.max(qx, 0);
+      const ay = Math.max(qy, 0);
+      const sdf = Math.min(Math.max(qx, qy), 0) + Math.sqrt(ax * ax + ay * ay) - r;
+      mask[y * W + x] = sdf <= 0 ? 1 : 0;
+    }
+  }
+
+  // 第一遍：水平方向 1D 高斯卷积
+  const horiz = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const row = new Float32Array(W);
+    for (let x = 0; x < W; x++) row[x] = mask[y * W + x];
+    const blurred = convolve1D(row, kernel);
+    for (let x = 0; x < W; x++) horiz[y * W + x] = blurred[x];
+  }
+
+  // 第二遍：垂直方向 1D 高斯卷积（对中间结果 horiz 按列做）
+  const final = new Float32Array(W * H);
+  for (let x = 0; x < W; x++) {
+    const col = new Float32Array(H);
+    for (let y = 0; y < H; y++) col[y] = horiz[y * W + x];
+    const blurred = convolve1D(col, kernel);
+    for (let y = 0; y < H; y++) final[y * W + x] = blurred[y];
+  }
+
+  // 渲染三个画布
+  function renderCanvas(canvasId, buf, drawBorder) {
+    const cv = document.getElementById(canvasId);
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    const img = ctx.createImageData(W, H);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const v = buf[y * W + x];
+        const alpha = Math.round(Math.min(1, Math.max(0, v)) * 255);
+        const idx = (y * W + x) * 4;
+        img.data[idx] = 50; img.data[idx + 1] = 50; img.data[idx + 2] = 50;
+        img.data[idx + 3] = alpha;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    if (drawBorder) {
+      ctx.strokeStyle = '#f85149';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      drawRoundPath(ctx, cx - hw, cy - hh, boxW, boxH, r);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    return img;
+  }
+
+  renderCanvas('c3m2a', mask, true);
+  renderCanvas('c3m2b', horiz, true);
+  const img3b = renderCanvas('c3m2c', final, true);
+
+  // 探针
+  const c3c2 = document.getElementById('c3m2c');
+  const ctx3b = c3c2.getContext('2d');
+  c3c2.onmousemove = function (e) {
+    ctx3b.putImageData(img3b, 0, 0);
+    const rect = c3c2.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) / rect.width;
+    const sy = (e.clientY - rect.top) / rect.height;
+    const px = Math.floor(sx * W);
+    const py = Math.floor(sy * H);
+    if (px < 0 || px >= W || py < 0 || py >= H) {
+      document.getElementById('probe3bInfo').textContent = '';
+      return;
+    }
+    const mv = mask[py * W + px];
+    const hv = horiz[py * W + px];
+    const fv = final[py * W + px];
+
+    ctx3b.strokeStyle = '#58a6ff';
+    ctx3b.lineWidth = 1;
+    ctx3b.setLineDash([3, 2]);
+    ctx3b.beginPath(); ctx3b.moveTo(px, 0); ctx3b.lineTo(px, H); ctx3b.stroke();
+    ctx3b.beginPath(); ctx3b.moveTo(0, py); ctx3b.lineTo(W, py); ctx3b.stroke();
+    ctx3b.setLineDash([]);
+    ctx3b.fillStyle = '#58a6ff';
+    ctx3b.beginPath(); ctx3b.arc(px, py, 3, 0, Math.PI * 2); ctx3b.fill();
+
+    document.getElementById('probe3bInfo').innerHTML =
+      `<span style="color:var(--dim)">像素(${px},${py})</span>  ` +
+      `mask=<b style="color:var(--accent)">${mv}</b>  →  ` +
+      `水平模糊=<b style="color:var(--accent)">${hv.toFixed(4)}</b>  →  ` +
+      `垂直模糊=<b style="color:var(--green)">${fv.toFixed(4)}</b>`;
+  };
+  c3c2.onmouseleave = function () { ctx3b.putImageData(img3b, 0, 0); document.getElementById('probe3bInfo').textContent = ''; };
 }
 
 function draw1DVerification(blur) {
@@ -1214,7 +1811,7 @@ function draw1DVerification(blur) {
   const ctx = cv.getContext('2d');
   ctx.clearRect(0, 0, W, H);
 
-  const sigma = blur;
+  const sigma = blur / 3.0;
   const kernel = gaussKernel1D(sigma);
   const edge = Math.floor(W * 0.35);
   const step = new Float32Array(W);
@@ -1335,6 +1932,15 @@ document.getElementById('probe0').addEventListener('input', lesson0);
 document.getElementById('blur1').addEventListener('input', lesson1);
 document.getElementById('boxW1').addEventListener('input', lesson1);
 document.getElementById('boxH1').addEventListener('input', lesson1);
+document.getElementById('bgColor1').addEventListener('input', lesson1);
+document.getElementById('shadowColor1').addEventListener('input', lesson1);
+document.getElementById('opacity1').addEventListener('input', lesson1);
+document.getElementById('blur1b').addEventListener('input', lesson1b);
+document.getElementById('boxW1b').addEventListener('input', lesson1b);
+document.getElementById('boxH1b').addEventListener('input', lesson1b);
+document.getElementById('bgColor1b').addEventListener('input', lesson1b);
+document.getElementById('shadowColor1b').addEventListener('input', lesson1b);
+document.getElementById('opacity1b').addEventListener('input', lesson1b);
 document.getElementById('spread').addEventListener('input', lesson2);
 document.getElementById('blur2').addEventListener('input', lesson2);
 document.getElementById('offX').addEventListener('input', lesson2);
@@ -1342,9 +1948,345 @@ document.getElementById('offY').addEventListener('input', lesson2);
 document.getElementById('radius2').addEventListener('input', lesson2);
 document.getElementById('cr').addEventListener('input', lesson3);
 document.getElementById('cb').addEventListener('input', lesson3);
-document.getElementById('cratio').addEventListener('input', lesson3);
+document.getElementById('cboxW').addEventListener('input', lesson3);
+document.getElementById('cboxH').addEventListener('input', lesson3);
+document.getElementById('cr').addEventListener('input', lesson3b);
+document.getElementById('cb').addEventListener('input', lesson3b);
+document.getElementById('cboxW').addEventListener('input', lesson3b);
+document.getElementById('cboxH').addEventListener('input', lesson3b);
 
-lesson0(); lesson1(); lesson2(); lesson3();
+/* ============ 毛玻璃演示 ============ */
+let fgPX = null, fgPY = null;        // 面板位置（null = 自动居中）
+let fgDragging = false, fgDragOX = 0, fgDragOY = 0;  // 拖拽状态
+
+function frostingDemo() {
+  const blur = parseInt(document.getElementById('fgBlur').value);
+  const opacity = parseInt(document.getElementById('fgOpacity').value) / 100;
+  const fgW = parseInt(document.getElementById('fgWidth').value);
+  const fgH = parseInt(document.getElementById('fgHeight').value);
+  const radius = parseInt(document.getElementById('fgRadius').value);
+  const glassColor = document.getElementById('fgColor').value;
+
+  document.getElementById('fgBlurVal').textContent = blur;
+  document.getElementById('fgOpacityVal').textContent = Math.round(opacity * 100) + '%';
+  document.getElementById('fgWidthVal').textContent = fgW;
+  document.getElementById('fgHeightVal').textContent = fgH;
+  document.getElementById('fgRadiusVal').textContent = radius;
+
+  const W = 340, H = 340;
+
+  // 面板位置：首次居中，之后保持用户拖拽的位置
+  if (fgPX === null) {
+    fgPX = Math.floor((W - fgW) / 2);
+    fgPY = Math.floor((H - fgH) / 2);
+  }
+  // 如果面板超出画布，clamp
+  const px = Math.max(-fgW + 20, Math.min(W - 20, fgPX));
+  const py = Math.max(-fgH + 20, Math.min(H - 20, fgPY));
+  fgPX = px; fgPY = py;
+  const maxR = Math.min(Math.min(fgW, fgH) / 2, radius);
+
+  // 用离屏 canvas 生成背景
+  const bgCV = document.createElement('canvas');
+  bgCV.width = W; bgCV.height = H;
+  const bgCtx = bgCV.getContext('2d');
+
+  // 背景渐变
+  const grad = bgCtx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, '#1a1a2e');
+  grad.addColorStop(0.5, '#16213e');
+  grad.addColorStop(1, '#0f3460');
+  bgCtx.fillStyle = grad;
+  bgCtx.fillRect(0, 0, W, H);
+
+  // 彩色圆
+  const circles = [
+    { x: 60,  y: 80,  r: 45, c: '#e94560' },
+    { x: 280, y: 100, r: 35, c: '#f5a623' },
+    { x: 170, y: 280, r: 50, c: '#4ecdc4' },
+    { x: 50,  y: 240, r: 30, c: '#6c5ce7' },
+    { x: 300, y: 250, r: 40, c: '#2ecc71' },
+  ];
+  circles.forEach(cir => {
+    bgCtx.beginPath();
+    bgCtx.fillStyle = cir.c;
+    bgCtx.arc(cir.x, cir.y, cir.r, 0, Math.PI * 2);
+    bgCtx.fill();
+  });
+
+  // 白色文字
+  bgCtx.fillStyle = '#ffffffdd';
+  bgCtx.font = 'bold 36px Quicksand, Segoe UI, sans-serif';
+  bgCtx.fillText('Frosted', 30, 60);
+  bgCtx.font = 'bold 28px Quicksand, Segoe UI, sans-serif';
+  bgCtx.fillText('Glass', 30, 100);
+
+  // 小号文字
+  bgCtx.fillStyle = '#ffffff88';
+  bgCtx.font = '14px Segoe UI, sans-serif';
+  bgCtx.fillText('blur radius: ' + blur + 'px', 30, 130);
+
+  // 几何线条
+  bgCtx.strokeStyle = '#ffffff33';
+  bgCtx.lineWidth = 2;
+  for (let i = 0; i < 4; i++) {
+    bgCtx.beginPath();
+    bgCtx.moveTo(200 + i * 30, 150);
+    bgCtx.lineTo(230 + i * 30, 200);
+    bgCtx.lineTo(170 + i * 30, 220);
+    bgCtx.stroke();
+  }
+
+  // 网格点
+  bgCtx.fillStyle = '#ffffff44';
+  for (let gx = 0; gx < W; gx += 17) {
+    for (let gy = 0; gy < H; gy += 17) {
+      bgCtx.fillRect(gx, gy, 2, 2);
+    }
+  }
+
+  const bgData = bgCtx.getImageData(0, 0, W, H);
+
+  // ① 渲染原始背景
+  const ca = document.getElementById('fg_a');
+  ca.width = W; ca.height = H;
+  ca.getContext('2d').putImageData(bgData, 0, 0);
+  // 画面板轮廓虚线
+  const cta = ca.getContext('2d');
+  cta.strokeStyle = '#f85149';
+  cta.lineWidth = 2;
+  cta.setLineDash([6, 3]);
+  if (maxR > 0) {
+    cta.beginPath();
+    cta.moveTo(px + maxR, py);
+    cta.lineTo(px + fgW - maxR, py);
+    cta.arcTo(px + fgW, py, px + fgW, py + maxR, maxR);
+    cta.lineTo(px + fgW, py + fgH - maxR);
+    cta.arcTo(px + fgW, py + fgH, px + fgW - maxR, py + fgH, maxR);
+    cta.lineTo(px + maxR, py + fgH);
+    cta.arcTo(px, py + fgH, px, py + fgH - maxR, maxR);
+    cta.lineTo(px, py + maxR);
+    cta.arcTo(px, py, px + maxR, py, maxR);
+    cta.closePath();
+    cta.stroke();
+  } else {
+    cta.strokeRect(px, py, fgW, fgH);
+  }
+  cta.setLineDash([]);
+
+  // 为模糊留 pad（边界处理需要扩展区域）
+  const sigma = blur / 3.0;
+  const kernel = gaussKernel1D(sigma);
+  const pad = Math.floor(kernel.length / 2);
+
+  // 提取面板区域的像素（含 padding）
+  const rx = Math.max(0, px - pad);
+  const ry = Math.max(0, py - pad);
+  const rw = Math.min(W - rx, fgW + pad * 2);
+  const rh = Math.min(H - ry, fgH + pad * 2);
+
+  // ② 提取像素块（R、G、B 三个通道各自存到独立缓冲区）
+  const chR = new Float32Array(rw * rh);
+  const chG = new Float32Array(rw * rh);
+  const chB = new Float32Array(rw * rh);
+  for (let y = 0; y < rh; y++) {
+    for (let x = 0; x < rw; x++) {
+      const srcIdx = ((ry + y) * W + (rx + x)) * 4;
+      const dstIdx = y * rw + x;
+      chR[dstIdx] = bgData.data[srcIdx];
+      chG[dstIdx] = bgData.data[srcIdx + 1];
+      chB[dstIdx] = bgData.data[srcIdx + 2];
+    }
+  }
+
+  // 可视化：显示提取的像素块
+  function renderBlock(canvasId, rBuf, gBuf, bBuf, w, h) {
+    const cnv = document.getElementById(canvasId);
+    cnv.width = w; cnv.height = h;
+    const ctx = cnv.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const idx = (y * w + x) * 4;
+        const src = y * w + x;
+        img.data[idx]     = Math.min(255, Math.max(0, Math.round(rBuf[src])));
+        img.data[idx + 1] = Math.min(255, Math.max(0, Math.round(gBuf[src])));
+        img.data[idx + 2] = Math.min(255, Math.max(0, Math.round(bBuf[src])));
+        img.data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  renderBlock('fg_extract', chR, chG, chB, rw, rh);
+
+  // ③ 水平 1D 高斯卷积（逐行）
+  function horizConv(channelBuf, w, h, k) {
+    const out = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) {
+      const row = new Float32Array(w);
+      for (let x = 0; x < w; x++) row[x] = channelBuf[y * w + x];
+      const blurred = convolve1D(row, k);
+      for (let x = 0; x < w; x++) out[y * w + x] = blurred[x];
+    }
+    return out;
+  }
+  const horizR = horizConv(chR, rw, rh, kernel);
+  const horizG = horizConv(chG, rw, rh, kernel);
+  const horizB = horizConv(chB, rw, rh, kernel);
+
+  // 可视化：水平卷积后的中间结果
+  renderBlock('fg_horiz', horizR, horizG, horizB, rw, rh);
+
+  // ④ 垂直 1D 高斯卷积（在 ③ 的基础上逐列）= 最终模糊背景
+  function vertConv(horizBuf, w, h, k) {
+    const out = new Float32Array(w * h);
+    for (let x = 0; x < w; x++) {
+      const col = new Float32Array(h);
+      for (let y = 0; y < h; y++) col[y] = horizBuf[y * w + x];
+      const blurred = convolve1D(col, k);
+      for (let y = 0; y < h; y++) out[y * w + x] = blurred[y];
+    }
+    return out;
+  }
+  const blurR = vertConv(horizR, rw, rh, kernel);
+  const blurG = vertConv(horizG, rw, rh, kernel);
+  const blurB = vertConv(horizB, rw, rh, kernel);
+
+  // 可视化：垂直卷积后的完全模糊结果
+  renderBlock('fg_vert', blurR, blurG, blurB, rw, rh);
+
+  // 提取区域的偏移量
+  const offX = px - rx;
+  const offY = py - ry;
+
+  // ③ 渲染结果：背景 + 模糊面板 + 半透明玻璃色叠加
+  const cb = document.getElementById('fg_b');
+  cb.width = W; cb.height = H;
+  const ctb = cb.getContext('2d');
+  const outImg = ctb.createImageData(W, H);
+
+  // 先复制背景
+  for (let i = 0; i < bgData.data.length; i++) {
+    outImg.data[i] = bgData.data[i];
+  }
+
+  // 玻璃面板区域
+  const glassR = parseInt(glassColor.slice(1, 3), 16);
+  const glassG = parseInt(glassColor.slice(3, 5), 16);
+  const glassB = parseInt(glassColor.slice(5, 7), 16);
+  for (let gy = 0; gy < fgH; gy++) {
+    for (let gx = 0; gx < fgW; gx++) {
+      const ox = px + gx;
+      const oy = py + gy;
+      if (ox < 0 || ox >= W || oy < 0 || oy >= H) continue;
+
+      // 检查是否在圆角区域内（硬边界，毛玻璃本来就该这样）
+      let insideGlass = false;
+      if (maxR === 0) {
+        insideGlass = true;
+      } else {
+        const qx = Math.abs(gx - fgW / 2 + 0.5);
+        const qy = Math.abs(gy - fgH / 2 + 0.5);
+        const hw = fgW / 2 - maxR, hh = fgH / 2 - maxR;
+        const sdf = Math.min(Math.max(qx - hw, qy - hh), 0)
+          + Math.sqrt(Math.max(qx - hw, 0) ** 2 + Math.max(qy - hh, 0) ** 2) - maxR;
+        insideGlass = sdf <= 0.5;
+      }
+      if (!insideGlass) continue;
+
+      // 映射到提取的模糊缓冲区
+      const bx = gx + offX;
+      const by = gy + offY;
+      if (bx < 0 || bx >= rw || by < 0 || by >= rh) continue;
+
+      const idx = (oy * W + ox) * 4;
+      const bIdx = by * rw + bx;
+
+      // 模糊背景色
+      const br = Math.min(255, Math.max(0, Math.round(blurR[bIdx])));
+      const b_g = Math.min(255, Math.max(0, Math.round(blurG[bIdx])));
+      const bb = Math.min(255, Math.max(0, Math.round(blurB[bIdx])));
+
+      // 玻璃 = 模糊背景 * (1 - t) + 玻璃色 * t，其中 t = opacity * 0.3
+      const t = opacity * 0.3;
+      outImg.data[idx]     = Math.round(br * (1 - t) + glassR * t);
+      outImg.data[idx + 1] = Math.round(b_g * (1 - t) + glassG * t);
+      outImg.data[idx + 2] = Math.round(bb * (1 - t) + glassB * t);
+      outImg.data[idx + 3] = 255;
+    }
+  }
+
+  ctb.putImageData(outImg, 0, 0);
+
+  // 画面板边框
+  ctb.save();
+  ctb.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctb.lineWidth = 2;
+  if (maxR > 0) {
+    ctb.beginPath();
+    ctb.moveTo(px + maxR, py);
+    ctb.lineTo(px + fgW - maxR, py);
+    ctb.arcTo(px + fgW, py, px + fgW, py + maxR, maxR);
+    ctb.lineTo(px + fgW, py + fgH - maxR);
+    ctb.arcTo(px + fgW, py + fgH, px + fgW - maxR, py + fgH, maxR);
+    ctb.lineTo(px + maxR, py + fgH);
+    ctb.arcTo(px, py + fgH, px, py + fgH - maxR, maxR);
+    ctb.lineTo(px, py + maxR);
+    ctb.arcTo(px, py, px + maxR, py, maxR);
+    ctb.closePath();
+    ctb.stroke();
+  } else {
+    ctb.strokeRect(px, py, fgW, fgH);
+  }
+  ctb.restore();
+}
+
+document.getElementById('fgBlur').addEventListener('input', frostingDemo);
+document.getElementById('fgOpacity').addEventListener('input', frostingDemo);
+document.getElementById('fgColor').addEventListener('input', frostingDemo);
+document.getElementById('fgWidth').addEventListener('input', frostingDemo);
+document.getElementById('fgHeight').addEventListener('input', frostingDemo);
+document.getElementById('fgRadius').addEventListener('input', frostingDemo);
+
+// 毛玻璃面板拖拽
+(function() {
+  const canvas = document.getElementById('fg_b');
+  canvas.addEventListener('mousedown', function(e) {
+    const fgW = parseInt(document.getElementById('fgWidth').value);
+    const fgH = parseInt(document.getElementById('fgHeight').value);
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) / rect.width * 340;
+    const my = (e.clientY - rect.top) / rect.height * 340;
+    // 检查是否点在玻璃面板内
+    if (mx >= fgPX && mx < fgPX + fgW && my >= fgPY && my < fgPY + fgH) {
+      fgDragging = true;
+      fgDragOX = mx - fgPX;
+      fgDragOY = my - fgPY;
+      canvas.style.cursor = 'grabbing';
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!fgDragging) return;
+    const fgW = parseInt(document.getElementById('fgWidth').value);
+    const fgH = parseInt(document.getElementById('fgHeight').value);
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) / rect.width * 340;
+    const my = (e.clientY - rect.top) / rect.height * 340;
+    fgPX = Math.round(mx - fgDragOX);
+    fgPY = Math.round(my - fgDragOY);
+    frostingDemo();
+  });
+  window.addEventListener('mouseup', function() {
+    if (fgDragging) {
+      fgDragging = false;
+      canvas.style.cursor = 'grab';
+    }
+  });
+  canvas.style.cursor = 'grab';
+})();
+
+lesson0(); lesson1(); lesson1b(); lesson2(); lesson3(); lesson3b(); frostingDemo();
 </script>
 </body>
 </html>
