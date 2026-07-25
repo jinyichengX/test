@@ -32,6 +32,15 @@ extern __IPGUI_API__ void ipgui_draw_box_shadow(
     ipgui_box_style_t         * style,
     ipgui_box_shadow_style_t  * shadow_style);
 
+/* ========== 测试接口：纯矩形阴影（无圆角、无spread、无offset） ========== */
+/* 两遍分离高斯卷积，malloc/free 全缓冲，仅供桌面验证 */
+void ipgui_draw_box_shadow_test(
+    ipgui_surf_t  * surf,
+    ipgui_coord_t   box_x, ipgui_coord_t   box_y,
+    ipgui_coord_t   box_w, ipgui_coord_t   box_h,
+    ipgui_coord_t   blur,
+    ipgui_color_t   shadow_color, u8_t opacity);
+
 #ifdef __cplusplus
 }
 #endif
