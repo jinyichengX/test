@@ -1978,7 +1978,11 @@ __IPGUI_API__ void ipgui_blend_image_v1(
                     mask_opacity_combined =
                         (u8_t)(((u32_t)opacity * mask_val + 127) >> 8);
                     
-                    blend_px(&img_buf[img_row_pix_off], &dest_cr_buf[dest_row_pix_off], mask_opacity_combined, blend_mode);
+                    blend_px(
+                        &img_buf[img_row_pix_off], 
+                        &dest_cr_buf[dest_row_pix_off], 
+                        mask_opacity_combined, 
+                        blend_mode);
                 }
                 dest_row_pix_off += dest_pix_size;
                 img_row_pix_off  += img_src->px_size;
@@ -1993,7 +1997,11 @@ __IPGUI_API__ void ipgui_blend_image_v1(
             img_row_pix_off  = 0;
             for (x = 0; x < x_span; x ++) {
                 /* blend pixel by pixel */
-                blend_px(&img_buf[img_row_pix_off], &dest_cr_buf[dest_row_pix_off], opacity, blend_mode);
+                blend_px(
+                    &img_buf[img_row_pix_off], 
+                    &dest_cr_buf[dest_row_pix_off], 
+                    opacity, 
+                    blend_mode);
                 dest_row_pix_off += dest_pix_size;
                 img_row_pix_off  += img_src->px_size;
             }
@@ -2077,7 +2085,11 @@ __IPGUI_API__ void ipgui_blend_image_v2(
                     mask_opacity_combined =
                         (u8_t)(((u32_t)opacity * mask_val + 127) >> 8);
                     
-                    blend_px(&img_buf[img_row_pix_off], &dest_cr_buf[dest_row_pix_off], mask_opacity_combined, blend_mode);
+                    blend_px(
+                        &img_buf[img_row_pix_off], 
+                        &dest_cr_buf[dest_row_pix_off], 
+                        mask_opacity_combined, 
+                        blend_mode);
                 }
                 dest_row_pix_off += dest_pix_size;
                 img_row_pix_off  += img_src->px_size;
@@ -2092,7 +2104,11 @@ __IPGUI_API__ void ipgui_blend_image_v2(
             img_row_pix_off  = 0;
             for (x = 0; x < x_span; x ++) {
                 /* blend pixel by pixel */
-                blend_px(&img_buf[img_row_pix_off], &dest_cr_buf[dest_row_pix_off], opacity, blend_mode);
+                blend_px(
+                    &img_buf[img_row_pix_off], 
+                    &dest_cr_buf[dest_row_pix_off], 
+                    opacity, 
+                    blend_mode);
                 dest_row_pix_off += dest_pix_size;
                 img_row_pix_off  += img_src->px_size;
             }
