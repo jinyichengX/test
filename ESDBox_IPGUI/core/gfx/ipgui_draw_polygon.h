@@ -16,9 +16,9 @@ typedef s32_t ipgui_area_t;
 #define IPGUI_WHOLE_COVER (IPGUI_PIXEL_AREA << 1) /* 真实子像素面积 * 2 */
 
 typedef struct {
-    ipgui_scoord_t inte;                    /* 不管是ipgui_egde_xstep_t还是ipgui_x_cur_t，inte必须是IPGUI_PIXEL_PRECI的整数倍 */
+    ipgui_scoord_t inte;                    /* 不管是ipgui_edge_xstep_t还是ipgui_x_cur_t，inte必须是IPGUI_PIXEL_PRECI的整数倍 */
     s32_t frac;                               /* the frac of dy of edge */ /* formula: frac/dy = xx.xxxxxx% */
-}ipgui_egde_xstep_t,
+}ipgui_edge_xstep_t,
 ipgui_x_cur_t;
 
 typedef enum {
@@ -44,7 +44,7 @@ typedef struct _edge{
     ipgui_scoord_t     y_start;             /* 扫描线开始的y坐标，在碰到y_min时有效 */
     ipgui_scoord_t     y_end;               /* 扫描线结束的y坐标，在碰到y_max时有效 */
     ipgui_x_cur_t      x_cur;               /* 扫描线当前的x坐标（实时计算） */
-    ipgui_egde_xstep_t x_full_step;         /* 距离为1像素（64子像素）的扫描线x坐标的步进，在x_cur基础上的步进值 */
+    ipgui_edge_xstep_t x_full_step;         /* 距离为1像素（64子像素）的扫描线x坐标的步进，在x_cur基础上的步进值 */
 
     ipgui_scoord_t     dx;                  /* 用于修正x_cur（特例：垂直边缘） */
     ipgui_scoord_t     dy;                  /* 正数，用于修正x_cur */

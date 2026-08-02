@@ -14,7 +14,7 @@ typedef enum {
 
 typedef enum {
     /* 跟随线条（渐变方向：起始点到结束点） */
-    IPGUI_LINE_GRADIENT_FOLLIOW = 0, 
+    IPGUI_LINE_GRADIENT_FOLLOW = 0, 
 
     /* 线内水平渐变 */
     IPGUI_LINE_GRADIENT_HOR,    

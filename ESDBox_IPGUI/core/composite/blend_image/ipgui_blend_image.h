@@ -41,14 +41,14 @@ typedef enum {
     IPGUI_IMG_FMT_BGRA8888, /* 内存顺序: B[7:0]G[7:0]R[7:0]A[7:0] */
 
     IPGUI_IMG_FMT_MAX,
-}ipgui_image_fomat_t;
+}ipgui_image_format_t;
 
 /* image src是image_data进行定位后的图像数据，可以是一张完整图像的子图 */
 typedef struct {
     ipgui_aabb_t      * img_aabb;   /* 图像包围盒，包围盒必须与图像大小一致！ */
     u32_t               stride;     /* 图像行跨度（单位：字节） */   
     u8_t              * buf;        /* 图像数据 */
-    ipgui_image_fomat_t img_pxfmt;  /* 图像像素格式 */
+    ipgui_image_format_t img_pxfmt;  /* 图像像素格式 */
     u8_t                px_size;    /* 每像素大小（单位：字节），必须大于等于像素格式对应的字节数 */
 }ipgui_image_src_t;
 
@@ -68,7 +68,7 @@ typedef struct {
     u8_t             * pixmap;
 
     /* 像素格式 */
-    ipgui_image_fomat_t fmt;
+    ipgui_image_format_t fmt;
 
     u8_t                px_size;    /* 每像素大小（单位：字节），必须大于等于像素格式对应的字节数 */
 }ipgui_image_data_t;

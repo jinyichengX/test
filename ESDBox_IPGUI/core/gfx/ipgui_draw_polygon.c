@@ -173,7 +173,7 @@ __IPGUI_API__ void ipgui_polygon_ras_set_fill_rule(
 }
 
 __IPGUI_STATIC__ void ipgui_x_step(ipgui_edge_t * edge,
-                ipgui_egde_xstep_t * step)
+                ipgui_edge_xstep_t * step)
 {
     if (!edge->dx) return; /* vertical line */
 
@@ -233,7 +233,7 @@ __IPGUI_STATIC__ s32_t ipgui_convert_edge_init(
          */
         if (edge->y_start < y_start) {
             ipgui_scoord_t dy = y_start - edge->y_start; /* dy >= 0 */
-            ipgui_egde_xstep_t x_off;
+            ipgui_edge_xstep_t x_off;
             s32_t temp;
             /* 再修正起始 x 坐标，edge->x_cur at edge->y_start */
             edge->y_start = y_start;
@@ -507,7 +507,7 @@ __IPGUI_API__ void ipgui_render_edge_line(
 
     if (dy != IPGUI_PIXEL_PRECI) { /* dy != 64 */
         /* partial step */
-        ipgui_egde_xstep_t x_step;
+        ipgui_edge_xstep_t x_step;
         long long temp = (long long)dy * (long long)edge->dx;
         x_step.inte = (ipgui_scoord_t)(temp / edge->dy);
         x_step.frac = (x_step.inte % IPGUI_PIXEL_PRECI) * edge->dy / IPGUI_PIXEL_PRECI; /* 精度损失 */

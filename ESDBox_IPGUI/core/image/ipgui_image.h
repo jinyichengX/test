@@ -5,7 +5,7 @@
 #include "ipgui_blend_image.h"
 
 typedef struct {
-    ipgui_image_fomat_t fmt;
+    ipgui_image_format_t fmt;
     ipgui_coord_t w, h;
     ipgui_coord_t stride; /* width stride */ /* 这个参数是用于加速用，一般是每像素大小乘以宽度 */
     unsigned char * pixmap;/* 像素数据 */
