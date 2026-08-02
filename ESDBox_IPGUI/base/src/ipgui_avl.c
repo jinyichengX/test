@@ -63,7 +63,7 @@ avl_node_t * avl_next_node(avl_node_t * node)
 	}
 	else {
 		while (1) {
-			struct avl_node *last = node;
+			avl_node_t *last = node;
 			node = node->parent;
 			if (node == (avl_node_t *)0) break;
 			if (node->lchild == last) break;
@@ -83,7 +83,7 @@ avl_node_t * avl_prev_node(avl_node_t * node)
 	}
 	else {
 		while (1) {
-			struct avl_node *last = node;
+			avl_node_t *last = node;
 			node = node->parent;
 			if (node == (avl_node_t *)0) break;
 			if (node->rchild == last) break;
