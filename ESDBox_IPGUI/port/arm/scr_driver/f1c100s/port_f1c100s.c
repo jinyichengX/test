@@ -6,7 +6,7 @@ extern void LCD_CopyRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t * 
 
 #define SURF_BUF_WIDTH 256
 #define SURF_BUF_HEIGHT 256
-unsigned char surf_buf[SURF_BUF_WIDTH * SURF_BUF_HEIGHT];
+unsigned char surf_buf[SURF_BUF_WIDTH * SURF_BUF_HEIGHT * 2];
 
 void draw_system_test(void)
 {
