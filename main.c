@@ -91,6 +91,8 @@ extern void widget_livingroom_update(ipgui_widget_t * w);
 extern void widget_switch_event_handler(struct ipgui_widget * widget, ipgui_widget_evt_t * evt);
 extern void widget_switch_update(ipgui_widget_t * w);
 extern void widget_switch_label_update(ipgui_widget_t * w);
+extern void curve_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx);
+extern void widget_curve_update(ipgui_widget_t * w);
 ipgui_image_data_t wave_img;
 ipgui_image_data_t main_bg_img;
 ipgui_image_data_t power_img;
@@ -587,6 +589,15 @@ int main(void)
     shadow_widget->h     = 480;
     ipgui_widget_set_top(shadow_widget);   /* 置于所有控件之上 */
 
+    /* ========== 曲线控件 ========== */
+    ipgui_widget_t * widget_curve = ipgui_widget_create(NULL);
+    widget_curve->name   = "实时曲线";
+    widget_curve->render = curve_render;
+    widget_curve->x      = 0;
+    widget_curve->y      = 0;
+    widget_curve->w      = 800;
+    widget_curve->h      = 480;
+
     /* ========== SDL 音频初始化 ========== */
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
         printf("SDL audio subsystem init failed: %s\n", SDL_GetError());
@@ -641,6 +652,7 @@ int main(void)
         widget_switch_update(widget_switch);
         widget_knob_update(widget_brightness_label);
         widget_wave_update(widget3);
+        widget_curve_update(widget_curve);
 
         /* 心跳 */
         ipgui_tick_inc();

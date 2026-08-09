@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>实时曲线 Demo - Canvas</title>
+<style>
+  body {
+    margin: 0;
+    padding: 20px;
+    background: #1a1a2e;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  h2 { margin: 0 0 16px 0; font-weight: 400; color: #ccc; }
+  .panel {
+    background: #16213e;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+  canvas { display: block; border-radius: 4px; }
+  .controls {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+    margin-top: 12px;
+  }
+  .controls label { font-size: 13px; color: #aaa; }
+  .controls input[type="range"] { width: 100px; vertical-align: middle; }
+  button {
+    padding: 6px 18px; border: none; border-radius: 4px;
+    background: #e94560; color: #fff; cursor: pointer; font-size: 13px;
+  }
+  button:hover { background: #ff6b81; }
+  button.pause { background: #0f3460; }
+  button.pause:hover { background: #1a508b; }
+  .info { font-size: 12px; color: #666; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h2>实时曲线 Demo — 模拟传感器数据流</h2>
+
+<div class="panel">
+  <canvas id="canvas" width="800" height="300"></canvas>
+  <div class="controls">
+    <label>频率: <input type="range" id="speed" min="1" max="10" value="3"> <span id="speedVal">30 Hz</span></label>
+    <label>噪声: <input type="range" id="noise" min="0" max="50" value="20"> <span id="noiseVal">20</span></label>
+    <button id="pauseBtn" class="pause">暂停</button>
+  </div>
+  <div class="info">
+    原理：每个新数据点到来时，用 ctx.lineTo() 连接上一个点，模拟 drawLine 逐段绘制。
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const W = canvas.width;
+const H = canvas.height;
+const MARGIN = { top: 20, right: 10, bottom: 25, left: 50 };
+const PLOT_W = W - MARGIN.left - MARGIN.right;
+const PLOT_H = H - MARGIN.top - MARGIN.bottom;
+
+// 数据缓冲区（环形）
+const MAX_POINTS = 400;
+const buffer = [];
+
+// 模拟参数
+let speed = 3;      // 每帧新增点数
+let noise = 20;     // 噪声幅度
+let paused = false;
+let t = 0;
+
+// UI 绑定
+document.getElementById('speed').oninput = function() {
+  speed = +this.value;
+  document.getElementById('speedVal').textContent = (speed * 10) + ' Hz';
+};
+document.getElementById('noise').oninput = function() {
+  noise = +this.value;
+  document.getElementById('noiseVal').textContent = noise;
+};
+document.getElementById('pauseBtn').onclick = function() {
+  paused = !paused;
+  this.textContent = paused ? '继续' : '暂停';
+  this.classList.toggle('pause', paused);
+};
+
+// 生成一个模拟数据点：正弦波叠加 + 噪声
+function generateData() {
+  const base = Math.sin(t * 0.05) * 40 + Math.sin(t * 0.13) * 20 + Math.sin(t * 0.03) * 15;
+  const jitter = (Math.random() - 0.5) * noise;
+  t += 1;
+  return base + jitter;
+}
+
+// === 核心绘图逻辑 ===
+// 这与你的 drawLine 思想一致：逐段连接相邻数据点
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  // 水平线
+  for (let i = 0; i <= 5; i++) {
+    const y = MARGIN.top + (PLOT_H / 5) * i;
+    ctx.beginPath();
+    ctx.moveTo(MARGIN.left, y);
+    ctx.lineTo(MARGIN.left + PLOT_W, y);
+    ctx.stroke();
+    // Y 轴标签
+    ctx.fillStyle = '#666';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'right';
+    const val = Math.round(60 - i * 24);
+    ctx.fillText(val, MARGIN.left - 6, y + 4);
+  }
+  // X 轴标签
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) {
+    const x = MARGIN.left + (PLOT_W / 4) * i;
+    const val = Math.round(i * 100);
+    if (buffer.length > 0) {
+      ctx.fillText(val, x, H - 4);
+    }
+  }
+}
+
+function drawCurve() {
+  if (buffer.length < 2) return;
+
+  ctx.strokeStyle = '#e94560';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';    // 等价于 IPGUI_LINE_CAP_ROUND
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+
+  const xStep = PLOT_W / (MAX_POINTS - 1);
+  for (let i = 0; i < buffer.length; i++) {
+    // 将数据值映射到绘图区 Y 坐标
+    const x = MARGIN.left + i * xStep;
+    const y = MARGIN.top + PLOT_H / 2 - buffer[i] * (PLOT_H / 120);
+
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);     // 等价于你的 drawLine(prev, cur)
+    }
+  }
+  ctx.stroke();
+}
+
+function render() {
+  if (!paused) {
+    // 生成新数据点，推入环形缓冲区
+    for (let i = 0; i < speed; i++) {
+      buffer.push(generateData());
+      if (buffer.length > MAX_POINTS) {
+        buffer.shift();     // 移除最旧的点 → 曲线向左滚动
+      }
+    }
+  }
+
+  // 清屏
+  ctx.clearRect(0, 0, W, H);
+
+  // 填充绘图区背景
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(MARGIN.left, MARGIN.top, PLOT_W, PLOT_H);
+
+  drawGrid();
+  drawCurve();
+
+  requestAnimationFrame(render);
+}
+
+// 预填充初始数据（曲线从右向左铺满）
+for (let i = 0; i < MAX_POINTS; i++) {
+  buffer.push(generateData());
+}
+
+render();
+</script>
+</body>
+</html>
