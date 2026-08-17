@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图钉实验室 · pivot 可在外</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: #0f1219;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: #e2e8f0;
+        }
+        .container {
+            max-width: 1300px;
+            width: 100%;
+            background: #1a1f2b;
+            border-radius: 36px;
+            padding: 24px 30px 32px;
+            box-shadow: 0 25px 50px -8px rgba(0,0,0,0.8);
+            border: 1px solid #2e374a;
+        }
+        h1 {
+            font-weight: 350;
+            font-size: 2rem;
+            margin: 0 0 4px 0;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        h1 small {
+            font-size: 0.9rem;
+            font-weight: 300;
+            color: #8e9fc7;
+            background: #252d40;
+            padding: 4px 18px;
+            border-radius: 40px;
+            letter-spacing: 0.4px;
+        }
+        .subbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2b3448;
+            padding-bottom: 14px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .subbar .hint {
+            background: #1f293f;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            color: #b0c2e5;
+            border: 1px solid #36415b;
+        }
+        .main-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+        }
+        .canvas-box {
+            flex: 2.2;
+            min-width: 520px;
+            background: #11161f;
+            border-radius: 24px;
+            padding: 14px;
+            border: 1px solid #293249;
+        }
+        .canvas-wrap {
+            position: relative;
+            background: #0b0f17;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #mainCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            image-rendering: pixelated;
+            background: #111722;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.7);
+            cursor: grab;
+        }
+        #mainCanvas:active {
+            cursor: grabbing;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: #7b8bb2;
+            padding: 0 6px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .control-panel {
+            flex: 1;
+            min-width: 250px;
+            background: #161d2c;
+            border-radius: 24px;
+            padding: 20px 22px 26px;
+            border: 1px solid #2e3850;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .ctrl-block {
+            background: #101724;
+            border-radius: 18px;
+            padding: 14px 16px 16px;
+            border-left: 4px solid #5b78b0;
+        }
+        .ctrl-block label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            font-weight: 400;
+            color: #bcc9ec;
+            margin-bottom: 4px;
+        }
+        .ctrl-block input[type="range"] {
+            width: 100%;
+            accent-color: #7a9bff;
+            background: #283150;
+            height: 6px;
+            border-radius: 6px;
+            margin: 6px 0 2px;
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .btn {
+            background: #25304b;
+            border: 1px solid #3b4870;
+            color: #cedbff;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.12s;
+            flex: 1 0 auto;
+            text-align: center;
+        }
+        .btn.active {
+            background: #4a6ac0;
+            border-color: #809cff;
+            color: white;
+            box-shadow: 0 0 12px #3a60cc66;
+        }
+        .btn:hover {
+            background: #334779;
+            border-color: #6a88dd;
+        }
+        .val-badge {
+            background: #0c1322;
+            padding: 0 12px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            color: #b7c9f5;
+            min-width: 46px;
+            text-align: center;
+        }
+        .legend {
+            background: #0d1422;
+            border-radius: 14px;
+            padding: 12px 16px;
+            border: 1px solid #293453;
+            font-size: 0.82rem;
+            color: #a0b2db;
+            line-height: 1.6;
+        }
+        .legend strong {
+            color: #d6e2ff;
+        }
+        .pin-icon {
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: #65759b;
+            padding: 0 2px;
+        }
+        @media (max-width: 780px) {
+            .canvas-box { min-width: 0; }
+            .container { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>
+        📌 图钉实验室 ·  pivot 可在外
+        <small>pivot 范围 -128 ~ 384</small>
+    </h1>
+    <div class="subbar">
+        <span class="hint">🖱️ 拖动图片移动 · 滚轮缩放</span>
+        <span style="color:#7e92c0; font-size:0.85rem;">pivot 可以在图片外面！</span>
+    </div>
+
+    <div class="main-grid">
+        <!-- 画布 -->
+        <div class="canvas-box">
+            <div class="canvas-wrap">
+                <canvas id="mainCanvas" width="800" height="520"></canvas>
+            </div>
+            <div class="info-row">
+                <span>📍 <span id="pivotDisplay">pivot: (128, 128)</span></span>
+                <span>📌 <span id="anchorDisplay">anchor: (400, 260)</span></span>
+                <span>🔄 <span id="transformDisplay">旋转: 0°</span></span>
+            </div>
+        </div>
+
+        <!-- 控制 -->
+        <div class="control-panel">
+            <div class="ctrl-block">
+                <label>🔄 旋转 <span id="rotVal" class="val-badge">0°</span></label>
+                <input type="range" id="rotSlider" min="-180" max="180" value="0" step="0.5">
+            </div>
+            <div class="ctrl-block">
+                <label>📐 缩放 <span id="scaleVal" class="val-badge">1.00x</span></label>
+                <input type="range" id="scaleSlider" min="0.20" max="2.80" value="1.00" step="0.01">
+            </div>
+            <div class="ctrl-block" style="border-left-color: #b08a5c;">
+                <label>📍 图钉位置 (pivot) <span style="color:#f5a97f; font-size:0.7rem;">可拖出图片</span></label>
+                <div style="display:flex; gap:10px; margin-top:6px;">
+                    <span style="font-size:0.75rem; color:#9aacd4;">X</span>
+                    <input type="range" id="pivotX" min="-128" max="384" value="128" step="1" style="flex:1;">
+                    <span id="pivotXVal" class="val-badge" style="min-width:36px;">128</span>
+                </div>
+                <div class="range-labels">
+                    <span>-128</span>
+                    <span>0</span>
+                    <span>128</span>
+                    <span>256</span>
+                    <span>384</span>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:2px;">
+                    <span style="font-size:0.75rem; color:#9aacd4;">Y</span>
+                    <input type="range" id="pivotY" min="-128" max="384" value="128" step="1" style="flex:1;">
+                    <span id="pivotYVal" class="val-badge" style="min-width:36px;">128</span>
+                </div>
+                <div class="range-labels">
+                    <span>-128</span>
+                    <span>0</span>
+                    <span>128</span>
+                    <span>256</span>
+                    <span>384</span>
+                </div>
+            </div>
+            <div class="ctrl-block" style="border-left-color: #6a9b7a;">
+                <label>🎯 采样质量</label>
+                <div class="btn-group">
+                    <button class="btn" data-quality="low">⚡ 点</button>
+                    <button class="btn active" data-quality="medium">🔲 最近邻</button>
+                    <button class="btn" data-quality="high">🌈 双线性</button>
+                </div>
+            </div>
+            <div class="ctrl-block" style="border-left-color: #a07cb0;">
+                <label>🧩 边缘模式</label>
+                <div class="btn-group">
+                    <button class="btn active" data-edge="clamp">⛔ 裁切</button>
+                    <button class="btn" data-edge="repeat">♻️ 平铺</button>
+                    <button class="btn" data-edge="mirror">🪞 镜像</button>
+                </div>
+            </div>
+            <button id="resetBtn" style="background:#26334d; border:1px solid #445780; color:#d4e0ff; padding:10px; border-radius:40px; font-weight:500; cursor:pointer;">↺ 重置变换</button>
+            <div class="legend">
+                <strong>📌 操作直觉</strong><br>
+                <span class="pin-icon">📍</span> <strong>pivot</strong> = 图钉钉在图片坐标系上的点 <span style="color:#f5a97f;">（可在图片外！）</span><br>
+                <span class="pin-icon">📌</span> <strong>anchor</strong> = 图钉钉在屏幕上的点<br>
+                <span style="color:#b7cbff;">拖拽图片</span> 移动 anchor，<span style="color:#b7cbff;">滚轮</span> 缩放<br>
+                <span style="color:#f5a97f;">💡 pivot 在外 → 图片绕外部点旋转/缩放</span>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    (function() {
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const W = 800, H = 520;
+        canvas.width = W; canvas.height = H;
+
+        // ----- 生成 256x256 纹理 (棋盘格 + 渐变) -----
+        const SZ = 256;
+        const srcPixels = new Uint8Array(SZ * SZ * 4);
+        function buildTexture() {
+            for (let y = 0; y < SZ; y++) {
+                for (let x = 0; x < SZ; x++) {
+                    const idx = (y * SZ + x) * 4;
+                    const cell = 20;
+                    const cx = Math.floor(x / cell), cy = Math.floor(y / cell);
+                    const even = (cx + cy) % 2 === 0;
+                    const dx = x - SZ/2, dy = y - SZ/2;
+                    const dist = Math.sqrt(dx*dx + dy*dy) / (SZ/2.3);
+                    const rad = Math.min(1, dist);
+                    let r = even ? 230 : 50;
+                    let g = even ? 180 : 40;
+                    let b = even ? 250 : 100;
+                    const mix = 0.3 + 0.7 * (1 - rad);
+                    r = Math.min(255, r * 0.5 + 190 * mix);
+                    g = Math.min(255, g * 0.4 + 110 * mix);
+                    b = Math.min(255, b * 0.3 + 230 * mix);
+                    if (x % cell === 0 || y % cell === 0) {
+                        r = Math.min(255, r + 35);
+                        g = Math.min(255, g + 35);
+                        b = Math.min(255, b + 35);
+                    }
+                    srcPixels[idx] = Math.floor(r);
+                    srcPixels[idx+1] = Math.floor(g);
+                    srcPixels[idx+2] = Math.floor(b);
+                    srcPixels[idx+3] = 255;
+                }
+            }
+        }
+        buildTexture();
+
+        // ----- 采样核心 -----
+        function sampleSrc(fx, fy, quality, edgeMode) {
+            const maxC = SZ - 1;
+            function wrap(v, size) {
+                if (edgeMode === 'repeat') {
+                    let r = v % size;
+                    if (r < 0) r += size;
+                    return r;
+                } else if (edgeMode === 'mirror') {
+                    let r = v % (size * 2);
+                    if (r < 0) r += size * 2;
+                    if (r >= size) r = size * 2 - r - 1;
+                    return r;
+                } else { // clamp
+                    return Math.min(maxC, Math.max(0, v));
+                }
+            }
+
+            // 裁切模式特殊处理羽化
+            if (edgeMode === 'clamp') {
+                const outX = (fx < 0 || fx > maxC);
+                const outY = (fy < 0 || fy > maxC);
+                let alpha = 255;
+                if (outX || outY) {
+                    let distX = 0, distY = 0;
+                    if (fx < 0) distX = -fx; else if (fx > maxC) distX = fx - maxC;
+                    if (fy < 0) distY = -fy; else if (fy > maxC) distY = fy - maxC;
+                    const maxDist = Math.max(1, Math.max(distX, distY));
+                    const fade = Math.max(0, 1 - maxDist / 5.0);
+                    alpha = Math.floor(fade * 255);
+                    if (alpha === 0) return {r:0,g:0,b:0,a:0};
+                }
+                const sx = Math.min(maxC, Math.max(0, fx));
+                const sy = Math.min(maxC, Math.max(0, fy));
+                const ix = Math.floor(sx), iy = Math.floor(sy);
+                const idx = (iy * SZ + ix) * 4;
+                return { r: srcPixels[idx], g: srcPixels[idx+1], b: srcPixels[idx+2], a: alpha };
+            }
+
+            // 平铺/镜像: 直接wrap
+            let wx = wrap(fx, SZ);
+            let wy = wrap(fy, SZ);
+            if (quality === 'high') {
+                // 双线性
+                const ix = Math.floor(wx), iy = Math.floor(wy);
+                const fx2 = wx - ix, fy2 = wy - iy;
+                const x1 = wrap(ix, SZ), x2 = wrap(ix+1, SZ);
+                const y1 = wrap(iy, SZ), y2 = wrap(iy+1, SZ);
+                const idx11 = (y1 * SZ + x1) * 4;
+                const idx21 = (y1 * SZ + x2) * 4;
+                const idx12 = (y2 * SZ + x1) * 4;
+                const idx22 = (y2 * SZ + x2) * 4;
+                const lerp = (a,b,t) => a + (b-a)*t;
+                const r = lerp(lerp(srcPixels[idx11], srcPixels[idx21], fx2), lerp(srcPixels[idx12], srcPixels[idx22], fx2), fy2);
+                const g = lerp(lerp(srcPixels[idx11+1], srcPixels[idx21+1], fx2), lerp(srcPixels[idx12+1], srcPixels[idx22+1], fx2), fy2);
+                const b = lerp(lerp(srcPixels[idx11+2], srcPixels[idx21+2], fx2), lerp(srcPixels[idx12+2], srcPixels[idx22+2], fx2), fy2);
+                return { r: Math.floor(Math.min(255,Math.max(0,r))), g: Math.floor(Math.min(255,Math.max(0,g))), b: Math.floor(Math.min(255,Math.max(0,b))), a: 255 };
+            } else {
+                let ix, iy;
+                if (quality === 'medium') {
+                    ix = Math.round(wx); iy = Math.round(wy);
+                } else {
+                    ix = Math.floor(wx); iy = Math.floor(wy);
+                }
+                ix = wrap(ix, SZ); iy = wrap(iy, SZ);
+                const idx = (iy * SZ + ix) * 4;
+                return { r: srcPixels[idx], g: srcPixels[idx+1], b: srcPixels[idx+2], a: 255 };
+            }
+        }
+
+        // ----- 状态 -----
+        let state = {
+            pivot: { x: 128, y: 128 },
+            anchor: { x: 400, y: 260 },
+            rotation: 0,
+            scale: 1.0,
+            quality: 'medium',
+            edge: 'clamp'
+        };
+
+        // ----- 绘制 -----
+        function render() {
+            const { pivot, anchor, rotation, scale, quality, edge } = state;
+            const rad = rotation * Math.PI / 180;
+            const cos = Math.cos(rad), sin = Math.sin(rad);
+            const cx = pivot.x, cy = pivot.y;
+            // 变换矩阵 (源 -> 目标)
+            const a = scale * cos, b = -scale * sin;
+            const c = scale * sin, d = scale * cos;
+            const tx = anchor.x - a * cx - b * cy;
+            const ty = anchor.y - c * cx - d * cy;
+            const det = a * d - b * c;
+            if (Math.abs(det) < 1e-10) {
+                ctx.fillStyle = '#1a1f2a';
+                ctx.fillRect(0,0,W,H);
+                return;
+            }
+            const invA = d / det, invB = -b / det;
+            const invC = -c / det, invD = a / det;
+
+            const imageData = ctx.createImageData(W, H);
+            const data = imageData.data;
+            for (let py = 0; py < H; py++) {
+                for (let px = 0; px < W; px++) {
+                    const idx = (py * W + px) * 4;
+                    const sx = invA * (px - tx) + invB * (py - ty);
+                    const sy = invC * (px - tx) + invD * (py - ty);
+                    const p = sampleSrc(sx, sy, quality, edge);
+                    data[idx] = p.r;
+                    data[idx+1] = p.g;
+                    data[idx+2] = p.b;
+                    data[idx+3] = p.a;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            // 绘制pivot十字标记 (在图片上)
+            // 计算pivot在屏幕上的位置
+            const pxScreen = a * cx + b * cy + tx;
+            const pyScreen = c * cx + d * cy + ty;
+            ctx.save();
+            // 如果pivot在屏幕内才画标记
+            if (pxScreen >= 0 && pxScreen < W && pyScreen >= 0 && pyScreen < H) {
+                ctx.beginPath();
+                ctx.arc(pxScreen, pyScreen, 10, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(255, 80, 80, 0.7)';
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(pxScreen - 16, pyScreen);
+                ctx.lineTo(pxScreen + 16, pyScreen);
+                ctx.moveTo(pxScreen, pyScreen - 16);
+                ctx.lineTo(pxScreen, pyScreen + 16);
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            } else {
+                // pivot在屏幕外，画一个指向它的箭头
+                ctx.fillStyle = 'rgba(255,200,100,0.6)';
+                ctx.font = '20px sans-serif';
+                ctx.fillText('📍', Math.min(W-30, Math.max(10, pxScreen)), Math.min(H-10, Math.max(20, pyScreen)));
+            }
+
+            // 锚点标记 (屏幕上的图钉)
+            ctx.beginPath();
+            ctx.arc(anchor.x, anchor.y, 8, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(70, 150, 255, 0.6)';
+            ctx.fill();
+            ctx.strokeStyle = '#aaccff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // 连线 (pivot到anchor)
+            if (pxScreen >= 0 && pxScreen < W && pyScreen >= 0 && pyScreen < H) {
+                ctx.beginPath();
+                ctx.moveTo(pxScreen, pyScreen);
+                ctx.lineTo(anchor.x, anchor.y);
+                ctx.strokeStyle = 'rgba(255,200,100,0.25)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([6, 8]);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // 更新显示
+            document.getElementById('pivotDisplay').textContent = `pivot: (${Math.round(pivot.x)}, ${Math.round(pivot.y)})`;
+            document.getElementById('anchorDisplay').textContent = `anchor: (${Math.round(anchor.x)}, ${Math.round(anchor.y)})`;
+            document.getElementById('transformDisplay').textContent = `旋转: ${Math.round(rotation)}° 缩放: ${scale.toFixed(2)}x`;
+        }
+
+        // ----- 拖拽 anchor -----
+        let dragging = false;
+        let dragStart = { x:0, y:0 };
+        let anchorStart = { x:0, y:0 };
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+            const dx = mx - state.anchor.x, dy = my - state.anchor.y;
+            if (dx*dx + dy*dy < 900) {
+                dragging = true;
+                dragStart = { x: mx, y: my };
+                anchorStart = { x: state.anchor.x, y: state.anchor.y };
+                canvas.style.cursor = 'grabbing';
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+            state.anchor.x = anchorStart.x + (mx - dragStart.x);
+            state.anchor.y = anchorStart.y + (my - dragStart.y);
+            render();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (dragging) {
+                dragging = false;
+                canvas.style.cursor = 'grab';
+            }
+        });
+
+        // 滚轮缩放 (以pivot为中心)
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.08 : 0.08;
+            state.scale = Math.min(2.8, Math.max(0.2, state.scale + delta * state.scale));
+            document.getElementById('scaleSlider').value = state.scale;
+            render();
+        }, { passive: false });
+
+        // ----- UI绑定 -----
+        document.getElementById('rotSlider').addEventListener('input', function() {
+            state.rotation = parseFloat(this.value);
+            document.getElementById('rotVal').textContent = state.rotation + '°';
+            render();
+        });
+        document.getElementById('scaleSlider').addEventListener('input', function() {
+            state.scale = parseFloat(this.value);
+            document.getElementById('scaleVal').textContent = state.scale.toFixed(2) + 'x';
+            render();
+        });
+        document.getElementById('pivotX').addEventListener('input', function() {
+            state.pivot.x = parseFloat(this.value);
+            document.getElementById('pivotXVal').textContent = Math.round(state.pivot.x);
+            render();
+        });
+        document.getElementById('pivotY').addEventListener('input', function() {
+            state.pivot.y = parseFloat(this.value);
+            document.getElementById('pivotYVal').textContent = Math.round(state.pivot.y);
+            render();
+        });
+
+        document.querySelectorAll('[data-quality]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-quality]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                state.quality = this.dataset.quality;
+                render();
+            });
+        });
+        document.querySelectorAll('[data-edge]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-edge]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                state.edge = this.dataset.edge;
+                render();
+            });
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            state.rotation = 0;
+            state.scale = 1.0;
+            state.pivot = { x: 128, y: 128 };
+            state.anchor = { x: 400, y: 260 };
+            document.getElementById('rotSlider').value = 0;
+            document.getElementById('scaleSlider').value = 1.0;
+            document.getElementById('pivotX').value = 128;
+            document.getElementById('pivotY').value = 128;
+            document.getElementById('rotVal').textContent = '0°';
+            document.getElementById('scaleVal').textContent = '1.00x';
+            document.getElementById('pivotXVal').textContent = '128';
+            document.getElementById('pivotYVal').textContent = '128';
+            render();
+        });
+
+        // 初始化
+        render();
+    })();
+</script>
+</body>
+</html>

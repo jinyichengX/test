@@ -69,29 +69,29 @@ typedef enum {
 
 typedef struct ipgui_widget
 {
-    /* ---- 扩展数据 ---- */
+    /* 扩展数据 */
     void                 * priv_data;
 
-    /* ---- 控件树节点 ---- */
+    /* 控件树节点 */
     struct widget_link_t   link;
 
-    /* ---- 位置和大小（父控件局部坐标系） ---- */
+    /* 位置和大小（父控件局部坐标系） */
     ipgui_coord_t          x, y;
     ipgui_coord_t          w, h;
 
-    /* ---- 滚动控制（仅 SCROLLABLE 控件有效） ---- */
+    /* 滚动控制（仅 SCROLLABLE 控件有效） */
     ipgui_coord_t          scroll_x, scroll_y;
     ipgui_scroll_dir_t     scroll_dir;
     ipgui_scroll_t         x_scroll;       /* X 轴惯性滚动状态 */
     ipgui_scroll_t         y_scroll;       /* Y 轴惯性滚动状态 */
 
-    /* ---- 标志位 ---- */
+    /* 标志位 */
     u32_t                  flags;
 
-    /* ---- 控件名称（调试用） ---- */
+    /* 控件名称（调试用） */
     const char           * name;
 
-    /* ---- 回调函数 ---- */
+    /* 绘制回调 */
     void (*render)       (struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx);
 
     /* 事件处理回调 */
@@ -117,6 +117,18 @@ extern __IPGUI_API__ void ipgui_widget_set_event_handler(
 
 /* 获取控件在屏幕中的绝对坐标（不考虑父控件裁剪） */
 extern __IPGUI_API__ void ipgui_widget_abs_pos(ipgui_widget_t * widget, ipgui_aabb_t * r);
+
+/* 将控件置于最顶层（先拆后插到父控件子链表末尾） */
+extern __IPGUI_API__ void ipgui_widget_set_top(ipgui_widget_t * widget);
+
+/* 将控件置于最底层层（先拆后插到父控件子链表头） */
+extern __IPGUI_API__ void ipgui_widget_set_bottom(ipgui_widget_t * widget);
+
+/* 将控件置于指定控件之前（先拆后插到指定控件之前） */
+extern __IPGUI_API__ void ipgui_widget_set_behind(ipgui_widget_t * widget, ipgui_widget_t * front);
+
+/* 将控件置于指定控件之后（先拆后插到指定控件之后） */
+extern __IPGUI_API__ void ipgui_widget_set_front(ipgui_widget_t * widget, ipgui_widget_t * front);
 
 /* 标记控件为脏，触发所属屏幕的脏矩形重绘 */
 extern __IPGUI_API__ void ipgui_widget_mark_dirty(ipgui_widget_t * widget);

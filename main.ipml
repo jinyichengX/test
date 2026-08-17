@@ -1,0 +1,54 @@
+// ============================================================
+// main.ipml — IPGUI 主界面声明式描述
+//
+// 与当前 main.c 中硬编码的 widget 树等价。
+// 编译: python tools/ipml_compiler.py main.ipml main.ipb
+// 加载: ipml_load(main_ipb_data, main_ipb_len, symtab, count, &res);
+// ============================================================
+
+Widget x=0, y=0, w=1600, h=480, name:"主背景", render=widget4_render
+
+Widget x=0, y=250, w=800, h=140, name:"波浪", render=widget3_render
+
+Widget x=0, y=0, w=800, h=480, name:"圆弧背景", render=arc_bg_render
+
+Widget x=60, y=102, w=26, h=26, name:"旋钮圆", render=knob_circle_render, event=knob_circle_event_handler
+
+Widget x=58, y=265, w=110, h=35, name:"亮度数值", render=brightness_label_render
+
+Widget x=365, y=400, w=90, h=40, name:"开关", render=widget_switch_render, event=widget_switch_event_handler
+
+Widget x=362, y=376, w=110, h=30, name:"开关标签", render=widget_switch_label_render
+
+Widget x=55, y=260, w=120, h=80, name:"圆弧标签", render=widget_arc_label_render
+
+Widget x=350, y=50, w=130, h=100, name:"电源图标和标签", render=power_render
+
+Widget x=630, y=50, w=100, h=100, name:"台灯图标和标签", render=tablelamp_render, event=tablelamp_event_handler
+
+Widget x=628, y=435, w=200, h=60, name:"客厅标签", render=_label_livingroom_render, event=livingroom_event_handler
+
+// 滚动/拖拽测试容器
+Widget x=380, y=20, w=380, h=420, name:"wid1_scroll", flags=8, render=color_render {
+    Widget x=10, y=100, w=200, h=220, name:"wid2_scroll", flags=8, scroll_dir=gesture, render=color_render {
+        Widget x=5, y=5, w=80, h=210, name:"Item0", render=color_render
+        Widget x=90, y=5, w=80, h=210, name:"Item1", render=color_render
+        Widget x=175, y=5, w=80, h=210, name:"Item2", render=color_render
+        Widget x=260, y=5, w=80, h=210, name:"Item3", render=color_render
+        Widget x=345, y=5, w=80, h=210, name:"Item4", render=color_render
+        Widget x=430, y=5, w=80, h=210, name:"Item5", render=color_render
+        Widget x=515, y=5, w=80, h=210, name:"Item6", render=color_render
+        Widget x=600, y=5, w=80, h=210, name:"Item7", render=color_render
+        Widget x=685, y=5, w=80, h=210, name:"Item8", render=color_render
+        Widget x=770, y=5, w=80, h=210, name:"Item9", render=color_render
+        Widget x=855, y=5, w=80, h=210, name:"Item10", render=color_render
+        Widget x=940, y=5, w=80, h=210, name:"Item11", render=color_render
+        Widget x=1025, y=5, w=80, h=210, name:"Item12", render=color_render
+        Widget x=1110, y=5, w=80, h=210, name:"Item13", render=color_render
+        Widget x=1195, y=5, w=80, h=210, name:"Item14", render=color_render
+    }
+    Widget x=230, y=100, w=130, h=220, name:"wid3_drag", render=color_render, event=drag_handler
+}
+
+// 曲线控件
+Widget x=0, y=0, w=800, h=480, name:"实时曲线", render=curve_render

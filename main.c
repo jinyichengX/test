@@ -167,36 +167,36 @@ void color_render(ipgui_widget_t * w, ipgui_widget_render_ctx_t * ctx)
     }
 }
 
-/* 滚动事件处理：修改触发控件的 scroll_x/y */
-void scroll_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
-{
-    if (e->type != IPGUI_WIDGET_EVENT_PRESSED) return;
-    ipgui_coord_t dx = e->evt.pressed_evt.x - e->evt.pressed_evt.last_press_x;
-    ipgui_coord_t dy = e->evt.pressed_evt.y - e->evt.pressed_evt.last_press_y;
-    if (dx == 0 && dy == 0) return;
-    w->scroll_x -= dx;
-    w->scroll_y -= dy;
-    ipgui_widget_mark_dirty(w);
-}
+// /* 滚动事件处理：修改触发控件的 scroll_x/y */
+// void scroll_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
+// {
+//     if (e->type != IPGUI_WIDGET_EVENT_PRESSED) return;
+//     ipgui_coord_t dx = e->evt.pressed_evt.x - e->evt.pressed_evt.last_press_x;
+//     ipgui_coord_t dy = e->evt.pressed_evt.y - e->evt.pressed_evt.last_press_y;
+//     if (dx == 0 && dy == 0) return;
+//     w->scroll_x -= dx;
+//     w->scroll_y -= dy;
+//     ipgui_widget_mark_dirty(w);
+// }
 
-/* 滚动 + 拖拽处理：拖拽时同时驱动内容滚动和控件位移，wid1 专用 */
-void scroll_drag_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
-{
-    if (e->type != IPGUI_WIDGET_EVENT_PRESSED) return;
-    ipgui_coord_t dx = e->evt.pressed_evt.x - e->evt.pressed_evt.last_press_x;
-    ipgui_coord_t dy = e->evt.pressed_evt.y - e->evt.pressed_evt.last_press_y;
-    if (dx == 0 && dy == 0) return;
+// /* 滚动 + 拖拽处理：拖拽时同时驱动内容滚动和控件位移，wid1 专用 */
+// void scroll_drag_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
+// {
+//     if (e->type != IPGUI_WIDGET_EVENT_PRESSED) return;
+//     ipgui_coord_t dx = e->evt.pressed_evt.x - e->evt.pressed_evt.last_press_x;
+//     ipgui_coord_t dy = e->evt.pressed_evt.y - e->evt.pressed_evt.last_press_y;
+//     if (dx == 0 && dy == 0) return;
 
-    /* 滚动: 驱动子控件内容 */
-    w->scroll_x -= dx;
-    w->scroll_y -= dy;
+//     /* 滚动: 驱动子控件内容 */
+//     w->scroll_x -= dx;
+//     w->scroll_y -= dy;
 
-    /* 拖拽: 同时移动控件本身 */
-    ipgui_widget_mark_dirty(w);
-    w->x += dx;
-    w->y += dy;
-    ipgui_widget_mark_dirty(w);
-}
+//     /* 拖拽: 同时移动控件本身 */
+//     ipgui_widget_mark_dirty(w);
+//     w->x += dx;
+//     w->y += dy;
+//     ipgui_widget_mark_dirty(w);
+// }
 
 /* 拖拽事件处理：直接修改当前控件的 x/y */
 void drag_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)

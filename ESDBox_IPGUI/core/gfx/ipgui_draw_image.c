@@ -190,10 +190,11 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ u8_t * image_pixmap_get(ipgui_image_data_t * i
     return img_data->pixmap + (img_data->stride * y) + img_data->px_size * x;
 }
 
+
 /* 根据直觉设计画图片的API
- * 指定一个表面surf，然后将图钉钉在图片的某个点pivot 类似于鼠标点住这个点进行拖动，
- * 然后再把图钉钉在surf的某个点anchor（可以在surf之外）类似于鼠标拖动到的点，
- * 然后图片进行变换，如果图片中某个点变换后还在surf中那就在surf中显示。
+ * 指定一个离屏缓冲表面surf，然后将图钉钉在图片的某个点pivot （也就是给一个二维坐标系的原点，这个坐标系就是图片坐标系）类似于鼠标点住这个点进行拖动，需要注意pivot就是二维坐标系原点
+ * 然后再把图钉钉在surf的某个点anchor（也就是将图片坐标系原点移动到surf上的某一点anchor）（可以在surf之外）类似于鼠标拖动到的点，
+ * 然后图片进行变换（以这个二维坐标系），如果图片中某个点变换后还在surf中那就在surf中显示。
  */
 
 __IPGUI_API__ void ipgui_draw_image(
