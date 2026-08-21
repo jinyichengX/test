@@ -170,10 +170,10 @@ __IPGUI_API__ void ipgui_liner_gradient_apply_to_aabb(
     w = aabb->end.x - aabb->start.x + 1;
     h = aabb->end.y - aabb->start.y + 1;
     /* calculate absolute coordinate of gradient start point and end point */
-    gradient->x_start_abs = aabb->start.x + (gradient->x_start * w + 128) >> 8;
-    gradient->y_start_abs = aabb->start.y + (gradient->y_start * h + 128) >> 8;
-    gradient->x_end_abs   = aabb->start.x + (gradient->x_end * w + 128) >> 8;
-    gradient->y_end_abs   = aabb->start.y + (gradient->y_end * h + 128) >> 8;
+    gradient->x_start_abs = aabb->start.x + ((gradient->x_start * w + 128) >> 8);
+    gradient->y_start_abs = aabb->start.y + ((gradient->y_start * h + 128) >> 8);
+    gradient->x_end_abs   = aabb->start.x + ((gradient->x_end * w + 128) >> 8);
+    gradient->y_end_abs   = aabb->start.y + ((gradient->y_end * h + 128) >> 8);
 
     /* calculate gradient absolute vector, not absolute value!!! */
     gradient->gradient_vector.x = gradient->x_end_abs - gradient->x_start_abs;
@@ -293,7 +293,7 @@ __IPGUI_API__ u8_t ipgui_get_liner_gradient_pos_at_xy(
     /* map to gradient vector(the vecor is: v = (x_start,y_start)---->(x_end,y_end)) */
     u8_t pos;
     s32_t proj_int, proj_frac;
-    s32_t v_dot; /* 向量点乘，复习一遍点乘公式a.b = |a|*|b|*cos(theta) 推出a.b/|b| = |a|*cos(theta)等于在b上的投影长度（有符号） /
+    s32_t v_dot; /* 向量点乘，复习一遍点乘公式a.b = |a|*|b|*cos(theta) 推出a.b/|b| = |a|*cos(theta)等于在b上的投影长度（有符号） */
     /* 设坐标点(x,y)为点p，求p到(x_start_abs, y_start_abs)在v上的投影 */
     ipgui_vector_t start2p;
     start2p.x = x - gradient->x_start_abs;

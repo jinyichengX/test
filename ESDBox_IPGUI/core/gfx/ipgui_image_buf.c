@@ -1,6 +1,5 @@
-#include "ipgui_mask_buf.h"
+#include "ipgui_image_buf.h"
 #include "ipgui_memory.h"
-#include "ipgui_mempool.h"
 
 u8_t * ipgui_image_buf_acquire(
     u32_t           w_stride,
