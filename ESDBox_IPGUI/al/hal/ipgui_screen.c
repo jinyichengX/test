@@ -64,7 +64,7 @@ __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
 
     u8_t * top_buf = buf + buf_size;
     u32_t valid_size;
-    u8_t * pfb_buf = IPGUI_ALIGN_U32(buf);
+    u8_t * pfb_buf = (u8_t *)IPGUI_ALIGN_U32(buf);
     
     if (pfb_buf >= top_buf) return IPGUI_ERR_NOK;
 
@@ -281,7 +281,7 @@ __IPGUI_API__ void ipgui_screen_render(ipgui_scr_t * scr)
     /* reset dirty rect manager */
     ipgui_dirty_rect_mgr_reset(&scr->dirty);
 
-    scr->drv->flush(scr);
+    ipgui_screen_flush(scr);
 }
 
 /*

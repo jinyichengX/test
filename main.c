@@ -104,28 +104,6 @@ ipgui_image_data_t tablelamp_on_img;
 #include "quicksand_medium.h"
 #include "ipgui_draw_builtin_font.h"
 
-/* ========== SDL 音频示例：440Hz 正弦波 ========== */
-static double audio_phase = 0.0;
-#define AUDIO_FREQ   440.0     /* 正弦波频率 Hz */
-#define AUDIO_RATE   44100     /* 采样率 */
-
-void audio_callback(void * userdata, Uint8 * stream, int len)
-{
-    /* len 是字节数，S16 格式每个采样 2 字节 */
-    Sint16 * buf = (Sint16 *)stream;
-    int samples = len / 2;
-    static double phase_step = (2.0 * 3.1415926535 * AUDIO_FREQ) / AUDIO_RATE;
-
-    (void)userdata;
-    for (int i = 0; i < samples; i++) {
-        /* 正弦波，幅度 3000（S16 范围 -32768~32767） */
-        buf[i] = (Sint16)(3000.0 * sin(audio_phase));
-        audio_phase += phase_step;
-        if (audio_phase > 2.0 * 3.1415926535)
-            audio_phase -= 2.0 * 3.1415926535;
-    }
-}
-/* ========== 音频示例结束 ========== */
 
 /* ========== 测试：滚动 vs 拖拽 ========== */
 typedef struct { u8_t r, g, b; } widget_color_t;
@@ -210,46 +188,6 @@ void drag_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
     w->x += dx;
     w->y += dy;
     ipgui_widget_mark_dirty(w);
-}
-
-/* ========== 阴影测试控件渲染 ========== */
-void shadow_demo_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
-{
-    (void)widget;
-
-    /* 阴影参数 —— 可调 */
-    ipgui_coord_t box_x = 250, box_y = 130;
-    ipgui_coord_t box_w = 200, box_h = 200;
-    ipgui_coord_t blur  = 35;
-
-    /* 先画阴影（在盒子下方） */
-    ipgui_color_t shadow_c;
-    IPGUI_COLOR_SET(shadow_c, 255, 0x000000);        /* 黑色阴影 */
-    ipgui_draw_box_shadow_test(ctx->surf,
-        box_x, box_y, box_w, box_h, blur, shadow_c, 255);
-
-    // /* 再画白色盒子覆盖在阴影之上，挡住底层控件避免干扰 */
-    // ipgui_aabb_t box = {{box_x, box_y}, {box_x + box_w - 1, box_y + box_h - 1}};
-    // ipgui_box_style_t s; ipgui_memset(&s, 0, sizeof(s));
-    // ipgui_box_bg_style_t bg;
-    // bg.paint.type = IPGUI_PAINT_COLOR;
-    // IPGUI_COLOR_SET(bg.paint.src.color, 255, 0xFFFFFF);
-    // bg.opacity = 255; bg.blend_mode = IPGUI_BLEND_NORMAL;
-    // ipgui_draw_box_background(ctx->surf, NULL, &box, &s, &bg);
-
-    // /* 盒子上画标题文字 */
-    // ipgui_font_style_t fs; ipgui_memset(&fs, 0, sizeof(fs));
-    // fs.font = &quicksand_medium_24px;
-    // fs.paint.type = IPGUI_PAINT_COLOR;
-    // IPGUI_COLOR_SET(fs.paint.src.color, 255, 0x333333);
-    // fs.opacity = 200; fs.blend_mode = IPGUI_BLEND_NORMAL;
-
-    // const char * title = "Box Shadow Test";
-    // ipgui_coord_t tw = ipgui_builtin_text_width(fs.font, (const s8_t *)title);
-    // ipgui_draw_builtin_text(ctx->surf, NULL, &fs,
-    //     (const s8_t *)title,
-    //     box_x + (box_w - tw) / 2,
-    //     box_y + (box_h - fs.font->line_height) / 2);
 }
 
 void icon_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
@@ -579,16 +517,6 @@ int main(void)
     wid3->event_handler = drag_handler;
     /* 不设 SCROLLABLE —— 不可滚动，但 drag_handler 直接改 x/y */
 
-    /* ========== 阴影测试控件（全屏，最顶层） ========== */
-    ipgui_widget_t * shadow_widget = ipgui_widget_create(NULL);
-    shadow_widget->name  = "阴影演示";
-    shadow_widget->render = shadow_demo_render;
-    shadow_widget->x     = 0;
-    shadow_widget->y     = 0;
-    shadow_widget->w     = 800;
-    shadow_widget->h     = 480;
-    ipgui_widget_set_top(shadow_widget);   /* 置于所有控件之上 */
-
     /* ========== 曲线控件 ========== */
     ipgui_widget_t * widget_curve = ipgui_widget_create(NULL);
     widget_curve->name   = "实时曲线";
@@ -598,30 +526,6 @@ int main(void)
     widget_curve->w      = 800;
     widget_curve->h      = 480;
 
-    /* ========== SDL 音频初始化 ========== */
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
-        printf("SDL audio subsystem init failed: %s\n", SDL_GetError());
-    }
-
-    SDL_AudioSpec desired, obtained;
-    SDL_memset(&desired, 0, sizeof(desired));
-    desired.freq     = AUDIO_RATE;
-    desired.format   = AUDIO_S16SYS;      /* 16bit 有符号，系统字节序 */
-    desired.channels = 1;                 /* 单声道 */
-    desired.samples  = 1024;             /* 缓冲区 1024 采样点 */
-    desired.callback = audio_callback;
-
-    SDL_AudioDeviceID audio_dev = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
-    if (audio_dev == 0) {
-        printf("SDL audio init failed: %s\n", SDL_GetError());
-    } else {
-        printf("SDL audio opened: %d Hz, %s format, %d channels\n",
-               obtained.freq,
-               (obtained.format & 0xFF) == 16 ? "S16" : "other",
-               obtained.channels);
-        SDL_PauseAudioDevice(audio_dev, 0); /* 0 = 取消暂停，开始播放 */
-    }
-    /* ========== 音频初始化结束 ========== */
 
     ipgui_input_src_evt_t raw_evt;
     while(1)

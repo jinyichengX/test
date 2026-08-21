@@ -4,6 +4,8 @@
 #include "ipgui_draw_box_border.h"
 #include "ipgui_debug.h"
 #include "ipgui_math.h"
+#include "ipgui_mask_buf.h"
+#include "ipgui_memory.h"
 
 static void draw_round_cap(
     ipgui_surf_t       * surf,

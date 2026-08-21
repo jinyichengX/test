@@ -82,7 +82,7 @@ typedef unsigned short u16_t;
 typedef unsigned char u8_t;
 typedef int s32_t;
 typedef short s16_t;
-typedef char s8_t;
+typedef signed char s8_t; //由char改为signed char，因为有些编译器会默认char为无符号字符比如arm-linux-gnueabihf-gcc
 typedef long long s64_t;
 typedef unsigned long long u64_t;
 typedef unsigned long long uintptr_t;//uintptr_t 的大小必须适配当前系统的指针宽度（只支持32/64bit）

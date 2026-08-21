@@ -28,7 +28,7 @@ typedef struct {
 
     /* 按键设备状态 */
     u32_t                  key_press_start_time;         // 按键按下开始时间戳
-    bool                   key_long_press_triggered;      // 按键长按是否已经触发
+    u8_t                   key_long_press_triggered;      // 按键长按是否已经触发
 } converter_state_t;
 
 typedef struct {
