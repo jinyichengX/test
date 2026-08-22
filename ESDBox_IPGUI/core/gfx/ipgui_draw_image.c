@@ -510,3 +510,219 @@ _next_pix_inc:
     /* free image buffer */
     ipgui_image_buf_free(pixmap);
 }
+
+/* 把定点坐标 v 包裹到 [0, period) 范围内 —— 平铺(repeat)模式的核心 */
+__IPGUI_STATIC__ __IPGUI_INLINE__ ipgui_scoord_t ipgui_fixed_wrap(ipgui_scoord_t v, ipgui_scoord_t period)
+{
+    v %= period;
+    if (v < 0) v += period;     /* C 的 % 对负数保留符号，这里修正到正值 */
+    return v;
+}
+
+/* 把整数像素索引包裹回 [0, size) —— 用于双线性/最近邻采样的右/下邻居越界回绕 */
+__IPGUI_STATIC__ __IPGUI_INLINE__ ipgui_coord_t ipgui_idx_wrap(ipgui_coord_t v, ipgui_coord_t size)
+{
+    if (v >= size) return 0;
+    if (v < 0)     return size - 1;
+    return v;
+}
+
+/* 平铺(repeat)模式绘制图像：参考draw_tile_image.html 中的 edgeMode === 'repeat' 行为
+ *
+ * 与 ipgui_draw_image 的语义完全一致（pivot/anchor/trans/quality 参数含义不变），
+ * 唯一区别在于“源图像坐标越界”时的处理方式：
+ *   - ipgui_draw_image (clamp/羽化)：越界像素做边缘羽化（mask 渐变到 0），只绘制
+ *     变换后图像的 AABB 内部；
+ *   - ipgui_draw_image_tiled (repeat/平铺)：源坐标用取模包裹回 [0,w)×[0,h)，图像在
+ *     无穷平面上重复平铺，因此绘制区域 = surf∩clip 的全部像素，每个像素都是完全不透明。
+ *
+ * 对应 draw_tile_image.html 中的 edgeMode === 'repeat' 行为。
+ * trans 为空时按单位矩阵处理（此时即为“不旋转/缩放的纯平铺”）。
+ */
+__IPGUI_API__ void ipgui_draw_image_tiled(
+    ipgui_surf_t             * surf,
+    ipgui_aabb_t             * clip,
+    ipgui_image_data_t       * img_data,
+    ipgui_point_t            * pivot,    /* 相对于图片的变换点 如果是子图那么就是相对于子图的 */
+    ipgui_point_t            * anchor,
+    ipgui_trans_mat_t        * trans,
+    ipgui_image_draw_style_t * style,
+    ipgui_image_quality_t      quality)
+{
+    if ((!surf) || (!img_data) || (!pivot) || (!anchor) || (!style))
+        return;
+
+    if (style->opacity < 3)
+        return;
+
+    /* 平铺模式下图像尺寸必须 > 0，否则 period=0 会导致取模除零 */
+    if ((img_data->w <= 0) || (img_data->h <= 0) || (!img_data->pixmap))
+        return;
+
+    /* trans 为空时按单位矩阵处理（纯平铺） */
+    ipgui_trans_mat_t identity;
+    if (!trans) {
+        identity.a = IPGUI_FIXED_PRECI;
+        identity.b = 0;
+        identity.c = 0;
+        identity.d = IPGUI_FIXED_PRECI;
+        trans = &identity;
+    }
+
+    /* check if matrix is invertible */
+    if (trans->a * trans->d == trans->b * trans->c) {
+        ipgui_dbg_warning("warning: the transfrom matrix err, because it is 不可逆的\r\n");
+        return;
+    }
+
+    /* 平铺模式下图像覆盖整个无穷平面，绘制区域 = surf∩clip（若有 clip） */
+    ipgui_aabb_t  draw_in_surf;
+    ipgui_coord_t draw_w, draw_h;
+    if (clip) {
+        if (0 != ipgui_aabb_overlap(&draw_in_surf, &surf->surf, clip))
+            return;
+    } else {
+        draw_in_surf = surf->surf;
+    }
+    draw_w = ipgui_aabb_width (&draw_in_surf);
+    draw_h = ipgui_aabb_height(&draw_in_surf);
+    if ((draw_w <= 0) || (draw_h <= 0))
+        return;
+
+    /* allocate image buffer first: 每行一个缓冲（逐行渲染），平铺无需 mask 缓冲 */
+    ipgui_coord_t res_h = 0;
+    u8_t * pixmap;
+    pixmap = ipgui_image_buf_acquire(
+        img_data->px_size * draw_w,
+        1,/* render line by line */
+        &res_h);
+    if ((pixmap == (u8_t *)0) || (!res_h))
+        return;
+
+    /* 反向映射矩阵：屏幕 → 源图像 */
+    ipgui_trans_mat_t inv;
+    ipgui_image_trans_matrix_invert(trans, &inv);
+    ipgui_scoord_t next_pix_incx/* inv.a */, next_pix_incy/* inv.c */;
+    ipgui_scoord_t next_row_incx/* inv.b */, next_row_incy/* inv.d */;
+    next_pix_incx = inv.a;
+    next_pix_incy = inv.c;
+    next_row_incx = inv.b;
+    next_row_incy = inv.d;
+
+    /* 平铺周期（定点） */
+    ipgui_scoord_t period_x = (ipgui_scoord_t)img_data->w * IPGUI_FIXED_PRECI;
+    ipgui_scoord_t period_y = (ipgui_scoord_t)img_data->h * IPGUI_FIXED_PRECI;
+
+    /* pivot 在源图像坐标系下的定点坐标 */
+    ipgui_scoord_t ori_dx, ori_dy;
+    ori_dx = pivot->x * IPGUI_FIXED_PRECI;
+    ori_dy = pivot->y * IPGUI_FIXED_PRECI;
+
+    /* 屏幕坐标相对于 anchor 的范围（反向映射输入） */
+    ipgui_coord_t x0 = draw_in_surf.start.x - anchor->x;
+    ipgui_coord_t y0 = draw_in_surf.start.y - anchor->y;
+    ipgui_coord_t x1 = draw_in_surf.end.x   - anchor->x;
+    ipgui_coord_t y1 = draw_in_surf.end.y   - anchor->y;
+
+    /* 起始行对应的源坐标（定点）：xo = inv.a*x + inv.b*y + pivot.x */
+    ipgui_scoord_t xo_start_row, yo_start_row;
+    xo_start_row = inv.a * x0 + inv.b * y0 + ori_dx;
+    yo_start_row = inv.c * x0 + inv.d * y0 + ori_dy;
+    /* 保持行起点包裹在 [0, period) 内，避免多行累积溢出 */
+    xo_start_row = ipgui_fixed_wrap(xo_start_row, period_x);
+    yo_start_row = ipgui_fixed_wrap(yo_start_row, period_y);
+
+    /* 单行混合区域（每次只混合一行），mask 传 NULL：平铺每个像素完全不透明 */
+    ipgui_aabb_t row_aabb;
+    row_aabb.start.x = draw_in_surf.start.x;
+    row_aabb.end.x   = draw_in_surf.end.x;
+    row_aabb.start.y = row_aabb.end.y = draw_in_surf.start.y;
+
+    ipgui_image_src_t img_src;
+    img_src.px_size   = img_data->px_size;
+    img_src.buf       = pixmap;
+    img_src.stride    = draw_w * img_data->px_size;
+    img_src.img_pxfmt = img_data->fmt;
+    img_src.img_aabb  = &row_aabb;
+
+    u32_t px_sz  = img_data->px_size; /* per pixel size */
+    ipgui_coord_t x, y;
+    ipgui_scoord_t xo, yo;        /* 反向映射得到的源图像定点坐标（已包裹） */
+    u32_t idx = 0;
+    u8_t cr[10];
+    u8_t * cr_a, * cr_b, * cr_c, * cr_d;
+    u32_t hd, vd;                 /* 采样点在 a 右侧/下侧的小数距离，缩放到 0-255 */
+    ipgui_coord_t temp_x, temp_y;
+    ipgui_coord_t temp_x1, temp_y1;  /* 右/下邻居（越界回绕到 0） */
+
+    /* reverse mapping（反向映射）every pixel */
+    for (y = y0; y <= y1; y ++) {
+        x   = x0;
+        xo  = xo_start_row;
+        yo  = yo_start_row;
+        idx = 0;
+        for (; x <= x1; x ++) {
+            /* xo,yo 已在 [0, period) 内，故整数像素索引落在 [0, w-1]×[0, h-1] */
+            hd = xo & (~IPGUI_FIXED_MASK);
+            vd = yo & (~IPGUI_FIXED_MASK);
+            /* scale to 0-255 */
+#if SHIFT > 0
+            hd = hd << SHIFT;
+            vd = vd << SHIFT;
+#elif SHIFT < 0
+            hd = hd >> (-SHIFT);
+            vd = vd >> (-SHIFT);
+#endif
+            /* left top point(a) coordinate */
+            temp_x = IPGUI_FIXED_FLOOR(xo);
+            temp_y = IPGUI_FIXED_FLOOR(yo);
+            /* 右/下邻居越界回绕（平铺：右边界连到左边界，下边界连到上边界） */
+            temp_x1 = ipgui_idx_wrap(temp_x + 1, img_data->w);
+            temp_y1 = ipgui_idx_wrap(temp_y + 1, img_data->h);
+
+            if (IPGUI_IMAGE_QUALITY_LOW == quality) { /* 点采样 */
+                cr_a = image_pixmap_get(img_data, temp_x, temp_y);
+                ipgui_memcpy(pixmap + idx * px_sz, cr_a, px_sz);
+            } else if (IPGUI_IMAGE_QUALITY_MEDIUM == quality) { /* 最近邻插值 */
+                ipgui_coord_t nx = temp_x, ny = temp_y;
+                if (hd >= 128) nx = temp_x1;   /* 四舍五入，右边界回绕 */
+                if (vd >= 128) ny = temp_y1;   /* 四舍五入，下边界回绕 */
+                cr_a = image_pixmap_get(img_data, nx, ny);
+                ipgui_memcpy(pixmap + idx * px_sz, cr_a, px_sz);
+            } else { /* 双线性插值 */
+                cr_a = image_pixmap_get(img_data, temp_x,  temp_y);
+                cr_b = image_pixmap_get(img_data, temp_x1, temp_y);
+                cr_c = image_pixmap_get(img_data, temp_x,  temp_y1);
+                cr_d = image_pixmap_get(img_data, temp_x1, temp_y1);
+                /* lerp */
+                g_pix_lerp[img_data->fmt].bilinear(cr_a, cr_b, cr_c, cr_d, (u8_t)hd, (u8_t)vd, cr);
+                /* write to pixel buffer */
+                ipgui_memcpy(pixmap + idx * px_sz, cr, px_sz);
+            }
+
+            idx ++;
+            /* 推进到下一像素的源坐标，并包裹回 [0, period) */
+            xo = ipgui_fixed_wrap(xo + next_pix_incx, period_x);
+            yo = ipgui_fixed_wrap(yo + next_pix_incy, period_y);
+        }
+        /* 推进到下一行的行起点源坐标，并包裹回 [0, period) */
+        xo_start_row = ipgui_fixed_wrap(xo_start_row + next_row_incx, period_x);
+        yo_start_row = ipgui_fixed_wrap(yo_start_row + next_row_incy, period_y);
+
+        /* 平铺：每个像素完全不透明，mask 传 NULL，按 opacity 整体混合 */
+        ipgui_blend_image_v1(
+            surf,
+            (ipgui_aabb_t *)0,
+            &img_src,
+            (u8_t *)0,
+            (ipgui_aabb_t *)0,
+            style->opacity,
+            style->blend_mode);
+
+        row_aabb.start.y ++;
+        row_aabb.end.y = row_aabb.start.y;
+    }
+
+    /* free image buffer */
+    ipgui_image_buf_free(pixmap);
+}
