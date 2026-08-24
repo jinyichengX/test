@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ipgui_average_blur · 二维可视化</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d0f14;color:#c8c8d8;font-family:'Cascadia Code','Consolas','Courier New',monospace;padding:16px;min-width:1200px}
+h1{font-size:18px;color:#e8e8f0;margin-bottom:2px}
+.sub{color:#5a5a70;font-size:12px;margin-bottom:16px}
+.panel{background:#151821;border:1px solid #232631;border-radius:6px;padding:14px;margin-bottom:14px}
+.ctrl-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ctrl{display:flex;align-items:center;gap:6px}
+.ctrl label{font-size:12px;color:#7a7a90;white-space:nowrap}
+.ctrl input[type=range]{width:110px}
+.ctrl .val{color:#4fc3f7;font-weight:bold;font-size:13px;min-width:28px;text-align:right}
+.btn{background:#1e2a3a;border:1px solid #2e3a4a;color:#a8b8c8;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit}
+.btn:hover{background:#2e3a4a}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.active{background:#2a4a3a;border-color:#3a6a4a;color:#81c784}
+.btn.dir-active{background:#1a3a5a;border-color:#3a6a8a;color:#4fc3f7}
+.masks{display:flex;gap:24px;align-items:flex-start;overflow-x:auto}
+.mask-block{flex-shrink:0}
+.mask-title{font-size:13px;color:#8a8aa0;margin-bottom:6px}
+.mask-grid{display:grid;gap:1px;background:#1a1d24;padding:1px;border-radius:4px}
+.mask-grid.in{--cell:48px}
+.mask-grid.out{--cell:48px}
+.cell{width:var(--cell);height:var(--cell);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;border:2px solid transparent;border-radius:2px;position:relative}
+.cell .idx{position:absolute;top:1px;left:2px;font-size:8px;color:rgba(255,255,255,.25);font-weight:normal}
+.cell.win{border-color:#4fc3f7;z-index:2}
+.cell.cur-out{border-color:#81c784;z-index:2;box-shadow:0 0 6px rgba(129,199,132,.4)}
+.cell.done-out{border:1px solid #2a4a2a}
+.info-bar{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;margin-bottom:8px}
+.info-bar .item{display:flex;gap:6px}
+.info-bar .item .k{color:#5a5a70}
+.info-bar .item .v{color:#4fc3f7;font-weight:bold}
+.info-bar .item .phase{color:#ffb74d;font-weight:bold}
+.formula{background:#0a0c12;border:1px solid #1e2128;border-radius:4px;padding:10px 14px;font-size:13px;line-height:1.8;margin-top:8px}
+.f-green{color:#81c784}
+.f-blue{color:#4fc3f7}
+.f-red{color:#e57373}
+.f-orange{color:#ffb74d}
+.f-dim{color:#5a5a70}
+.code-block{background:#0a0c12;border:1px solid #1e2128;border-radius:4px;overflow:auto;max-height:520px}
+.code-block pre{margin:0;padding:8px 0}
+.code-line{display:flex;padding:0 12px;min-height:20px;line-height:20px;font-size:12px;white-space:pre}
+.code-line .ln{color:#3a3a4a;width:32px;text-align:right;flex-shrink:0;margin-right:12px;user-select:none}
+.code-line .ct{color:#5a6a7a}
+.code-line.hl{background:rgba(79,195,247,.12)}
+.code-line.hl .ct{color:#c8d8e8}
+.code-line .kw{color:#c792ea}
+.code-line .ty{color:#82b1ff}
+.code-line .fn{color:#82d8b1}
+.code-line .nm{color:#f9c74f}
+.code-line .cm{color:#4a5a4a;font-style:italic}
+.code-line .st{color:#89ddff}
+.legend{display:flex;gap:14px;font-size:11px;color:#7a7a8a;flex-wrap:wrap;margin-top:8px}
+.legend .dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<h1>ipgui_average_blur · 二维可视化</h1>
+<p class="sub">水平 / 垂直模糊 · 逻辑与 C 代码 100% 一致 · 三阶段滑动窗口 · zero-padding · 直接除法</p>
+
+<div class="panel">
+  <div class="ctrl-row">
+    <div class="ctrl">
+      <label>方向</label>
+      <button class="btn dir-active" id="btnDirHor">水平 hor</button>
+      <button class="btn" id="btnDirVer">垂直 ver</button>
+    </div>
+    <div class="ctrl"><label>in-&gt;w</label><input type="range" id="sInW" min="1" max="16" step="1" value="7"><span class="val" id="vInW">7</span></div>
+    <div class="ctrl"><label>in-&gt;h</label><input type="range" id="sInH" min="1" max="10" step="1" value="4"><span class="val" id="vInH">4</span></div>
+    <div class="ctrl"><label>kn_size</label><input type="range" id="sKn" min="1" max="10" step="1" value="3"><span class="val" id="vKn">3</span></div>
+    <div class="ctrl"><label>out-&gt;w</label><input type="range" id="sOutW" min="1" max="20" step="1" value="16"><span class="val" id="vOutW">16</span></div>
+    <div class="ctrl"><label>out-&gt;h</label><input type="range" id="sOutH" min="1" max="10" step="1" value="4"><span class="val" id="vOutH">4</span></div>
+  </div>
+  <div class="ctrl-row" style="margin-top:10px">
+    <div class="ctrl"><button class="btn" id="btnRegen">重新生成 mask</button></div>
+    <span style="flex:1"></span>
+    <button class="btn" id="btnPrev">上一步</button>
+    <button class="btn" id="btnNext">下一步</button>
+    <button class="btn" id="btnAuto">自动播放</button>
+    <button class="btn" id="btnReset">重置</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="info-bar">
+    <div class="item"><span class="k" id="lab1">y=</span><span class="v" id="iY">0</span></div>
+    <div class="item"><span class="k" id="lab2">x=</span><span class="v" id="iX">0</span></div>
+    <div class="item"><span class="k">phase:</span><span class="phase" id="iPhase">init</span></div>
+    <div class="item"><span class="k">sum=</span><span class="v" id="iSum">0</span></div>
+    <div class="item"><span class="k">out=</span><span class="v" id="iOut">0</span></div>
+    <div class="item"><span class="k">step:</span><span class="v" id="iStep">0/0</span></div>
+  </div>
+  <div class="formula" id="formulaBox"></div>
+</div>
+
+<div class="panel">
+  <div class="masks">
+    <div class="mask-block">
+      <div class="mask-title">in mask (源) <span id="inDim" style="color:#4a4a5a"></span></div>
+      <div class="mask-grid in" id="gridIn"></div>
+    </div>
+    <div class="mask-block">
+      <div class="mask-title">out mask (输出) <span id="outDim" style="color:#4a4a5a"></span></div>
+      <div class="mask-grid out" id="gridOut"></div>
+    </div>
+  </div>
+  <div class="legend">
+    <div><span class="dot" style="background:#4fc3f7"></span>滑动窗口</div>
+    <div><span class="dot" style="background:#81c784"></span>当前输出</div>
+    <div><span class="dot" style="background:#1a3a2a"></span>已计算</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="code-block">
+    <div id="codeContainer"></div>
+  </div>
+</div>
+
+<script>
+/* ===== C code: horizontal (exact, for display) ===== */
+var C_CODE_HOR = [
+'void ipgui_average_blur_hor(',
+'    ipgui_mask_surface_t * in,',
+'    ipgui_coord_t          kn_size, /* average blur kernel size */',
+'    ipgui_mask_surface_t * out)',
+'{',
+'    if (!in || !in->mask || !out || !out->mask) return;',
+'    if (kn_size <= 0) return;',
+'',
+'    ipgui_coord_t in_w  = in->w;',
+'    ipgui_coord_t in_h  = in->h;',
+'    ipgui_coord_t out_w = out->w;',
+'    ipgui_coord_t out_h = out->h;',
+'',
+'    ipgui_coord_t eff_h  = (in_h < out_h) ? in_h : out_h;',
+'    ipgui_coord_t full_w = in_w + kn_size - 1;',
+'    ipgui_coord_t eff_w  = (out_w < full_w) ? out_w : full_w;',
+'',
+'    int in_place = (in->mask == out->mask && in_w == out_w);',
+'',
+'    if (in_place) {',
+'        /* ---- in-place: ring buffer ---- */',
+'        ipgui_coord_t ring_h;',
+'        u8_t *ring = ipgui_mask_buf_acquire(kn_size, 1, &ring_h);',
+'        if (!ring || ring_h != 1) {',
+'            if (ring) ipgui_mask_buf_free(ring);',
+'            return;',
+'        }',
+'',
+'        for (ipgui_coord_t y = 0; y < eff_h; y++) {',
+'            u8_t *row = out->mask + (uintptr_t)y * out_w;',
+'            ipgui_memset(ring, 0, (u32_t)kn_size);',
+'',
+'            s32_t sum = (s32_t)row[0];',
+'            ring[0] = row[0];',
+'            row[0] = (u8_t)(sum / (s32_t)kn_size);',
+'',
+'            ipgui_coord_t c_start = kn_size;',
+'            ipgui_coord_t c_end   = in_w;',
+'            ipgui_coord_t x = 1;',
+'            ipgui_coord_t ri = 1 % kn_size;',
+'',
+'            /* Phase 1: left edge (leave = 0) */',
+'            for (; x < c_start && x < eff_w; x++) {',
+'                s32_t enter = (s32_t)row[x];',
+'                ring[ri] = row[x];',
+'                ri++; if (ri >= kn_size) ri = 0;',
+'                sum += enter - 0;',
+'                row[x] = (u8_t)(sum / (s32_t)kn_size);',
+'            }',
+'',
+'            /* Phase 2: center */',
+'            while (x < c_end && x < eff_w) {',
+'                s32_t enter = (s32_t)row[x];',
+'                s32_t leave = ring[ri];',
+'                ring[ri] = row[x];',
+'                ri++; if (ri >= kn_size) ri = 0;',
+'                sum += enter - leave;',
+'                row[x] = (u8_t)(sum / (s32_t)kn_size);',
+'                x++;',
+'            }',
+'',
+'            /* Phase 3: right edge (enter = 0) */',
+'            for (; x < eff_w; x++) {',
+'                s32_t leave = ring[ri];',
+'                ri++; if (ri >= kn_size) ri = 0;',
+'                sum += 0 - leave;',
+'                row[x] = (u8_t)(sum / (s32_t)kn_size);',
+'            }',
+'        }',
+'',
+'        ipgui_mask_buf_free(ring);',
+'',
+'    } else {',
+'        /* ---- non-in-place: sliding window ---- */',
+'        for (ipgui_coord_t y = 0; y < eff_h; y++) {',
+'            const u8_t *src = in->mask + (uintptr_t)y * in_w;',
+'            u8_t       *dst = out->mask + (uintptr_t)y * out_w;',
+'',
+'            /* init sum: window [-kn_size+1, 0], out-of-bounds = 0 */',
+'            s32_t sum = (s32_t)src[0];',
+'            dst[0] = (u8_t)(sum / (s32_t)kn_size);',
+'',
+'            ipgui_coord_t c_start = kn_size;',
+'            ipgui_coord_t c_end   = in_w;',
+'            ipgui_coord_t x = 1;',
+'',
+'            /* Phase 1: left edge (leave = 0) */',
+'            for (; x < c_start && x < eff_w; x++) {',
+'                s32_t enter = (x < in_w) ? (s32_t)src[x] : 0;',
+'                sum += enter - 0;',
+'                dst[x] = (u8_t)(sum / (s32_t)kn_size);',
+'            }',
+'',
+'            /* Phase 2: center (4x unrolled) */',
+'            while (x + 4 <= c_end && x + 4 <= eff_w) {',
+'                sum += (s32_t)src[x] - (s32_t)src[x - kn_size];',
+'                dst[x] = (u8_t)(sum / (s32_t)kn_size); x++;',
+'                sum += (s32_t)src[x] - (s32_t)src[x - kn_size];',
+'                dst[x] = (u8_t)(sum / (s32_t)kn_size); x++;',
+'                sum += (s32_t)src[x] - (s32_t)src[x - kn_size];',
+'                dst[x] = (u8_t)(sum / (s32_t)kn_size); x++;',
+'                sum += (s32_t)src[x] - (s32_t)src[x - kn_size];',
+'                dst[x] = (u8_t)(sum / (s32_t)kn_size); x++;',
+'            }',
+'            while (x < c_end && x < eff_w) {',
+'                sum += (s32_t)src[x] - (s32_t)src[x - kn_size];',
+'                dst[x] = (u8_t)(sum / (s32_t)kn_size); x++;',
+'            }',
+'',
+'            /* Phase 3: right edge (enter = 0) */',
+'            for (; x < eff_w; x++) {',
+'                sum += 0 - (s32_t)src[x - kn_size];',
+'                dst[x] = (u8_t)(sum / (s32_t)kn_size);',
+'            }',
+'        }',
+'    }',
+'',
+'    /* zero: row tails */',
+'    for (ipgui_coord_t y = 0; y < eff_h; y++) {',
+'        u8_t *dst = out->mask + (uintptr_t)y * out_w;',
+'        ipgui_memset(dst + eff_w, 0, (u32_t)(out_w - eff_w));',
+'    }',
+'',
+'    /* zero: extra rows */',
+'    if (out_h > eff_h) {',
+'        u8_t *dst = out->mask + (uintptr_t)eff_h * out_w;',
+'        ipgui_memset(dst, 0, (u32_t)((u32_t)out_w * (u32_t)(out_h - eff_h)));',
+'    }',
+'}'
+];
+
+/* line numbers (0-based) for non-in-place phases */
+var HL_HOR = {
+  init:        [79, 80],
+  left:        [88, 89, 90],
+  center4x_0:  [95, 96],
+  center4x_1:  [97, 98],
+  center4x_2:  [99, 100],
+  center4x_3:  [101, 102],
+  center_tail: [105, 106],
+  right:       [111, 112]
+};
+
+/* ===== C code: vertical (exact, for display) ===== */
+var C_CODE_VER = [
+'void ipgui_average_blur_ver(',
+'    ipgui_mask_surface_t * in,',
+'    ipgui_coord_t          kn_size, /* average blur kernel size */',
+'    ipgui_mask_surface_t * out)',
+'{',
+'    if (!in || !in->mask || !out || !out->mask) return;',
+'    if (kn_size <= 0) return;',
+'',
+'    ipgui_coord_t in_w  = in->w;',
+'    ipgui_coord_t in_h  = in->h;',
+'    ipgui_coord_t out_w = out->w;',
+'    ipgui_coord_t out_h = out->h;',
+'',
+'    ipgui_coord_t eff_w  = (in_w < out_w) ? in_w : out_w;',
+'    ipgui_coord_t full_h = in_h + kn_size - 1;',
+'    ipgui_coord_t eff_h  = (out_h < full_h) ? out_h : full_h;',
+'',
+'    u8_t in_place = (in->mask == out->mask && in_w == out_w);',
+'',
+'    if (in_place) {',
+'        /* ---- in-place: ring buffer ---- */',
+'        ipgui_coord_t ring_h;',
+'        u8_t *ring = ipgui_mask_buf_acquire(kn_size, 1, &ring_h);',
+'        if (!ring || ring_h != 1) {',
+'            if (ring) ipgui_mask_buf_free(ring);',
+'            return;',
+'        }',
+'',
+'        for (ipgui_coord_t x = 0; x < eff_w; x++) {',
+'            u8_t *col = out->mask + (uintptr_t)x;',
+'            ipgui_memset(ring, 0, (u32_t)kn_size);',
+'',
+'            s32_t sum = (s32_t)col[0];',
+'            ring[0] = col[0];',
+'            col[0] = (u8_t)(sum / (s32_t)kn_size);',
+'',
+'            ipgui_coord_t c_start = kn_size;',
+'            ipgui_coord_t c_end   = in_h;',
+'            ipgui_coord_t y = 1;',
+'            ipgui_coord_t ri = 1 % kn_size;',
+'',
+'            /* Phase 1: top edge (leave = 0) */',
+'            for (; y < c_start && y < eff_h; y++) {',
+'                s32_t enter = (y < in_h) ? (s32_t)col[(uintptr_t)y * out_w] : 0;',
+'                ring[ri] = (u8_t)enter;',
+'                ri++; if (ri >= kn_size) ri = 0;',
+'                sum += enter - 0;',
+'                col[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size);',
+'            }',
+'',
+'            /* Phase 2: center */',
+'            while (y < c_end && y < eff_h) {',
+'                s32_t enter = (s32_t)col[(uintptr_t)y * out_w];',
+'                s32_t leave = ring[ri];',
+'                ring[ri] = col[(uintptr_t)y * out_w];',
+'                ri++; if (ri >= kn_size) ri = 0;',
+'                sum += enter - leave;',
+'                col[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size);',
+'                y++;',
+'            }',
+'',
+'            /* Phase 3: bottom edge (enter = 0) */',
+'            for (; y < eff_h; y++) {',
+'                s32_t leave = ring[ri];',
+'                ri++; if (ri >= kn_size) ri = 0;',
+'                sum += 0 - leave;',
+'                col[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size);',
+'            }',
+'        }',
+'',
+'        ipgui_mask_buf_free(ring);',
+'',
+'    } else {',
+'        /* ---- non-in-place: sliding window ---- */',
+'        for (ipgui_coord_t x = 0; x < eff_w; x++) {',
+'            const u8_t *src = in->mask + (uintptr_t)x;',
+'            u8_t       *dst = out->mask + (uintptr_t)x;',
+'',
+'            /* init sum: window [-kn_size+1, 0], out-of-bounds = 0 */',
+'            s32_t sum = (s32_t)src[0];',
+'            dst[0] = (u8_t)(sum / (s32_t)kn_size);',
+'',
+'            ipgui_coord_t c_start = kn_size;',
+'            ipgui_coord_t c_end   = in_h;',
+'            ipgui_coord_t y = 1;',
+'',
+'            /* Phase 1: top edge (leave = 0) */',
+'            for (; y < c_start && y < eff_h; y++) {',
+'                s32_t enter = (y < in_h) ? (s32_t)src[(uintptr_t)y * in_w] : 0;',
+'                sum += enter - 0;',
+'                dst[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size);',
+'            }',
+'',
+'            /* Phase 2: center (4x unrolled) */',
+'            while (y + 4 <= c_end && y + 4 <= eff_h) {',
+'                sum += (s32_t)src[(uintptr_t)y * in_w] - (s32_t)src[(uintptr_t)(y - kn_size) * in_w];',
+'                dst[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size); y++;',
+'                sum += (s32_t)src[(uintptr_t)y * in_w] - (s32_t)src[(uintptr_t)(y - kn_size) * in_w];',
+'                dst[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size); y++;',
+'                sum += (s32_t)src[(uintptr_t)y * in_w] - (s32_t)src[(uintptr_t)(y - kn_size) * in_w];',
+'                dst[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size); y++;',
+'                sum += (s32_t)src[(uintptr_t)y * in_w] - (s32_t)src[(uintptr_t)(y - kn_size) * in_w];',
+'                dst[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size); y++;',
+'            }',
+'            while (y < c_end && y < eff_h) {',
+'                sum += (s32_t)src[(uintptr_t)y * in_w] - (s32_t)src[(uintptr_t)(y - kn_size) * in_w];',
+'                dst[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size); y++;',
+'            }',
+'',
+'            /* Phase 3: bottom edge (enter = 0) */',
+'            for (; y < eff_h; y++) {',
+'                sum += 0 - (s32_t)src[(uintptr_t)(y - kn_size) * in_w];',
+'                dst[(uintptr_t)y * out_w] = (u8_t)(sum / (s32_t)kn_size);',
+'            }',
+'        }',
+'    }',
+'',
+'    /* zero: column tails (strided) */',
+'    for (ipgui_coord_t x = 0; x < eff_w; x++) {',
+'        for (ipgui_coord_t y = eff_h; y < out_h; y++) {',
+'            out->mask[(uintptr_t)y * out_w + x] = 0;',
+'        }',
+'    }',
+'',
+'    /* zero: extra columns */',
+'    for (ipgui_coord_t y = 0; y < out_h; y++) {',
+'        u8_t *row = out->mask + (uintptr_t)y * out_w;',
+'        ipgui_memset(row + eff_w, 0, (u32_t)(out_w - eff_w));',
+'    }',
+'}'
+];
+
+/* line numbers (0-based) for non-in-place phases */
+var HL_VER = {
+  init:        [79, 80],
+  left:        [88, 89, 90],
+  center4x_0:  [95, 96],
+  center4x_1:  [97, 98],
+  center4x_2:  [99, 100],
+  center4x_3:  [101, 102],
+  center_tail: [105, 106],
+  right:       [111, 112]
+};
+
+/* ===== state ===== */
+var state = {
+  direction: 'hor',
+  in_w: 7, in_h: 4, kn_size: 3, out_w: 16, out_h: 4,
+  in_mask: [], out_mask: [],
+  steps: [], stepIdx: -1,
+  autoTimer: null
+};
+
+/* ===== mask generation ===== */
+function genRandomMask(w, h) {
+  var m = new Uint8Array(w * h);
+  for (var i = 0; i < w * h; i++)
+    m[i] = Math.floor(Math.random() * 256);
+  return m;
+}
+
+/* ===== simulation: horizontal (exact replica of C non-in-place path) ===== */
+function simulateHor() {
+  var in_w = state.in_w, in_h = state.in_h;
+  var kn_size = state.kn_size;
+  var out_w = state.out_w, out_h = state.out_h;
+  var in_mask = state.in_mask;
+  var steps = [];
+  if (kn_size <= 0) return steps;
+
+  var eff_h  = (in_h < out_h) ? in_h : out_h;
+  var full_w = in_w + kn_size - 1;
+  var eff_w  = (out_w < full_w) ? out_w : full_w;
+
+  for (var y = 0; y < eff_h; y++) {
+    var srcOff = y * in_w;
+    var sum = in_mask[srcOff];
+    var out_val = (sum / kn_size) | 0;
+    steps.push({
+      y: y, x: 0, phase: 'init',
+      sum: sum, leave: null, enter: null, out_val: out_val,
+      leave_idx: -1, enter_idx: 0,
+      win_left: 0, win_right: 0
+    });
+
+    var c_start = kn_size, c_end = in_w, x = 1;
+
+    for (; x < c_start && x < eff_w; x++) {
+      var enter = (x < in_w) ? in_mask[srcOff + x] : 0;
+      var leave = 0;
+      sum += enter - leave;
+      out_val = (sum / kn_size) | 0;
+      steps.push({
+        y: y, x: x, phase: 'left',
+        sum: sum, leave: leave, enter: enter, out_val: out_val,
+        leave_idx: -1, enter_idx: (x < in_w) ? x : -1,
+        win_left: 0, win_right: Math.min(in_w - 1, x)
+      });
+    }
+
+    while (x + 4 <= c_end && x + 4 <= eff_w) {
+      for (var ui = 0; ui < 4; ui++) {
+        var l_idx = x - kn_size;
+        var e_val = in_mask[srcOff + x];
+        var l_val = in_mask[srcOff + l_idx];
+        sum += e_val - l_val;
+        out_val = (sum / kn_size) | 0;
+        steps.push({
+          y: y, x: x, phase: 'center4x_' + ui,
+          sum: sum, leave: l_val, enter: e_val, out_val: out_val,
+          leave_idx: l_idx, enter_idx: x,
+          win_left: x - kn_size + 1, win_right: x
+        });
+        x++;
+      }
+    }
+    while (x < c_end && x < eff_w) {
+      var l_idx2 = x - kn_size;
+      var e_val2 = in_mask[srcOff + x];
+      var l_val2 = in_mask[srcOff + l_idx2];
+      sum += e_val2 - l_val2;
+      out_val = (sum / kn_size) | 0;
+      steps.push({
+        y: y, x: x, phase: 'center_tail',
+        sum: sum, leave: l_val2, enter: e_val2, out_val: out_val,
+        leave_idx: l_idx2, enter_idx: x,
+        win_left: x - kn_size + 1, win_right: x
+      });
+      x++;
+    }
+
+    for (; x < eff_w; x++) {
+      var l_idx3 = x - kn_size;
+      var l_val3 = in_mask[srcOff + l_idx3];
+      sum += 0 - l_val3;
+      out_val = (sum / kn_size) | 0;
+      steps.push({
+        y: y, x: x, phase: 'right',
+        sum: sum, leave: l_val3, enter: 0, out_val: out_val,
+        leave_idx: l_idx3, enter_idx: -1,
+        win_left: Math.max(0, x - kn_size + 1), win_right: in_w - 1
+      });
+    }
+  }
+  return steps;
+}
+
+/* ===== simulation: vertical (exact replica of C non-in-place path) ===== */
+function simulateVer() {
+  var in_w = state.in_w, in_h = state.in_h;
+  var kn_size = state.kn_size;
+  var out_w = state.out_w, out_h = state.out_h;
+  var in_mask = state.in_mask;
+  var steps = [];
+  if (kn_size <= 0) return steps;
+
+  var eff_w  = (in_w < out_w) ? in_w : out_w;
+  var full_h = in_h + kn_size - 1;
+  var eff_h  = (out_h < full_h) ? out_h : full_h;
+
+  for (var x = 0; x < eff_w; x++) {
+    var srcBase = x; /* in->mask + x, stride = in_w */
+
+    /* init: sum = src[0] = in_mask[x] (pixel at (x, 0)) */
+    var sum = in_mask[srcBase];
+    var out_val = (sum / kn_size) | 0;
+    steps.push({
+      y: 0, x: x, phase: 'init',
+      sum: sum, leave: null, enter: null, out_val: out_val,
+      leave_idx: -1, enter_idx: 0,
+      win_top: 0, win_bottom: 0
+    });
+
+    var c_start = kn_size, c_end = in_h, y = 1;
+
+    /* Phase 1: top edge (leave = 0) */
+    for (; y < c_start && y < eff_h; y++) {
+      var enter = (y < in_h) ? in_mask[srcBase + y * in_w] : 0;
+      var leave = 0;
+      sum += enter - leave;
+      out_val = (sum / kn_size) | 0;
+      steps.push({
+        y: y, x: x, phase: 'left',
+        sum: sum, leave: leave, enter: enter, out_val: out_val,
+        leave_idx: -1, enter_idx: (y < in_h) ? y : -1,
+        win_top: 0, win_bottom: Math.min(in_h - 1, y)
+      });
+    }
+
+    /* Phase 2: center (4x unrolled) */
+    while (y + 4 <= c_end && y + 4 <= eff_h) {
+      for (var ui = 0; ui < 4; ui++) {
+        var l_idx = y - kn_size;
+        var e_val = in_mask[srcBase + y * in_w];
+        var l_val = in_mask[srcBase + l_idx * in_w];
+        sum += e_val - l_val;
+        out_val = (sum / kn_size) | 0;
+        steps.push({
+          y: y, x: x, phase: 'center4x_' + ui,
+          sum: sum, leave: l_val, enter: e_val, out_val: out_val,
+          leave_idx: l_idx, enter_idx: y,
+          win_top: y - kn_size + 1, win_bottom: y
+        });
+        y++;
+      }
+    }
+    while (y < c_end && y < eff_h) {
+      var l_idx2 = y - kn_size;
+      var e_val2 = in_mask[srcBase + y * in_w];
+      var l_val2 = in_mask[srcBase + l_idx2 * in_w];
+      sum += e_val2 - l_val2;
+      out_val = (sum / kn_size) | 0;
+      steps.push({
+        y: y, x: x, phase: 'center_tail',
+        sum: sum, leave: l_val2, enter: e_val2, out_val: out_val,
+        leave_idx: l_idx2, enter_idx: y,
+        win_top: y - kn_size + 1, win_bottom: y
+      });
+      y++;
+    }
+
+    /* Phase 3: bottom edge (enter = 0) */
+    for (; y < eff_h; y++) {
+      var l_idx3 = y - kn_size;
+      var l_val3 = in_mask[srcBase + l_idx3 * in_w];
+      sum += 0 - l_val3;
+      out_val = (sum / kn_size) | 0;
+      steps.push({
+        y: y, x: x, phase: 'right',
+        sum: sum, leave: l_val3, enter: 0, out_val: out_val,
+        leave_idx: l_idx3, enter_idx: -1,
+        win_top: Math.max(0, y - kn_size + 1), win_bottom: in_h - 1
+      });
+    }
+  }
+  return steps;
+}
+
+/* ===== rendering ===== */
+function cellColor(val) {
+  var t = val / 255;
+  var r = Math.round(10 + t * 40);
+  var g = Math.round(14 + t * 120);
+  var b = Math.round(20 + t * 180);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+function cellText(val) {
+  return val > 120 ? '#0a0a0a' : '#7a8a9a';
+}
+
+function getCodeArr() { return state.direction === 'hor' ? C_CODE_HOR : C_CODE_VER; }
+function getHL() { return state.direction === 'hor' ? HL_HOR : HL_VER; }
+
+function renderCode() {
+  var container = document.getElementById('codeContainer');
+  var code = getCodeArr();
+  var html = '<pre>';
+  for (var i = 0; i < code.length; i++) {
+    var line = code[i];
+    var escaped = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html += '<div class="code-line" id="cl' + i + '">';
+    html += '<span class="ln">' + (i + 1) + '</span>';
+    html += '<span class="ct">' + escaped + '</span>';
+    html += '</div>';
+  }
+  html += '</pre>';
+  container.innerHTML = html;
+}
+
+function highlightCode(phase) {
+  var hl = getHL();
+  var code = getCodeArr();
+  var lines = hl[phase] || [];
+  for (var i = 0; i < code.length; i++) {
+    var el = document.getElementById('cl' + i);
+    if (el) el.classList.toggle('hl', lines.indexOf(i) >= 0);
+  }
+  if (lines.length > 0) {
+    var first = document.getElementById('cl' + lines[0]);
+    if (first && first.scrollIntoView) {
+      var container = document.querySelector('.code-block');
+      var top = first.offsetTop - container.offsetHeight / 3;
+      if (top < 0) top = 0;
+      container.scrollTop = top;
+    }
+  }
+}
+
+function getEffDims() {
+  var s = state;
+  if (s.direction === 'hor') {
+    var eff_h = Math.min(s.in_h, s.out_h);
+    var eff_w = Math.min(s.out_w, s.in_w + s.kn_size - 1);
+    return { eff_w: eff_w, eff_h: eff_h };
+  } else {
+    var eff_w2 = Math.min(s.in_w, s.out_w);
+    var eff_h2 = Math.min(s.out_h, s.in_h + s.kn_size - 1);
+    return { eff_w: eff_w2, eff_h: eff_h2 };
+  }
+}
+
+function renderMasks() {
+  var s = state;
+  var in_w = s.in_w, in_h = s.in_h;
+  var out_w = s.out_w, out_h = s.out_h;
+  var dims = getEffDims();
+
+  document.getElementById('inDim').textContent = in_w + 'x' + in_h;
+  document.getElementById('outDim').textContent = out_w + 'x' + out_h;
+
+  /* in mask grid */
+  var gridIn = document.getElementById('gridIn');
+  gridIn.style.gridTemplateColumns = 'repeat(' + in_w + ', var(--cell))';
+  var inHtml = '';
+  for (var y = 0; y < in_h; y++) {
+    for (var x = 0; x < in_w; x++) {
+      var v = s.in_mask[y * in_w + x] || 0;
+      inHtml += '<div class="cell" style="background:' + cellColor(v) + ';color:' + cellText(v) + '" id="in_' + x + '_' + y + '">' + v + '</div>';
+    }
+  }
+  gridIn.innerHTML = inHtml;
+
+  /* out mask grid */
+  var gridOut = document.getElementById('gridOut');
+  gridOut.style.gridTemplateColumns = 'repeat(' + out_w + ', var(--cell))';
+  var outHtml = '';
+  for (var y2 = 0; y2 < out_h; y2++) {
+    for (var x2 = 0; x2 < out_w; x2++) {
+      if (y2 >= dims.eff_h || x2 >= dims.eff_w) {
+        outHtml += '<div class="cell" style="background:#111319;color:#3a3a4a" id="out_' + x2 + '_' + y2 + '">0</div>';
+      } else {
+        outHtml += '<div class="cell" style="background:#111319;color:#2a2a35" id="out_' + x2 + '_' + y2 + '">.</div>';
+      }
+    }
+  }
+  gridOut.innerHTML = outHtml;
+}
+
+function updateView() {
+  var s = state;
+  var idx = s.stepIdx;
+  var dims = getEffDims();
+  var isHor = (s.direction === 'hor');
+
+  /* update labels */
+  document.getElementById('lab1').textContent = isHor ? 'y=' : 'y=';
+  document.getElementById('lab2').textContent = isHor ? 'x=' : 'x=';
+
+  /* reset all in cells */
+  for (var y = 0; y < s.in_h; y++) {
+    for (var x = 0; x < s.in_w; x++) {
+      var el = document.getElementById('in_' + x + '_' + y);
+      if (!el) continue;
+      var v = s.in_mask[y * s.in_w + x] || 0;
+      el.style.background = cellColor(v);
+      el.style.color = cellText(v);
+      el.className = 'cell';
+      el.textContent = v;
+    }
+  }
+
+  /* reset all out cells */
+  for (var y2 = 0; y2 < s.out_h; y2++) {
+    for (var x2 = 0; x2 < s.out_w; x2++) {
+      var el2 = document.getElementById('out_' + x2 + '_' + y2);
+      if (!el2) continue;
+      el2.className = 'cell';
+      el2.style.background = '#111319';
+      if (y2 >= dims.eff_h || x2 >= dims.eff_w) {
+        el2.style.color = '#3a3a4a';
+        el2.textContent = '0';
+      } else {
+        el2.style.color = '#2a2a35';
+        el2.textContent = '.';
+      }
+    }
+  }
+
+  /* fill completed outputs */
+  for (var i = 0; i <= idx; i++) {
+    var st = s.steps[i];
+    if (!st) continue;
+    var oe = document.getElementById('out_' + st.x + '_' + st.y);
+    if (oe) {
+      oe.textContent = st.out_val;
+      oe.style.background = cellColor(st.out_val);
+      oe.style.color = cellText(st.out_val);
+      oe.className = 'cell';
+      if (i < idx) oe.classList.add('done-out');
+    }
+  }
+
+  /* highlight current step */
+  if (idx >= 0 && idx < s.steps.length) {
+    var cur = s.steps[idx];
+
+    /* highlight window on in mask */
+    if (isHor) {
+      if (cur.y < s.in_h) {
+        for (var wx = cur.win_left; wx <= cur.win_right; wx++) {
+          var we = document.getElementById('in_' + wx + '_' + cur.y);
+          if (we) we.classList.add('win');
+        }
+      }
+    } else {
+      if (cur.x < s.in_w) {
+        for (var wy = cur.win_top; wy <= cur.win_bottom; wy++) {
+          var we2 = document.getElementById('in_' + cur.x + '_' + wy);
+          if (we2) we2.classList.add('win');
+        }
+      }
+    }
+
+    /* highlight current output */
+    var coe = document.getElementById('out_' + cur.x + '_' + cur.y);
+    if (coe) coe.classList.add('cur-out');
+
+    /* info bar */
+    document.getElementById('iY').textContent = cur.y;
+    document.getElementById('iX').textContent = cur.x;
+    var phaseLabel = {
+      'init': 'init', 'left': isHor ? 'left edge' : 'top edge',
+      'center4x_0': 'center 4x #1', 'center4x_1': 'center 4x #2',
+      'center4x_2': 'center 4x #3', 'center4x_3': 'center 4x #4',
+      'center_tail': 'center tail', 'right': isHor ? 'right edge' : 'bottom edge'
+    };
+    document.getElementById('iPhase').textContent = phaseLabel[cur.phase] || cur.phase;
+    document.getElementById('iSum').textContent = cur.sum;
+    document.getElementById('iOut').textContent = cur.out_val;
+    document.getElementById('iStep').textContent = (idx + 1) + '/' + s.steps.length;
+
+    /* formula */
+    var fb = document.getElementById('formulaBox');
+    if (cur.phase === 'init') {
+      var srcVal = isHor ? s.in_mask[cur.y * s.in_w] : s.in_mask[cur.x];
+      fb.innerHTML = '<span class="f-dim">// init sum: window [-kn_size+1, 0], out-of-bounds = 0</span><br>' +
+        'sum = 0 * ' + (s.kn_size - 1) + ' + src[0] = ' + srcVal +
+        ' = <span class="f-blue">' + cur.sum + '</span> -> ' +
+        (isHor ? 'dst[0]' : 'dst[0]') + ' = sum / kn_size = <span class="f-green">' + cur.out_val + '</span>';
+    } else {
+      var leaveStr = (cur.leave === 0) ? '<span class="f-dim">0 (zero-pad)</span>' : '<span class="f-red">' + cur.leave + '</span>';
+      var enterStr = (cur.enter === 0) ? '<span class="f-dim">0 (zero-pad)</span>' : '<span class="f-orange">' + cur.enter + '</span>';
+      fb.innerHTML = 'sum += ' + enterStr + ' - ' + leaveStr +
+        ' = <span class="f-blue">' + cur.sum + '</span> -> ' +
+        (isHor ? 'dst[' + cur.x + ']' : 'dst[y=' + cur.y + ']') +
+        ' = sum / ' + s.kn_size + ' = <span class="f-green">' + cur.out_val + '</span>';
+    }
+
+    /* code highlight */
+    highlightCode(cur.phase);
+  } else {
+    document.getElementById('iStep').textContent = '0/' + s.steps.length;
+    document.getElementById('formulaBox').innerHTML = '<span class="f-dim">click "Next" to start</span>';
+    highlightCode('');
+  }
+
+  /* buttons */
+  document.getElementById('btnPrev').disabled = (idx < 0);
+  document.getElementById('btnNext').disabled = (idx >= s.steps.length - 1);
+}
+
+/* ===== rebuild ===== */
+function rebuild() {
+  if (state.autoTimer) {
+    clearInterval(state.autoTimer);
+    state.autoTimer = null;
+    document.getElementById('btnAuto').textContent = 'Auto';
+  }
+  state.in_mask = genRandomMask(state.in_w, state.in_h);
+  state.out_mask = new Uint8Array(state.out_w * state.out_h);
+  if (state.direction === 'hor') {
+    state.steps = simulateHor();
+  } else {
+    state.steps = simulateVer();
+  }
+  state.stepIdx = -1;
+  renderCode();
+  renderMasks();
+  updateView();
+}
+
+/* ===== events ===== */
+function bindSlider(id, key, valId) {
+  var el = document.getElementById(id);
+  el.addEventListener('input', function() {
+    state[key] = parseInt(this.value);
+    document.getElementById(valId).textContent = this.value;
+    rebuild();
+  });
+}
+bindSlider('sInW', 'in_w', 'vInW');
+bindSlider('sInH', 'in_h', 'vInH');
+bindSlider('sKn', 'kn_size', 'vKn');
+bindSlider('sOutW', 'out_w', 'vOutW');
+bindSlider('sOutH', 'out_h', 'vOutH');
+
+document.getElementById('btnDirHor').addEventListener('click', function() {
+  if (state.direction === 'hor') return;
+  state.direction = 'hor';
+  this.classList.add('dir-active');
+  document.getElementById('btnDirVer').classList.remove('dir-active');
+  rebuild();
+});
+document.getElementById('btnDirVer').addEventListener('click', function() {
+  if (state.direction === 'ver') return;
+  state.direction = 'ver';
+  this.classList.add('dir-active');
+  document.getElementById('btnDirHor').classList.remove('dir-active');
+  rebuild();
+});
+
+document.getElementById('btnRegen').addEventListener('click', function() {
+  rebuild();
+});
+
+document.getElementById('btnPrev').addEventListener('click', function() {
+  if (state.stepIdx > 0) {
+    state.stepIdx--;
+    updateView();
+  } else if (state.stepIdx === 0) {
+    state.stepIdx = -1;
+    updateView();
+  }
+});
+document.getElementById('btnNext').addEventListener('click', function() {
+  if (state.stepIdx < state.steps.length - 1) {
+    state.stepIdx++;
+    updateView();
+  }
+});
+document.getElementById('btnReset').addEventListener('click', function() {
+  state.stepIdx = -1;
+  if (state.autoTimer) {
+    clearInterval(state.autoTimer);
+    state.autoTimer = null;
+    document.getElementById('btnAuto').textContent = 'Auto';
+  }
+  updateView();
+});
+document.getElementById('btnAuto').addEventListener('click', function() {
+  if (state.autoTimer) {
+    clearInterval(state.autoTimer);
+    state.autoTimer = null;
+    this.textContent = 'Auto';
+    return;
+  }
+  this.textContent = 'Stop';
+  if (state.stepIdx < 0) state.stepIdx = 0;
+  else state.stepIdx++;
+  updateView();
+  state.autoTimer = setInterval(function() {
+    if (state.stepIdx >= state.steps.length - 1) {
+      clearInterval(state.autoTimer);
+      state.autoTimer = null;
+      document.getElementById('btnAuto').textContent = 'Auto';
+      return;
+    }
+    state.stepIdx++;
+    updateView();
+  }, 400);
+});
+
+/* keyboard */
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft') { document.getElementById('btnPrev').click(); e.preventDefault(); }
+  if (e.key === 'ArrowRight') { document.getElementById('btnNext').click(); e.preventDefault(); }
+});
+
+/* init */
+rebuild();
+</script>
+
+
+</body></html>
