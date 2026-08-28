@@ -1,0 +1,140 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(RoboKit LANGUAGES C CXX)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(NOT CMAKE_BUILD_TYPE)
+    # 默认 Debug（带调试符号，支持断点）；发布时用 -DCMAKE_BUILD_TYPE=Release
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+set(ELNET_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../elNET")
+set(IPGUI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../ESDBox_IPGUI")
+
+# ============================================================
+# elNET（C 网络协议栈）-> C 静态库
+# 源码/头文件/依赖库集合与 m:\test\Makefile 保持一致
+# ============================================================
+file(GLOB ELNET_C_SOURCES
+    "${ELNET_ROOT}/src/*.c"
+    "${ELNET_ROOT}/port/*.c"
+    "${ELNET_ROOT}/components/cjson/*.c"
+    "${ELNET_ROOT}/src/app_protocal/tftp/*.c"
+)
+
+add_library(elnet_c STATIC ${ELNET_C_SOURCES})
+
+target_include_directories(elnet_c PUBLIC
+    "${ELNET_ROOT}/inc"
+    "${ELNET_ROOT}/port"
+    "${ELNET_ROOT}/src"
+    "${ELNET_ROOT}/port/Include"
+    "${ELNET_ROOT}/port/Include/pcap"
+    "${ELNET_ROOT}/components/cjson"
+    "${ELNET_ROOT}/src/app_protocal/tftp"
+    "${ELNET_ROOT}"
+)
+
+# ============================================================
+# IPGUI（C 图形框架）-> C 静态库
+# 关键点：.c 必须用 C 编译器编译（C99/C11 语法）；
+#        头文件已补 extern "C" 保护，可被 C++ 直接调用
+# ============================================================
+file(GLOB IPGUI_C_SOURCES
+    "${IPGUI_ROOT}/base/src/*.c"
+    "${IPGUI_ROOT}/al/hal/*.c"
+    # ipgui_input_dispatcher.c 排除：头文件声明 ipgui_err_t 而实现是 void，
+    # IPGUI 自身声明冲突，接入输入分发前需先修正
+    # "${IPGUI_ROOT}/al/hal/input/*.c"
+    "${IPGUI_ROOT}/al/vfs/*.c"
+    "${IPGUI_ROOT}/core/*.c"
+    "${IPGUI_ROOT}/core/composite/*.c"
+    "${IPGUI_ROOT}/core/composite/blend_color/*.c"
+    "${IPGUI_ROOT}/core/composite/blend_gradient/*.c"
+    "${IPGUI_ROOT}/core/composite/blend_image/*.c"
+    "${IPGUI_ROOT}/core/gfx/*.c"
+    "${IPGUI_ROOT}/core/image/*.c"
+    "${IPGUI_ROOT}/core/image/decoder/*.c"
+    "${IPGUI_ROOT}/core/image/decoder/bmp/*.c"
+    "${IPGUI_ROOT}/core/image/decoder/gif/*.c"
+    # ipgui_jpeg.c 排除：独立文件，依赖外部环境，需单独适配
+    # "${IPGUI_ROOT}/core/image/decoder/jpeg/*.c"
+    "${IPGUI_ROOT}/core/image/decoder/png/*.c"
+    "${IPGUI_ROOT}/core/image/decoder/qoi/*.c"
+    "${IPGUI_ROOT}/core/image/proc/*.c"
+    "${IPGUI_ROOT}/core/ipml/*.c"
+    "${IPGUI_ROOT}/core/misc/*.c"
+    "${IPGUI_ROOT}/core/ui/animation/*.c"
+    "${IPGUI_ROOT}/core/ui/animation/builtin_anim/*.c"
+    "${IPGUI_ROOT}/core/ui/layout/*.c"
+    "${IPGUI_ROOT}/core/ui/widget_manager/*.c"
+    "${IPGUI_ROOT}/core/vector_render/*.c"
+    "${IPGUI_ROOT}/port/ipgui_usr_putchar.c"
+    "${IPGUI_ROOT}/port/sdl/sdl_draw.c"
+)
+
+add_library(ipgui_c STATIC ${IPGUI_C_SOURCES})
+
+target_include_directories(ipgui_c PUBLIC
+    "${ELNET_ROOT}/inc"
+    "${IPGUI_ROOT}/Include"
+    "${IPGUI_ROOT}/base/inc"
+    "${IPGUI_ROOT}/base/src"
+    "${IPGUI_ROOT}/al/hal"
+    "${IPGUI_ROOT}/al/hal/input"
+    "${IPGUI_ROOT}/al/vfs"
+    "${IPGUI_ROOT}/core"
+    "${IPGUI_ROOT}/core/composite"
+    "${IPGUI_ROOT}/core/composite/blend_color"
+    "${IPGUI_ROOT}/core/composite/blend_gradient"
+    "${IPGUI_ROOT}/core/composite/blend_image"
+    "${IPGUI_ROOT}/core/gfx"
+    "${IPGUI_ROOT}/core/image"
+    "${IPGUI_ROOT}/core/image/decoder"
+    "${IPGUI_ROOT}/core/image/decoder/bmp"
+    "${IPGUI_ROOT}/core/image/decoder/gif"
+    "${IPGUI_ROOT}/core/image/decoder/jpeg"
+    "${IPGUI_ROOT}/core/image/decoder/png"
+    "${IPGUI_ROOT}/core/image/decoder/qoi"
+    "${IPGUI_ROOT}/core/image/proc"
+    "${IPGUI_ROOT}/core/ipml"
+    "${IPGUI_ROOT}/core/misc"
+    "${IPGUI_ROOT}/core/ui/animation"
+    "${IPGUI_ROOT}/core/ui/animation/builtin_anim"
+    "${IPGUI_ROOT}/core/ui/layout"
+    "${IPGUI_ROOT}/core/ui/widget_manager"
+    "${IPGUI_ROOT}/core/vector_render"
+    "${IPGUI_ROOT}/port/sdl"
+    "${IPGUI_ROOT}/port/sdl/include/SDL2"
+)
+
+# ============================================================
+# RoboKit（C++ 主程序，最小 hello world）
+# 算法模块由用户自行添加（例如 robokit/ 目录下的 .cpp）
+# ============================================================
+add_executable(app main.cpp)
+
+# main.cpp 包含 src/ 下的头文件（如 planner_rrt.hpp）
+target_include_directories(app PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+target_link_libraries(app PRIVATE ipgui_c elnet_c)
+
+# 使用工程附带的 SDL2（导入库方式，运行时需要 SDL2.dll）
+target_link_libraries(app PRIVATE "${IPGUI_ROOT}/port/sdl/lib/libSDL2.dll.a")
+
+# 拷贝 SDL2.dll 到可执行文件目录
+add_custom_command(TARGET app POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${IPGUI_ROOT}/port/sdl/bin/SDL2.dll"
+        "$<TARGET_FILE_DIR:app>"
+    COMMENT "Copy SDL2.dll"
+)
+
+# elNET 依赖 Windows pcap（与 m:\test\Makefile 的 link_library 一致）
+target_link_libraries(app PRIVATE "${ELNET_ROOT}/port/Lib/x64/wpcap.lib")
+target_link_libraries(app PRIVATE "${ELNET_ROOT}/port/Lib/x64/Packet.lib")
+target_link_libraries(app PRIVATE m)
