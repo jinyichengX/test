@@ -1,6 +1,10 @@
 #ifndef IPML_LOADER_H
 #define IPML_LOADER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_types.h"
 #include "ipgui_widget.h"
 
@@ -56,5 +60,9 @@ ipgui_widget_t * ipml_widget_find_by_name(ipgui_widget_t *root, const char *name
 
 /* 便捷宏: 注册一个符号 */
 #define IPML_SYM(_fn)  { #_fn, (void *)(_fn) }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* IPML_LOADER_H */

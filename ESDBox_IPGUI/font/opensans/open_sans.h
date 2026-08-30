@@ -1,6 +1,10 @@
 #ifndef OPEN_SANS_H
 #define OPEN_SANS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_draw_builtin_font.h"
 
 extern ipgui_font_t open_sans_5px;
@@ -50,5 +54,9 @@ extern ipgui_font_t open_sans_48px;
 extern ipgui_font_t open_sans_49px;
 extern ipgui_font_t open_sans_50px;
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // OPEN_SANS_H

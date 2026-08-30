@@ -1,6 +1,10 @@
 #ifndef IPGUI_RECT_SLICE_H
 #define IPGUI_RECT_SLICE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_prim.h"
 
 typedef struct {
@@ -35,5 +39,9 @@ extern __IPGUI_API__ void ipgui_rect_slice_ctx_init(
 extern __IPGUI_API__ s32_t ipgui_get_rect_slice(
     ipgui_rect_slice_ctx * ctx,
     ipgui_rect_t         * res);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

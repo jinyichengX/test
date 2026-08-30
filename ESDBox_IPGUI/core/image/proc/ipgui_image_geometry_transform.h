@@ -1,6 +1,10 @@
 #ifndef IPGUI_IMAGE_GEOMETRY_TRANSFORM_H
 #define IPGUI_IMAGE_GEOMETRY_TRANSFORM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_core.h"
 #include "ipgui_graphic2.h"
 #include "ipgui_math.h"
@@ -38,4 +42,9 @@ extern __IPGUI_API__ ipgui_img_dsc_t * ipgui_image_geo_transform(
     ipgui_img_dsc_t * image,
     ipgui_img_geo_trans_t * trans,
     ipgui_lerp_method_t lerp);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

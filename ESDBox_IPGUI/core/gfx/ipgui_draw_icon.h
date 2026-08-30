@@ -1,6 +1,10 @@
 #ifndef IPGUI_DRAW_ICON_H
 #define IPGUI_DRAW_ICON_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_draw_image.h"
 
 /* 和画图片不同，画图标不支持子图标 */
@@ -33,4 +37,8 @@ __IPGUI_API__ void ipgui_draw_icon(
     ipgui_trans_mat_t        * trans,
     ipgui_draw_icon_style_t  * style);
     
+#ifdef __cplusplus
+}
+#endif
+
 #endif

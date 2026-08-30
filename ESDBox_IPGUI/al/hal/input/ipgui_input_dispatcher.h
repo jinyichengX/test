@@ -1,6 +1,10 @@
 #ifndef IPGUI_INPUT_DISPATCHER_H
 #define IPGUI_INPUT_DISPATCHER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_input_src.h"
 #include "ipgui_input_src_event.h"
 #include "ipgui_screen.h"
@@ -85,5 +89,9 @@ extern __IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_register_screen(ipgui_input
 extern __IPGUI_API__ ipgui_scr_id_t ipgui_dispatcher_unregister_screen(ipgui_input_dispatcher_t * dispatcher, ipgui_scr_id_t screen_id);
 extern __IPGUI_API__ ipgui_err_t ipgui_bind_input_src_with_screen(ipgui_input_dispatcher_t * dispatcher, ipgui_input_src_id_t input_src_id, ipgui_scr_id_t screen_id);
 extern __IPGUI_API__ void ipgui_dispatch_input_event(ipgui_input_dispatcher_t * dispatcher);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -504,6 +504,80 @@ ipgui_fs_ops_t ipgui_fs_elos = {
     int YC_FAT_Init(struct FilesystemOperations * fatobj);
 */
 #elif defined(IPGUI_OPERATING_SYSTEM_LINUX)
+#include <stdio.h>
+/* linux file operations */
+
+__IPGUI_STATIC__ int ipgui_linux_fopen(ipgui_fs_ops_t * fs, const char * path, void ** pri_file, ipgui_file_mode_e mode)
+{
+    const char * m;
+    switch ((int)mode) {
+        case IPGUI_FILE_MODE_READ:                  m = "rb";  break;
+        case IPGUI_FILE_MODE_WRITE:                 m = "wb";  break;
+        case IPGUI_FILE_MODE_APPEND_WRITE:          m = "ab";  break;
+        case IPGUI_FILE_MODE_APPEND_WRITE_AND_READ: m = "ab+"; break;
+        default: return -1;
+    }
+    FILE * f = fopen(path, m);
+    if (f == (FILE *)0) return -1;
+    * pri_file = (void *)f;
+    return 0;
+}
+
+__IPGUI_STATIC__ int ipgui_linux_fclose(ipgui_fs_ops_t * fs, void * pri_file)
+{
+    return (fclose((FILE *)pri_file) == 0) ? 0 : -1;
+}
+
+__IPGUI_STATIC__ int ipgui_linux_fwrite(ipgui_fs_ops_t * fs, void * buffer, unsigned int btw, unsigned int * bw, void * pri_file)
+{
+    * bw = (unsigned int)fwrite(buffer, 1, btw, (FILE *)pri_file);
+    return 0;
+}
+
+__IPGUI_STATIC__ int ipgui_linux_fread(ipgui_fs_ops_t * fs, void * buffer, unsigned int btr, unsigned int * br, void * pri_file)
+{
+    * br = (unsigned int)fread(buffer, 1, btr, (FILE *)pri_file);
+    return 0;
+}
+
+__IPGUI_STATIC__ int ipgui_linux_fseek(ipgui_fs_ops_t * fs, void * pri_file, ipgui_seek_mode_e mode, int offset)
+{
+    int whence;
+    switch (mode) {
+        case IPGUI_FILE_SEEK_SET: whence = SEEK_SET; break;
+        case IPGUI_FILE_SEEK_CUR: whence = SEEK_CUR; break;
+        case IPGUI_FILE_SEEK_END: whence = SEEK_END; break;
+        default: return -1;
+    }
+    return fseek((FILE *)pri_file, offset, whence);
+}
+
+__IPGUI_STATIC__ unsigned int ipgui_linux_fsize(ipgui_fs_ops_t * fs, void * pri_file)
+{
+    long cur, end;
+    cur = ftell((FILE *)pri_file);
+    fseek((FILE *)pri_file, 0, SEEK_END);
+    end = ftell((FILE *)pri_file);
+    fseek((FILE *)pri_file, cur, SEEK_SET);
+    return (unsigned int)end;
+}
+
+__IPGUI_STATIC__ unsigned int ipgui_linux_frleft(ipgui_fs_ops_t * fs, void * pri_file)
+{
+    unsigned int size = ipgui_linux_fsize(fs, pri_file);
+    unsigned int pos  = (unsigned int)ftell((FILE *)pri_file);
+    return (size > pos) ? (size - pos) : 0;
+}
+
+ipgui_fs_ops_t ipgui_fs_linux = {
+    .fopen  = ipgui_linux_fopen,
+    .fread  = ipgui_linux_fread,
+    .fclose = ipgui_linux_fclose,
+    .fwrite = ipgui_linux_fwrite,
+    .fseek  = ipgui_linux_fseek,
+    .fsize  = ipgui_linux_fsize,
+    .frleft = ipgui_linux_frleft,
+};
 
 #endif
 

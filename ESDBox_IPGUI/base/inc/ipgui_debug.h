@@ -1,6 +1,10 @@
 #ifndef IPGUI_DEBUG_H
 #define IPGUI_DEBUG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define IPGUI_DEBUG_LEVEL_0       0
 #define IPGUI_DEBUG_LEVEL_1       1
 #define IPGUI_DEBUG_LEVEL_2       2
@@ -18,5 +22,9 @@
 #define ipgui_dbg_assert
 
 extern void ipgui_printk(char * fmt, ...);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

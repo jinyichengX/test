@@ -1,6 +1,10 @@
 #ifndef IPGUI_CORE_H
 #define IPGUI_CORE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_lcd_pix_fmt.h"
 #include "ipgui_prim.h"
 
@@ -56,5 +60,9 @@ __IPGUI_STATIC__ __IPGUI_INLINE__ unsigned char * ipgui_surf_color_get(ipgui_sur
 {
     return (surf->color + y * surf->stride + x * surf->pix_size);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

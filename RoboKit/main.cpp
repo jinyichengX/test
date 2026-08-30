@@ -22,6 +22,7 @@ extern "C" {
 #include "ipgui_memory.h"
 #include "ipgui_blend.h"
 #include "ipgui_draw_line.h"
+#include "ipgui_draw_filled_circle.h"
 #include "sdl_draw.h"
 #include "elnet.h"
 }
@@ -107,6 +108,19 @@ static void widget_render(ipgui_widget_t* widget, ipgui_widget_render_ctx_t* ctx
                  MapToScreen(path[i].x, path[i].y),
                  red);
     }
+
+    /* 粉色：圆形障碍物 */
+    const auto& obss = g_planner->GetObstacles();
+    ipgui_filled_circle_style_t cstyle;
+    cstyle.opacity    = 200;
+    cstyle.blend_mode = IPGUI_BLEND_NORMAL;
+    cstyle.paint.type = IPGUI_PAINT_COLOR;
+    IPGUI_COLOR_SET(cstyle.paint.src.color, 255, 0xFF69B4);   /* 粉色 */
+    for (const auto& obs : obss) {
+        ipgui_point_t c = MapToScreen(obs.center.x, obs.center.y);
+        ipgui_draw_filled_circle(surf, &surf->surf, c.x, c.y,
+                                 (ipgui_coord_t)(obs.radius * 4.0), &cstyle);
+    }
 }
 
 /* ---------------- 主程序 ---------------- */
@@ -115,6 +129,14 @@ int main()
 {
     /* 1. RRT 规划（地图 0-100，起点 (10,10) 到终点 (90,90)） */
     test::RRTPlanner planner(test::Vec2(0, 0), test::Vec2(100, 100), 5.0, 10000);
+
+    /* 添加圆形障碍物（分散布局） */
+    planner.AddCircleObstacle(test::Vec2(25, 70), 11);
+    planner.AddCircleObstacle(test::Vec2(75, 25), 10);
+    planner.AddCircleObstacle(test::Vec2(50, 50), 13);
+    planner.AddCircleObstacle(test::Vec2(18, 45), 8);
+    planner.AddCircleObstacle(test::Vec2(82, 60), 8);
+
     planner.DoRRTPlan(test::Vec2(10, 10), test::Vec2(90, 90));
     std::printf("RRT nodes=%zu, path_len=%zu\n",
                 planner.node_array_.size(), planner.GetPath().size());

@@ -1,6 +1,10 @@
 #ifndef SDL_DRAW_H
 #define SDL_DRAW_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_utils.h"
 #include "ipgui_screen.h"
 #include <SDL.h>
@@ -20,5 +24,9 @@ extern void sdl_fill_region(ipgui_scr_t * scr,
         unsigned char * pix_buf, int stride);
 extern void sdl_flush(ipgui_scr_t * scr);
 int ipgui_sdl_screen_init(ipgui_scr_t * scr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

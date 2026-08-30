@@ -1,6 +1,10 @@
 #ifndef IPGUI_PRIM_H
 #define IPGUI_PRIM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_coord.h"
 #include "ipgui_utils.h"
 
@@ -111,5 +115,9 @@ extern __IPGUI_API__ void ipgui_aabb_expand(ipgui_aabb_t * aabb, ipgui_coord_t e
 extern __IPGUI_API__ int ipgui_aabb_generate_with_rect(ipgui_aabb_t * res, ipgui_rect_t * rect1, ipgui_rect_t * rect2);
 extern __IPGUI_API__ void ipgui_aabb_update_with_point(ipgui_aabb_t * aabb, ipgui_point_t * point);
 extern __IPGUI_API__ int ipgui_aabb_generate_with_points(ipgui_aabb_t * ret_aabb, ipgui_point_t * points, int num);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

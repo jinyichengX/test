@@ -1,6 +1,10 @@
 #ifndef IPGUI_WIDGET_TREE_H
 #define IPGUI_WIDGET_TREE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_utils.h"
 
 struct widget_link_t{
@@ -35,4 +39,9 @@ extern __IPGUI_API__ void ipgui_widget_link_insert_next(struct widget_link_t * l
 extern __IPGUI_API__ void ipgui_widget_link_move_before(struct widget_link_t * link);
 extern __IPGUI_API__ void ipgui_widget_link_move_after(struct widget_link_t * link);
 extern __IPGUI_API__ void ipgui_widget_link_foreach_dfs(struct widget_link_t * root, widget_ops_t ops, void * args);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

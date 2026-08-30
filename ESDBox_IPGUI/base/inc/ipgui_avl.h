@@ -1,6 +1,10 @@
 #ifndef IPGUI_AVL_H
 #define IPGUI_AVL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_types.h"
 
 #define AVL_DEBUG_PRINT 0
@@ -56,5 +60,9 @@ extern avl_node_t * g_avl_node_add(void * node_cont, avl_t * tree);
 extern avl_node_t * avl_node_delete(avl_node_t * node,avl_t * tree);
 extern avl_node_t * avl_node_search(avl_node_t * node, avl_t * tree);
 extern avl_node_t * g_avl_node_search(void * node_cont, avl_t * tree);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

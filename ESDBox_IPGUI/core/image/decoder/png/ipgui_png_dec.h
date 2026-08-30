@@ -1,6 +1,10 @@
 #ifndef __IPGUI_PNG_DEC_H__
 #define __IPGUI_PNG_DEC_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_coord.h"
 #include "ipgui_types.h"
 
@@ -53,5 +57,9 @@ ipgui_err_t ipgui_png_read_linebyline(struct png_inf *inf,
 
 /* 释放png_inf中分配的内存 */
 void ipgui_png_free(struct png_inf *inf);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __IPGUI_PNG_DEC_H__ */

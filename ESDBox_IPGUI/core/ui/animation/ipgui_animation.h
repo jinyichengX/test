@@ -1,6 +1,10 @@
 #ifndef IPGUI_ANIMATION_H
 #define IPGUI_ANIMATION_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_time.h"
 #include "ipgui_list.h"
 
@@ -106,5 +110,9 @@ __IPGUI_API__ ipgui_err_t    ipgui_anim_start(ipgui_anim_t * anim);
 
 /* 驱动所有运行动画，每帧调用，内部自动推送值并回收已完成动画 */
 __IPGUI_API__ void           ipgui_anim_update_all(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

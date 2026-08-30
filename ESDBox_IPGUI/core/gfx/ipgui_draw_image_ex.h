@@ -1,6 +1,10 @@
 #ifndef IPGUI_DRAW_IMAGE_EX_H
 #define IPGUI_DRAW_IMAGE_EX_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_image_mask.h"
 #include "ipgui_draw_image.h"
 
@@ -14,5 +18,9 @@ extern __IPGUI_API__ void ipgui_draw_image_ex(
     ipgui_trans_mat_t        * trans,
     ipgui_image_draw_style_t * style,
     ipgui_image_quality_t      quality);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

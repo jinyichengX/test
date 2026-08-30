@@ -1,6 +1,10 @@
 #ifndef IPGUI_DARRAY_H
 #define IPGUI_DARRAY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_utils.h"
 
 typedef struct  ipgui_dynamic_array_context ipgui_darray_t;
@@ -49,5 +53,9 @@ extern __IPGUI_API__ void * ipgui_darray_last_element(ipgui_darray_t * darray);
 extern __IPGUI_API__ void * ipgui_darray_first_element(ipgui_darray_t * darray);
 
 extern __IPGUI_API__ s32_t ipgui_darray_element_pop(ipgui_darray_t * darray, void * to);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

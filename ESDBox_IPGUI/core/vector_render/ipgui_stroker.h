@@ -1,6 +1,10 @@
 #ifndef IPGUI_STROKER_H
 #define IPGUI_STROKER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_color.h"
 #include "ipgui_prim.h"
 #include "ipgui_math.h"
@@ -67,4 +71,9 @@ typedef struct
 }ipgui_stroker_dsc_t;
 
 __IPGUI_API__ ipgui_err_t ipgui_stroker_path_line_to(ipgui_stroker_dsc_t * stroker, ipgui_spoint_t from, ipgui_spoint_t to);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif 

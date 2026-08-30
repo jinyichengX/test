@@ -1,6 +1,10 @@
 #ifndef IPGUI_MEMORY_H
 #define IPGUI_MEMORY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_utils.h"
 #include "ipgui_list.h"
 #include "ipgui_conf.h"
@@ -83,5 +87,9 @@ extern __IPGUI_API__ void *         ipgui_mem_alloc_def(ipgui_mem_unit_type_t si
 extern __IPGUI_API__ void           ipgui_mem_free_def(void * p);
 
 extern __IPGUI_API__ __IPGUI_INIT__ ipgui_err_t ipgui_mem_module_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

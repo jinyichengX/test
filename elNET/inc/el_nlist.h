@@ -23,8 +23,8 @@
   * under normal circumstances, used to verify that nobody uses
   * non-initialized list entries.
   */
-#define LIST_POISON1  ((void *) 0x00100100)
-#define LIST_POISON2  ((void *) 0x00200200)
+#define LIST_POISON1  ((struct list_head *) 0x00100100)
+#define LIST_POISON2  ((struct list_head *) 0x00200200)
 
 struct list_head {
 	struct list_head* next, * prev;
@@ -104,14 +104,14 @@ static  void INIT_LIST_HEAD(struct list_head* list)
 	* This is only for internal list manipulation where we know
 	* the prev/next entries already!
 	*/
-static  void __list_add(struct list_head* new,
+static  void __list_add(struct list_head* new_node,
 	struct list_head* prev,
 	struct list_head* next)
 {
-	next->prev = new;
-	new->next = next;
-	new->prev = prev;
-	prev->next = new;
+	next->prev = new_node;
+	new_node->next = next;
+	new_node->prev = prev;
+	prev->next = new_node;
 }
 
 /**
@@ -122,9 +122,9 @@ static  void __list_add(struct list_head* new,
  * Insert a new entry after the specified head.
  * This is good for implementing stacks.
  */
-static  void list_add(struct list_head* new, struct list_head* head)
+static  void list_add(struct list_head* new_node, struct list_head* head)
 {
-	__list_add(new, head, head->next);
+	__list_add(new_node, head, head->next);
 }
 
 /**
@@ -135,13 +135,13 @@ static  void list_add(struct list_head* new, struct list_head* head)
  * Insert a new entry before the specified head.
  * This is useful for implementing queues.
  */
-static  void list_add_tail(struct list_head* new, struct list_head* head)
+static  void list_add_tail(struct list_head* new_node, struct list_head* head)
 {
-	__list_add(new, head->prev, head);
-    // head->prev = new;
-    // new->next = head;
-    // new->prev = head->prev;
-    // head->prev->next = new;
+	__list_add(new_node, head->prev, head);
+    // head->prev = new_node;
+    // new_node->next = head;
+    // new_node->prev = head->prev;
+    // head->prev->next = new_node;
 }
 
 /*
@@ -189,18 +189,18 @@ static  void list_del_init(struct list_head* entry)
  * If @old was empty, it will be overwritten.
  */
 static  void list_replace(struct list_head* old,
-	struct list_head* new)
+	struct list_head* new_node)
 {
-	new->next = old->next;
-	new->next->prev = new;
-	new->prev = old->prev;
-	new->prev->next = new;
+	new_node->next = old->next;
+	new_node->next->prev = new_node;
+	new_node->prev = old->prev;
+	new_node->prev->next = new_node;
 }
 
 static  void list_replace_init(struct list_head* old,
-	struct list_head* new)
+	struct list_head* new_node)
 {
-	list_replace(old, new);
+	list_replace(old, new_node);
 	INIT_LIST_HEAD(old);
 }
 
@@ -403,9 +403,9 @@ static  void list_insert_sort(container_val_compare cmp,\
 						  void * node_container,\
 						  int node_off)
 {
-	struct list_head * head_pos = head->next;
+	struct list_head *head_pos = head->next;
 	void * cont_idx = _LISTNODE2CONTAINER(head_pos,node_off);
-	struct list_head *new = _CONTAINER2LISTNODE(node_container,node_off);
+	struct list_head *new_node = _CONTAINER2LISTNODE(node_container,node_off);
 	while(
 		    (!list_empty(head))&&\
      	  (cmp(node_container,cont_idx) == 1)\
@@ -416,7 +416,7 @@ static  void list_insert_sort(container_val_compare cmp,\
       break;
 		cont_idx = _LISTNODE2CONTAINER(head_pos,node_off);
 	}
-	__list_add(new,head_pos->prev,head_pos);
+	__list_add(new_node,head_pos->prev,head_pos);
 }
 
 /* count list length */

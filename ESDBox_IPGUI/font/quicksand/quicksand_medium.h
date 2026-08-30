@@ -1,6 +1,10 @@
 #ifndef QUICKSAND_MEDIUM_H
 #define QUICKSAND_MEDIUM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_draw_builtin_font.h"
 
 extern ipgui_font_t quicksand_medium_5px;
@@ -49,5 +53,9 @@ extern ipgui_font_t quicksand_medium_47px;
 extern ipgui_font_t quicksand_medium_48px;
 extern ipgui_font_t quicksand_medium_49px;
 extern ipgui_font_t quicksand_medium_50px;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // QUICKSAND_MEDIUM_H

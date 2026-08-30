@@ -1,6 +1,10 @@
 #ifndef IPGUI_DRAW_IMAGE_API_H
 #define IPGUI_DRAW_IMAGE_API_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_draw_image.h"
 
 /* 图片对齐方式 — 九宫格（在目标矩形内的9点定位）
@@ -57,5 +61,9 @@ __IPGUI_API__ void ipgui_draw_image_in_rect(
     ipgui_image_fit_t                fit,
     const ipgui_image_draw_style_t * style,
     ipgui_image_quality_t            quality);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

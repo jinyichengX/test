@@ -1,6 +1,10 @@
 #ifndef IPGUI_SCROLL_H
 #define IPGUI_SCROLL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_types.h"
 #include "ipgui_coord.h"
 #include "ipgui_utils.h"
@@ -22,5 +26,9 @@ extern __IPGUI_API__ void ipgui_scroll_start(
     struct ipgui_widget * widget,
     s32_t                 scroll_v,
     u8_t                  axis);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

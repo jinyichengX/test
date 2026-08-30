@@ -1,6 +1,10 @@
 #ifndef __IPGUI_VECTOR_H__
 #define __IPGUI_VECTOR_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_graphic2.h"
 #include "ipgui_math.h"
 #include "ipgui_prim.h"
@@ -20,5 +24,9 @@ extern __IPGUI_API__ void           ipgui_vector_polarization_screen(ipgui_svect
 extern __IPGUI_API__ ipgui_angle_t  ipgui_vector_angle_diff         (ipgui_svector_t * from, ipgui_svector_t * to);
 
 extern __IPGUI_API__ ipgui_angle_t  ipgui_vector_angle_diff_screen  (ipgui_svector_t * from, ipgui_svector_t * to);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

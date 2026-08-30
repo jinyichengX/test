@@ -1,6 +1,10 @@
 #ifndef IPGUI_NORM_QUEUE_H
 #define IPGUI_NORM_QUEUE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_types.h"
 
 typedef struct
@@ -18,5 +22,9 @@ typedef struct
 extern ipgui_err_t ipgui_norm_queue_init(ipgui_norm_queue_t * q, void * pool, u16_t item_cnt, u16_t item_size);
 extern ipgui_err_t ipgui_norm_queue_post(ipgui_norm_queue_t * q, void * item, u16_t size);
 extern ipgui_err_t ipgui_norm_queue_fetch(ipgui_norm_queue_t * q, void * item);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

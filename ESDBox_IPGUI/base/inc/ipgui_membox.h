@@ -1,6 +1,10 @@
 #ifndef IPGUI_MEMBOX_H
 #define IPGUI_MEMBOX_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_utils.h"
 
 typedef struct blknode_ctx blk_node_t;
@@ -24,5 +28,9 @@ extern __IPGUI_API__ void ipgui_membox_destroy(ipgui_membox_t *);
 extern __IPGUI_API__ void * ipgui_membox_alloc(ipgui_membox_t *);
 extern __IPGUI_API__ void ipgui_membox_free(ipgui_membox_t *, void *);
 extern __IPGUI_API__ void ipgui_membox_expand(ipgui_membox_t * mb, void * mem, u16_t blk_sz, s32_t blk_cnt);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

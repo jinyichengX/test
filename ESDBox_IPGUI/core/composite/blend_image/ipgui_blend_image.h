@@ -1,6 +1,10 @@
 #ifndef IPGUI_BLEND_IMAGE_H
 #define IPGUI_BLEND_IMAGE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_core.h"
 #include "ipgui_blend_mode.h"
 
@@ -91,5 +95,9 @@ extern __IPGUI_API__ void ipgui_blend_image_v2(
     u8_t              * mask,       /* 蒙版 */
     ipgui_aabb_t      * mask_aabb,  /* 蒙版区域，必须大于等于dest围盒*/
     ipgui_blend_mode_t  blend_mode);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

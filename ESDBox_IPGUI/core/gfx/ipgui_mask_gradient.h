@@ -1,6 +1,10 @@
 #ifndef IPGUI_MASK_GRADIENT_H
 #define IPGUI_MASK_GRADIENT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_prim.h"
 #include "ipgui_conf.h"
 
@@ -143,6 +147,10 @@ extern __IPGUI_API__ unsigned char ipgui_radial_mask_gradient_value_at_xy(
 #if IPGUI_MASK_GRADIENT_LUT_EN == 1
 /* 初始化查找表（如果需要） */
 extern __IPGUI_API__ void ipgui_mask_gradient_lut_init(void);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* IPGUI_MASK_GRADIENT_H */

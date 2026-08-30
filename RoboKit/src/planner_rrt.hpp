@@ -17,6 +17,11 @@ namespace test {
             PointNode(Vec2 p): point(p) {}
     };
 
+    struct CircleObstacle {
+        Vec2 center;
+        double radius;
+    };
+
     class RRTPlanner {
         private:
             std::random_device rd_;
@@ -24,6 +29,9 @@ namespace test {
 
             //地图边界
             Vec2 map_min_, map_max_;
+
+            //碰撞物
+            std::vector<CircleObstacle> obstacles_;
 
             double step_size_;// 单次路径步长
             int iter_max;//最大迭代次数
@@ -43,11 +51,35 @@ namespace test {
                 return path;
             }
 
+            //获取障碍物列表（用于可视化）
+            const std::vector<CircleObstacle>& GetObstacles() const {
+                return obstacles_;
+            }
+
+            void AddCircleObstacle(const Vec2& center, double radius) {
+                obstacles_.push_back({center, radius});
+            }
+
             //从笛卡尔坐标系左下min到右上max的范围内均匀生成随机点
             Vec2 GenRandomPoint() {
                 std::uniform_real_distribution<double> dis_x(map_min_.x, map_max_.x);
                 std::uniform_real_distribution<double> dis_y(map_min_.y, map_max_.y);
                 return Vec2(dis_x(gen_), dis_y(gen_));
+            }
+
+            //检查是否与圆碰撞,返回1表示碰撞，返回0表示不碰撞
+            int CircleCollison(const Vec2& center, double radius, const Vec2& p1, const Vec2& p2) {
+                double A = p2.y - p1.y;
+                double B = p1.x - p2.x;
+                double C = p2.x * p1.y - p1.x * p2.y;   // 过 p1,p2 的直线常数项
+                double temp1 = A * center.x + B * center.y + C; temp1 *= temp1;
+                double temp2 = A * A + B * B;
+                double radius2 = radius * radius;
+                if (temp1 < (temp2 * radius2)) {
+                    return 1;
+                } else {
+                    return 0;
+                }
             }
 
             //返回 node_array 中距离 p 最近的节点索引；数组为空返回 -1
@@ -113,6 +145,19 @@ namespace test {
                     dir.y *= step_size_;
 
                     Vec2 new_point(dir.x + node_array_[nearest_idx].point.x, dir.y + node_array_[nearest_idx].point.y);
+
+                    //检查新边是否与任何圆碰撞，碰撞则丢弃该点
+                    bool blocked = false;
+                    for (const auto& obs : obstacles_) {
+                        if (CircleCollison(obs.center, obs.radius, node_array_[nearest_idx].point, new_point)) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+                    if (blocked) {
+                        continue;   // 丢弃 new_point，进入下一次 while 迭代
+                    }
+
                     AddNewPoint(new_point, nearest_idx);
                     
                     //新节点距离终点是否小于等于步长

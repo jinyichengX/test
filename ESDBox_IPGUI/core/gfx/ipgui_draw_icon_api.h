@@ -1,6 +1,10 @@
 #ifndef IPGUI_DRAW_ICON_API_H
 #define IPGUI_DRAW_ICON_API_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_draw_icon.h"
 
 /* 图标对齐方式 — 九宫格（在目标矩形内的9点定位）
@@ -54,5 +58,9 @@ __IPGUI_API__ void ipgui_draw_icon_in_rect(
     ipgui_icon_align_t                align,
     ipgui_icon_fit_t                  fit,
     const ipgui_draw_icon_style_t   * style);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

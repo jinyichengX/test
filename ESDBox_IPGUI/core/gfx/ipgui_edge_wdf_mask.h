@@ -1,6 +1,10 @@
 #ifndef IPGUI_EDGE_WDF_MASK_H
 #define IPGUI_EDGE_WDF_MASK_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_core.h"
 
 typedef struct {
@@ -49,5 +53,9 @@ extern __IPGUI_API__ void ipgui_edge_wdf_mask(
 
 extern __IPGUI_API__ void ipgui_edge_wdf_mask_dsc_next_y(
     ipgui_edge_wdf_mask_dsc_t * dsc);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

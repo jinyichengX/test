@@ -1,6 +1,10 @@
 #ifndef IPGUI_TIME_H
 #define IPGUI_TIME_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_utils.h"
 #include "ipgui_conf.h"
 
@@ -13,5 +17,9 @@ extern __IPGUI_API__ ipgui_tick_t ipgui_tick_passed_last(void);
 
 extern ipgui_tick_t ipgui_sys_tick;
 extern ipgui_tick_t ipgui_sys_tick_last;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

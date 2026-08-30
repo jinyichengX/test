@@ -1,6 +1,10 @@
 #ifndef IPGUI_QUEUE_H
 #define IPGUI_QUEUE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_utils.h"
 #include "ipgui_types.h"
 #include "ipgui_defs.h"
@@ -59,5 +63,9 @@ extern __IPGUI_API__ __IPGUI_DEINIT__ ipgui_err_t ipgui_queue_destroy(ipgui_queu
 extern __IPGUI_API__ ipgui_err_t ipgui_queue_publish(ipgui_queue_t *, void *, u16_t, ipgui_prio_t);
 
 extern __IPGUI_API__ ipgui_err_t ipgui_queue_subscribe(ipgui_queue_t *, void *, u16_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

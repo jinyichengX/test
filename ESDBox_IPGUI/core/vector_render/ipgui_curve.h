@@ -1,6 +1,10 @@
 #ifndef __IPGUI_CURVE_H__
 #define __IPGUI_CURVE_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_utils.h"
 #include "ipgui_graphic2.h"
 #include "ipgui_prim.h"
@@ -20,4 +24,9 @@ typedef struct {
 __IPGUI_API__ void ipgui_generate_quad_circle_control(ipgui_scoord_t radius,
                                             ipgui_svector_t * v0, ipgui_svector_t * v1,
                                             ipgui_svector_t *v2, ipgui_svector_t * v3);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

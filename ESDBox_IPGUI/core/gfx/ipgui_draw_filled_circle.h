@@ -1,6 +1,10 @@
 #ifndef IPGUI_DRAW_FILLED_CIRCLE_H
 #define IPGUI_DRAW_FILLED_CIRCLE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_draw_arc.h"
 
 typedef struct {
@@ -16,6 +20,10 @@ extern __IPGUI_API__ void ipgui_draw_filled_circle(
     ipgui_coord_t                 cy, 
     ipgui_coord_t                 r,
     ipgui_filled_circle_style_t * style);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

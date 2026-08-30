@@ -1,6 +1,10 @@
 #ifndef IPGUI_WIDGET_H
 #define IPGUI_WIDGET_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ipgui_utils.h"
 #include "ipgui_types.h"
 #include "ipgui_prim.h"
@@ -139,5 +143,9 @@ extern __IPGUI_API__ ipgui_scr_t * ipgui_widget_get_screen(ipgui_widget_t * widg
 /* 将父控件局部坐标转为全局坐标系的 aabb */
 extern __IPGUI_API__ void ipgui_widget_local_to_global(
     ipgui_widget_t * widget, ipgui_aabb_t * out);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
