@@ -113,15 +113,72 @@ target_include_directories(ipgui_c PUBLIC
 )
 
 # ============================================================
-# RoboKit（C++ 主程序，最小 hello world）
-# 算法模块由用户自行添加（例如 robokit/ 目录下的 .cpp）
+# RPLIDAR SDK（思岚 A1 激光雷达）-> C++ 静态库
+# SDK 原样编译，不做任何修改；仅选取 Windows 平台所需源文件
+# （参考 workspaces/vc14/rplidar_driver.vcxproj 的源文件清单）
+# ============================================================
+set(RPLIDAR_SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/rplidar_sdk-master/sdk")
+
+add_library(rplidar_sdk STATIC
+    "${RPLIDAR_SDK_ROOT}/src/arch/win32/net_serial.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/arch/win32/net_socket.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/arch/win32/timer.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/dataunpacker/dataunpacker.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/dataunpacker/unpacker/handler_capsules.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/dataunpacker/unpacker/handler_hqnode.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/dataunpacker/unpacker/handler_normalnode.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/hal/thread.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/rplidar_driver.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/sl_async_transceiver.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/sl_crc.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/sl_lidarprotocol_codec.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/sl_lidar_driver.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/sl_serial_channel.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/sl_tcp_channel.cpp"
+    "${RPLIDAR_SDK_ROOT}/src/sl_udp_channel.cpp"
+)
+
+target_include_directories(rplidar_sdk PUBLIC
+    "${RPLIDAR_SDK_ROOT}/include"
+    "${RPLIDAR_SDK_ROOT}/src"
+    "${RPLIDAR_SDK_ROOT}/src/dataunpacker"
+    "${RPLIDAR_SDK_ROOT}/src/dataunpacker/unpacker"
+)
+
+# MSVC 默认定义 WIN32/WIN64，MinGW 只定义带下划线的 _WIN32/_WIN64。
+# SDK 的 sl_types.h / hal/types.h 等用无下划线的 WIN32/WIN64 判断字长，
+# 因此这里补齐定义以匹配 MSVC 行为。
+#
+# 另：SDK 的 arch_win32.h 把 _WIN32_WINNT 设为 0x0501(Windows XP)，但用的是
+# #ifndef 守卫，这里在编译器层提前定义即可覆盖。提高到 0x0600(Vista) 是因为
+# MinGW 的 ws2tcpip.h 中 AI_NUMERICSERV（net_socket.cpp 用到）被
+# #if (_WIN32_WINNT >= 0x0600) 包裹，0x0501 下不可用。
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    target_compile_definitions(rplidar_sdk PUBLIC WIN64=1 WIN32=1 _WIN32_WINNT=0x0600)
+else()
+    target_compile_definitions(rplidar_sdk PUBLIC WIN32=1 _WIN32_WINNT=0x0600)
+endif()
+
+# net_socket.cpp 使用 Winsock2（WSAStartup/socket 等），需链接 ws2_32
+target_link_libraries(rplidar_sdk PUBLIC ws2_32)
+
+# SDK 原生面向 MSVC：MSVC 的 nullptr_t 在全局命名空间，MinGW 仅在 std:: 下。
+# sl_async_transceiver.cpp 直接用 nullptr_t 不加 std:: 前缀会编译失败。
+# 用 -include 在每个 SDK 源文件前强制包含兼容头（内含与 sl_lidar_driver.cpp
+# 相同的 _GXX_NULLPTR_T 守卫 typedef，不会重复定义），不改动 SDK 源文件。
+target_compile_options(rplidar_sdk PRIVATE
+    -include "${CMAKE_CURRENT_SOURCE_DIR}/src/rplidar_compat/compat.hpp")
+
+# ============================================================
+# RoboKit（C++ 主程序）
+# 当前演示：RPLIDAR A1 激光雷达扫描数据采集
 # ============================================================
 add_executable(app main.cpp)
 
 # main.cpp 包含 src/ 下的头文件（如 planner_rrt.hpp）
 target_include_directories(app PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-target_link_libraries(app PRIVATE ipgui_c elnet_c)
+target_link_libraries(app PRIVATE ipgui_c elnet_c rplidar_sdk)
 
 # 使用工程附带的 SDL2（导入库方式，运行时需要 SDL2.dll）
 target_link_libraries(app PRIVATE "${IPGUI_ROOT}/port/sdl/lib/libSDL2.dll.a")
