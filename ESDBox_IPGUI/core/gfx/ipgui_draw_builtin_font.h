@@ -45,6 +45,24 @@ typedef enum {
     IPGUI_TEXT_ALIGN_RIGHT,         /* right alignment */
 } ipgui_text_align_t;
 
+/* 文字阴影质量：影响 box blur 遍数（CPU↑ 更接近高斯） */
+typedef enum {
+    IPGUI_TEXT_SHADOW_QUALITY_LOW = 0, /* 1-pass separable */
+    IPGUI_TEXT_SHADOW_QUALITY_MEDIUM,  /* 2-pass */
+    IPGUI_TEXT_SHADOW_QUALITY_HIGH,    /* 3-pass ≈ Gaussian */
+} ipgui_text_shadow_quality_t;
+
+/* 文字阴影样式（柔和模糊阴影） */
+typedef struct {
+    ipgui_color_t                 color;     /* 阴影颜色（建议不透明 RGB，透明度用 opacity） */
+    u8_t                          opacity;   /* 0-255 */
+    ipgui_coord_t                 blur;      /* 模糊半径（像素）；0 = 硬阴影 */
+    ipgui_coord_t                 offset_x;  /* 水平偏移 */
+    ipgui_coord_t                 offset_y;  /* 垂直偏移 */
+    ipgui_text_shadow_quality_t   quality;   /* 模糊质量档位 */
+    ipgui_blend_mode_t            blend_mode;
+} ipgui_text_shadow_style_t;
+
 __IPGUI_STATIC__ __IPGUI_INLINE__ 
 const ipgui_glyph_t * ipgui_font_get_glyph(
     const ipgui_font_t * font, 
@@ -75,6 +93,26 @@ extern __IPGUI_API__ ipgui_coord_t ipgui_draw_builtin_text(
 extern __IPGUI_API__ ipgui_coord_t ipgui_builtin_text_width(
     const ipgui_font_t * font, 
     const s8_t         * text);
+
+/* 带阴影绘制单个字符；返回 advance */
+extern __IPGUI_API__ ipgui_coord_t ipgui_draw_builtin_char_shadowed(
+    ipgui_surf_t              * surf,
+    ipgui_aabb_t              * clip,
+    ipgui_font_style_t        * style,
+    ipgui_text_shadow_style_t * shadow,
+    ipgui_coord_t               x,
+    ipgui_coord_t               y,
+    u8_t                        ch);
+
+/* 带阴影绘制文本；先阴影后正文；返回最后一行之后的 y */
+extern __IPGUI_API__ ipgui_coord_t ipgui_draw_builtin_text_shadowed(
+    ipgui_surf_t              * surf,
+    ipgui_aabb_t              * clip,
+    ipgui_font_style_t        * style,
+    ipgui_text_shadow_style_t * shadow,
+    const s8_t                * text,
+    ipgui_coord_t               x,
+    ipgui_coord_t               y);
     
 #ifdef __cplusplus
 }

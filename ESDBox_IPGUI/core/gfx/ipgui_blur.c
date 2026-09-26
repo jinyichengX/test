@@ -326,11 +326,253 @@ __IPGUI_API__ void ipgui_average_blur_ver(
     }
 }
 
-__IPGUI_API__ void ipgui_blur(
+/*
+ * 居中对称水平 box blur（zero-padding）
+ *
+ * kn_size 强制为奇数；half = kn_size / 2。
+ * out[x] = mean(in[x-half .. x+half])，越界取 0。
+ * 输出尺寸与输入相同，适合阴影扩散。
+ * 返回 0 成功，非 0 失败。
+ */
+__IPGUI_API__ int ipgui_average_blur_hor_centered(
     ipgui_mask_surface_t * in,
-    ipgui_coord_t          h_kn_size, /* horizontal blur kernel size */
-    ipgui_coord_t          v_kn_size, /* vertical blur kernel size */
+    ipgui_coord_t          kn_size,
     ipgui_mask_surface_t * out)
 {
-    
+    if (!in || !in->mask || !out || !out->mask) return -1;
+    if (kn_size <= 1) {
+        if (in->mask != out->mask) {
+            ipgui_coord_t copy_h = (in->h < out->h) ? in->h : out->h;
+            ipgui_coord_t copy_w = (in->w < out->w) ? in->w : out->w;
+            for (ipgui_coord_t y = 0; y < copy_h; y ++) {
+                ipgui_memcpy(out->mask + (uintptr_t)y * out->w,
+                             in->mask  + (uintptr_t)y * in->w,
+                             (u32_t)copy_w);
+                if (out->w > copy_w) {
+                    ipgui_memset(out->mask + (uintptr_t)y * out->w + copy_w,
+                                 0, (u32_t)(out->w - copy_w));
+                }
+            }
+            if (out->h > copy_h) {
+                ipgui_memset(out->mask + (uintptr_t)copy_h * out->w, 0,
+                             (u32_t)out->w * (u32_t)(out->h - copy_h));
+            }
+        }
+        return 0;
+    }
+
+    /* 强制奇数核：偶数向下取整 */
+    if ((kn_size & 1) == 0) kn_size -= 1;
+    if (kn_size < 1) return -1;
+
+    ipgui_coord_t half = kn_size / 2;
+    u32_t mul, shift;
+    ipgui_blur_recip((u32_t)kn_size, &mul, &shift);
+
+    ipgui_coord_t in_w  = in->w;
+    ipgui_coord_t in_h  = in->h;
+    ipgui_coord_t out_w = out->w;
+    ipgui_coord_t out_h = out->h;
+    ipgui_coord_t eff_w = (in_w < out_w) ? in_w : out_w;
+    ipgui_coord_t eff_h = (in_h < out_h) ? in_h : out_h;
+
+    /* 行缓冲：避免原地覆盖破坏滑动窗口 */
+    ipgui_coord_t row_h;
+    u8_t * row_tmp = ipgui_mask_buf_acquire(eff_w, 1, &row_h);
+    if (!row_tmp || row_h != 1) {
+        if (row_tmp) ipgui_mask_buf_free(row_tmp);
+        return -1;
+    }
+
+    for (ipgui_coord_t y = 0; y < eff_h; y ++) {
+        const u8_t * src = in->mask + (uintptr_t)y * in_w;
+        u8_t       * dst = out->mask + (uintptr_t)y * out_w;
+
+        /* 初始窗口：[-half, half]，越界取 0 */
+        s32_t sum = 0;
+        for (ipgui_coord_t i = -half; i <= half; i ++) {
+            if (i >= 0 && i < in_w) sum += (s32_t)src[i];
+        }
+
+        for (ipgui_coord_t x = 0; x < eff_w; x ++) {
+            row_tmp[x] = ipgui_blur_mean(sum, mul, shift);
+
+            /* 滑出左端、滑入右端 */
+            ipgui_coord_t leave = x - half;
+            ipgui_coord_t enter = x + half + 1;
+            if (leave >= 0 && leave < in_w) sum -= (s32_t)src[leave];
+            if (enter >= 0 && enter < in_w) sum += (s32_t)src[enter];
+        }
+
+        ipgui_memcpy(dst, row_tmp, (u32_t)eff_w);
+        if (out_w > eff_w) {
+            ipgui_memset(dst + eff_w, 0, (u32_t)(out_w - eff_w));
+        }
+    }
+
+    if (out_h > eff_h) {
+        ipgui_memset(out->mask + (uintptr_t)eff_h * out_w, 0,
+                     (u32_t)out_w * (u32_t)(out_h - eff_h));
+    }
+
+    ipgui_mask_buf_free(row_tmp);
+    return 0;
+}
+
+__IPGUI_API__ int ipgui_average_blur_ver_centered(
+    ipgui_mask_surface_t * in,
+    ipgui_coord_t          kn_size,
+    ipgui_mask_surface_t * out)
+{
+    if (!in || !in->mask || !out || !out->mask) return -1;
+    if (kn_size <= 1) {
+        if (in->mask != out->mask) {
+            ipgui_coord_t copy_h = (in->h < out->h) ? in->h : out->h;
+            ipgui_coord_t copy_w = (in->w < out->w) ? in->w : out->w;
+            for (ipgui_coord_t y = 0; y < copy_h; y ++) {
+                ipgui_memcpy(out->mask + (uintptr_t)y * out->w,
+                             in->mask  + (uintptr_t)y * in->w,
+                             (u32_t)copy_w);
+                if (out->w > copy_w) {
+                    ipgui_memset(out->mask + (uintptr_t)y * out->w + copy_w,
+                                 0, (u32_t)(out->w - copy_w));
+                }
+            }
+            if (out->h > copy_h) {
+                ipgui_memset(out->mask + (uintptr_t)copy_h * out->w, 0,
+                             (u32_t)out->w * (u32_t)(out->h - copy_h));
+            }
+        }
+        return 0;
+    }
+
+    if ((kn_size & 1) == 0) kn_size -= 1;
+    if (kn_size < 1) return -1;
+
+    ipgui_coord_t half = kn_size / 2;
+    u32_t mul, shift;
+    ipgui_blur_recip((u32_t)kn_size, &mul, &shift);
+
+    ipgui_coord_t in_w  = in->w;
+    ipgui_coord_t in_h  = in->h;
+    ipgui_coord_t out_w = out->w;
+    ipgui_coord_t out_h = out->h;
+    ipgui_coord_t eff_w = (in_w < out_w) ? in_w : out_w;
+    ipgui_coord_t eff_h = (in_h < out_h) ? in_h : out_h;
+
+    /* 列缓冲：抽出一列做 1D blur，再写回 */
+    ipgui_coord_t col_h;
+    u8_t * col_tmp = ipgui_mask_buf_acquire(eff_h, 1, &col_h);
+    if (!col_tmp || col_h != 1) {
+        if (col_tmp) ipgui_mask_buf_free(col_tmp);
+        return -1;
+    }
+
+    for (ipgui_coord_t x = 0; x < eff_w; x ++) {
+        const u8_t * src = in->mask + (uintptr_t)x;
+        u8_t       * dst = out->mask + (uintptr_t)x;
+
+        s32_t sum = 0;
+        for (ipgui_coord_t i = -half; i <= half; i ++) {
+            if (i >= 0 && i < in_h) {
+                sum += (s32_t)src[(uintptr_t)i * in_w];
+            }
+        }
+
+        for (ipgui_coord_t y = 0; y < eff_h; y ++) {
+            col_tmp[y] = ipgui_blur_mean(sum, mul, shift);
+
+            ipgui_coord_t leave = y - half;
+            ipgui_coord_t enter = y + half + 1;
+            if (leave >= 0 && leave < in_h) {
+                sum -= (s32_t)src[(uintptr_t)leave * in_w];
+            }
+            if (enter >= 0 && enter < in_h) {
+                sum += (s32_t)src[(uintptr_t)enter * in_w];
+            }
+        }
+
+        for (ipgui_coord_t y = 0; y < eff_h; y ++) {
+            dst[(uintptr_t)y * out_w] = col_tmp[y];
+        }
+    }
+
+    /* 越界区域清零 */
+    for (ipgui_coord_t y = 0; y < out_h; y ++) {
+        if (out_w > eff_w) {
+            ipgui_memset(out->mask + (uintptr_t)y * out_w + eff_w,
+                         0, (u32_t)(out_w - eff_w));
+        }
+        if (y >= eff_h) {
+            for (ipgui_coord_t x = 0; x < eff_w; x ++) {
+                out->mask[(uintptr_t)y * out_w + x] = 0;
+            }
+        }
+    }
+
+    ipgui_mask_buf_free(col_tmp);
+    return 0;
+}
+
+__IPGUI_API__ int ipgui_blur(
+    ipgui_mask_surface_t * in,
+    ipgui_coord_t          h_kn_size,
+    ipgui_coord_t          v_kn_size,
+    u8_t                   passes,
+    ipgui_mask_surface_t * out)
+{
+    if (!in || !in->mask || !out || !out->mask) return -1;
+    if (passes == 0) passes = 1;
+    if (passes > 3)  passes = 3;
+
+    /* 无模糊：直接拷贝 */
+    if (h_kn_size <= 1 && v_kn_size <= 1) {
+        if (in->mask != out->mask) {
+            return ipgui_average_blur_hor_centered(in, 1, out);
+        }
+        return 0;
+    }
+
+    ipgui_mask_surface_t cur = *in;
+    for (u8_t p = 0; p < passes; p ++) {
+        /* 首 pass：必要时把数据落到 out，后续 pass 原地继续 */
+        if (p == 0) {
+            if (h_kn_size > 1) {
+                if (ipgui_average_blur_hor_centered(&cur, h_kn_size, out) != 0) {
+                    return -1;
+                }
+                cur.mask = out->mask;
+                cur.w = out->w;
+                cur.h = out->h;
+            } else if (in->mask != out->mask) {
+                if (ipgui_average_blur_hor_centered(&cur, 1, out) != 0) {
+                    return -1;
+                }
+                cur.mask = out->mask;
+                cur.w = out->w;
+                cur.h = out->h;
+            }
+
+            if (v_kn_size > 1) {
+                if (ipgui_average_blur_ver_centered(&cur, v_kn_size, out) != 0) {
+                    return -1;
+                }
+                cur.mask = out->mask;
+                cur.w = out->w;
+                cur.h = out->h;
+            }
+        } else {
+            if (h_kn_size > 1) {
+                if (ipgui_average_blur_hor_centered(&cur, h_kn_size, out) != 0) {
+                    return -1;
+                }
+            }
+            if (v_kn_size > 1) {
+                if (ipgui_average_blur_ver_centered(&cur, v_kn_size, out) != 0) {
+                    return -1;
+                }
+            }
+        }
+    }
+    return 0;
 }
