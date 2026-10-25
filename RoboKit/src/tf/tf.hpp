@@ -121,6 +121,18 @@ class Transform3 {
       }
     }
 
+    //子坐标系下的一个姿态在父坐标系下的姿态
+    inline quat_t OrientationTransform(const vec3_t& rpy_in_child) const
+    {
+
+    }
+    
+    //子坐标系下的一个姿态在父坐标系下的姿态
+    inline quat_t OrientationTransform(const quat_t& q_in_child) const
+    {
+
+    }
+
     //先作用q2，再作用q1
     quat_t QuatMul(const quat_t & q1, const quat_t & q2)
     {
@@ -134,7 +146,7 @@ class Transform3 {
 
   private:
     vec3_t pos_;//rel to parent position
-    float  roll_, pitch_, yaw_;//rel to parent angle, 角度制
+    float  roll_, pitch_, yaw_;//子坐标系相对于父坐标系的RPY角度, 角度制
 
     //rotation matrix cache(from RPY), row-major
     double r00_, r01_, r02_;
