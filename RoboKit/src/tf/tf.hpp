@@ -48,9 +48,9 @@ class Transform2 {//笛卡尔坐标系
     }
 
     //将角度转换到(-360, 360)开区间
-    void AngleTransform(void)
+    double AngleTransform(void)
     {
-      angle_ = std::fmod(angle_, 360);//std::fmod计算两个浮点数相除的余数
+      return std::fmod(angle_, 360);//std::fmod计算两个浮点数相除的余数
     }
 
   //该坐标系相对于父坐标系的位置和角度
