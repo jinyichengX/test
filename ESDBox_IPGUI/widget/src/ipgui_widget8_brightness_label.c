@@ -24,13 +24,13 @@ void brightness_label_render(struct ipgui_widget * widget, ipgui_widget_render_c
 
     /* 柔和文字阴影：先阴影后正文；内存不足时内部会降级硬阴影 */
     ipgui_text_shadow_style_t shadow;
-    shadow.opacity    = 255;
-    shadow.blur       = 5;
+    shadow.opacity    = 177;
+    shadow.blur       = 4;
     shadow.offset_x   = 0;
     shadow.offset_y   = 0;
     shadow.quality    = IPGUI_TEXT_SHADOW_QUALITY_HIGH;
     shadow.blend_mode = IPGUI_BLEND_NORMAL;
-    IPGUI_COLOR_SET(shadow.color, 255, IPGUI_COLOR_RED);
+    IPGUI_COLOR_SET(shadow.color, 255, IPGUI_COLOR_315);
 
     ipgui_coord_t tw = ipgui_builtin_text_width(&quicksand_medium_30px, buf);
     ipgui_coord_t x = (widget->w - tw) / 2;

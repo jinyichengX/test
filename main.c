@@ -746,21 +746,14 @@ int main(void)
     /* 不设 SCROLLABLE —— 不可滚动，但 drag_handler 直接改 x/y */
 
     /* ========== 曲线控件 ========== */
-    ipgui_widget_t * widget_curve = ipgui_widget_create(NULL);
-    widget_curve->name   = "实时曲线";
-    widget_curve->render = curve_render;
-    widget_curve->x      = 0;
-    widget_curve->y      = 0;
-    widget_curve->w      = 800;
-    widget_curve->h      = 480;
+    // ipgui_widget_t * widget_curve = ipgui_widget_create(NULL);
+    // widget_curve->name   = "实时曲线";
+    // widget_curve->render = curve_render;
+    // widget_curve->x      = 0;
+    // widget_curve->y      = 0;
+    // widget_curve->w      = 800;
+    // widget_curve->h      = 480;
 
-    ipgui_widget_t * blur_widget = ipgui_widget_create(NULL);
-    blur_widget->name   = "blur test";
-    blur_widget->render = blur_render;
-    blur_widget->x      = 0;
-    blur_widget->y      = 0;
-    blur_widget->w      = 800;
-    blur_widget->h      = 480;
 
     ipgui_input_src_evt_t raw_evt;
     while(1)
@@ -791,7 +784,7 @@ int main(void)
         widget_switch_update(widget_switch);
         widget_knob_update(widget_brightness_label);
         widget_wave_update(widget3);
-        widget_curve_update(widget_curve);
+        // widget_curve_update(widget_curve);
 
         /* 心跳 */
         ipgui_tick_inc();
