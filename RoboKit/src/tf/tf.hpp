@@ -22,6 +22,7 @@ class Transform2 {//笛卡尔坐标系
     vec2_t GetPos(void) const {return pos_;}
     double GetAngle(void) const {return angle_;}
 
+    // 单点变换
     //知道子坐标系和父坐标系的位姿关系，且知道了子系下的一个点xy，就可以计算出这个点在父坐标系下的位置
     inline vec2_t PosTransform(const vec2_t& pos_in_child) const
     {
@@ -91,7 +92,7 @@ class Transform3 {
     float  GetPitch(void) const { return pitch_; }
     float  GetYaw  (void) const { return yaw_; }
 
-    // p_parent = R · p_child + pos_
+    // 单点变换
     // R 已缓存，单点接口适合少量点（位姿/标注框角点）
     inline vec3_t PosTransform(const vec3_t &pos_in_child) const
     {
