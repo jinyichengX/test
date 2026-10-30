@@ -17,8 +17,13 @@ struct widget_link_t{
     const char * name;/* 测试用 */
 };
 
+struct ipgui_scr_ctx;
+
 struct widget_tree_t{
-    struct widget_link_t root;
+    struct widget_link_t    root;
+
+    /* 回指所属屏幕 */
+    struct ipgui_scr_ctx  * scr;
 };
 
 typedef int (* widget_ops_t)(struct widget_link_t *, void *);

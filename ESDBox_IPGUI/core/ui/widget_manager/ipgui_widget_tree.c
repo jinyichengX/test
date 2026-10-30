@@ -59,6 +59,7 @@ __IPGUI_API__ void ipgui_widget_tree_init(struct widget_tree_t * tree)
     tree->root.sib_prev = &tree->root;
     tree->root.first_child = (struct widget_link_t *)0;
     tree->root.child_num = 0;
+    tree->scr = (struct ipgui_scr_ctx *)0;
 }
 
 /* if link is a root link */

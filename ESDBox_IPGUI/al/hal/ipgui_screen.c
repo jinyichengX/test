@@ -28,13 +28,47 @@ __IPGUI_API__ ipgui_err_t ipgui_screen_init(ipgui_scr_t * scr, ipgui_scr_drv_t *
         scr->drv->xreso, 
         scr->drv->yreso);
 
-    /* 初始化控件树 */
-    ipgui_widget_tree_init(&scr->tree);
+    /* 初始化页面控件树：每页一棵独立的树，并回填所属屏幕 */
+    {
+        u32_t i;
+        for (i = 0; i < SCREEN_PAGE_MAX; i++) {
+            ipgui_widget_tree_init(&scr->pages[i]);
+            scr->pages[i].scr = scr;
+        }
+    }
+    scr->act_page = 0;
 
     /* set default background color: white and fully opaque */
     IPGUI_COLOR_SET(scr->bg_color, 255, IPGUI_COLOR_WHITE);
 
     return IPGUI_ERR_OK;
+}
+
+/* 切换当前页 */
+__IPGUI_API__ void ipgui_screen_page_switch(ipgui_scr_t * scr, u32_t page)
+{
+    if (!scr || !scr->drv)
+        return;
+
+    if (page >= SCREEN_PAGE_MAX) {
+        ipgui_dbg_error("page index is invalid\n");
+        return;
+    }
+
+    if (scr->act_page == page)
+        return;
+
+    scr->act_page = page;
+
+    /* 整屏置脏
+     * 两页的控件布局无需求交才能算出差异，且旧页内容必须被背景覆盖，
+     * 因此整屏重绘是唯一不会留残影的做法，代价也只是一次全屏刷新。
+     */
+    ipgui_dirty_rect_add_xywh(&scr->dirty,
+        0,
+        0,
+        scr->drv->xreso,
+        scr->drv->yreso);
 }
 
 /* 其中的pix_fmt可以随便定义，
@@ -212,7 +246,7 @@ __IPGUI_STATIC__ void ipgui_screen_render_dirty_rect_slice(
     }
 
     ipgui_screen_render_widget_dfs(
-        &scr->tree.root, 
+        &scr->pages[scr->act_page].root, 
         &surf, 
         dirty, 
         (ipgui_aabb_t *)0, 
@@ -387,8 +421,9 @@ __IPGUI_API__ ipgui_widget_t * ipgui_screen_point_on(
     if (!ipgui_point_in_aabb(x, y, &screen_aabb))
         return (ipgui_widget_t *)0;
 
-    /* 以屏幕作为初始parent_clip，从根节点开始递归 */
-    return ipgui_screen_point_on_recurse(&scr->tree.root, x, y, &screen_aabb);
+    /* 以屏幕作为初始parent_clip，从当前页的根节点开始递归 */
+    return ipgui_screen_point_on_recurse(
+        &scr->pages[scr->act_page].root, x, y, &screen_aabb);
 }
 
 extern void ipgui_widget_scroll_handler(ipgui_widget_t * widget, ipgui_widget_evt_t * evt);

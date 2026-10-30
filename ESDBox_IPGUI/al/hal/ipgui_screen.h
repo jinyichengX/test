@@ -14,6 +14,7 @@ extern "C" {
 #include "ipgui_widget_tree.h"
 #include "ipgui_dirty_rect.h"
 #include "ipgui_core.h"
+#include "ipgui_conf.h"
 
 typedef struct ipgui_scr_ctx ipgui_scr_t;
 typedef struct{
@@ -46,8 +47,13 @@ typedef struct ipgui_scr_ctx{
 
     ipgui_scr_drv_t      * drv;
 
-    /* Widget tree root */
-    struct widget_tree_t   tree;
+    /* 页面控件树：每页一棵独立的树
+     * 同一时刻只有 act_page 参与渲染与命中，其余页保留完整状态但不绘制
+     */
+    struct widget_tree_t   pages[SCREEN_PAGE_MAX];
+
+    /* 当前页索引，恒小于 SCREEN_PAGE_MAX */
+    u8_t                  act_page;
 
     /* Dirty rect manager */
     ipgui_dirty_rect_mgr_t dirty;
@@ -70,6 +76,18 @@ typedef struct ipgui_scr_ctx{
 extern __IPGUI_API__ ipgui_err_t ipgui_screen_init(
                                         ipgui_scr_t        * scr, 
                                         ipgui_scr_drv_t    * drv);
+
+/* 切换当前页
+ *
+ * 只改索引并把整屏置脏，不移动、不重挂任何控件，因此切换成本是 O(1)。
+ * 未被切换到的页保留完整控件树与其状态，只是不再参与渲染与命中。
+ *
+ * 注意：无父控件创建的控件（ipgui_widget_create(NULL)）会挂到“当前页”，
+ *      因此建多页时应按页切换后再创建控件。
+ */
+extern __IPGUI_API__ void        ipgui_screen_page_switch(
+                                        ipgui_scr_t        * scr,
+                                        u32_t                page);
 
 extern __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
                                         ipgui_scr_t        * scr, 

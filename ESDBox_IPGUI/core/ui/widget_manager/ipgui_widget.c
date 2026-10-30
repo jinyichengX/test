@@ -34,8 +34,10 @@ __IPGUI_API__ ipgui_widget_t * ipgui_widget_create(ipgui_widget_t * parent)
         ipgui_widget_link_set_parent(&widget->link, &parent->link);
         // ipgui_widget_mark_dirty();
     } else {   
-        /* it is a detached widget, leave it */;
-        ipgui_widget_link_set_parent(&widget->link, &main_screen.tree.root);
+        /* 无父控件时挂到当前页的控件树根 */
+        ipgui_widget_link_set_parent(
+            &widget->link, 
+            &main_screen.pages[main_screen.act_page].root);
     }
     
     /* init event handler and render callback */
@@ -84,12 +86,14 @@ __IPGUI_API__ ipgui_scr_t * ipgui_widget_get_screen(ipgui_widget_t * widget)
         return (ipgui_scr_t *)0;
 
     struct widget_link_t * _root;
-    ipgui_scr_t * scr;
+    struct widget_tree_t * _tree;
     _root = ipgui_widget_link_get_root(&widget->link);
 
-    /* 根节点的 link 嵌入在 ipgui_scr_t.tree.root 中 */
-    scr = ipgui_container_of(_root, ipgui_scr_t, tree.root);
-    return scr;
+    /* 根节点嵌入在 widget_tree_t.root 中，再由树的 scr 回指拿到屏幕
+     * 一个屏幕有多棵树，不能用 ipgui_scr_t 的字段偏移直接反查
+     */
+    _tree = ipgui_container_of(_root, struct widget_tree_t, root);
+    return _tree->scr;
 }
 
 __IPGUI_API__ void ipgui_widget_set_top(ipgui_widget_t * widget)

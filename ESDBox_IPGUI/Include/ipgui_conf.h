@@ -60,6 +60,16 @@
 #error "SCREEN_MAX must be greater than 0"
 #endif
 
+/* 每个屏幕的页面数量，每页一棵独立的控件树
+ * 页面结构体直接内嵌在 ipgui_scr_t 中，增大该值会线性增加屏幕对象的内存占用
+ */
+#define SCREEN_PAGE_MAX 10
+#if SCREEN_PAGE_MAX < 1
+#error "SCREEN_PAGE_MAX must be greater than 0"
+#elif SCREEN_PAGE_MAX > 255
+#error "SCREEN_PAGE_MAX must be little than 255"
+#endif
+
 #define EVENT_POOL_SIZE 5
 #if EVENT_POOL_SIZE < 1
 #error "EVENT_POOL_SIZE must be greater than 0"
