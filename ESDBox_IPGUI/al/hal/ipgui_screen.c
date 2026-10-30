@@ -44,8 +44,8 @@ __IPGUI_API__ ipgui_err_t ipgui_screen_init(ipgui_scr_t * scr, ipgui_scr_drv_t *
     return IPGUI_ERR_OK;
 }
 
-/* 切换当前页 */
-__IPGUI_API__ void ipgui_screen_page_switch(ipgui_scr_t * scr, u32_t page)
+/* 切换显示页 */
+__IPGUI_API__ void ipgui_screen_page_switch(ipgui_scr_t * scr, u8_t page)
 {
     if (!scr || !scr->drv)
         return;

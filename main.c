@@ -473,6 +473,24 @@ void icon_render(struct ipgui_widget * widget, ipgui_widget_render_ctx_t * ctx)
         &style);
 }
 
+/* ========== 页面切换示例 ==========
+ * 每个 page 是一棵独立的控件树，ipgui_screen_page_switch() 只改 act_page
+ * 并把整屏置脏，切走的那一页控件与状态都保留。
+ */
+static widget_color_t col_page2_bg = {0x2a, 0x3a, 0x5e};
+
+static void page_next_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
+{
+    if (e->type == IPGUI_WIDGET_EVENT_RELEASED)
+        ipgui_screen_page_switch(&main_screen, 1);
+}
+
+static void page_back_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
+{
+    if (e->type == IPGUI_WIDGET_EVENT_RELEASED)
+        ipgui_screen_page_switch(&main_screen, 0);
+}
+
 int main(void)
 {
     ipgui_input_dispatcher_init(&dispatcher);
@@ -744,6 +762,70 @@ int main(void)
     wid3->render = color_render;
     wid3->event_handler = drag_handler;
     /* 不设 SCROLLABLE —— 不可滚动，但 drag_handler 直接改 x/y */
+
+    /* ========== 页面切换示例 ========== */
+    /* 第 0 页：左下角一个 NEXT 按钮 */
+    ipgui_widget_t * btn_next = ipgui_widget_create(NULL);
+    btn_next->name = "NEXT";
+    btn_next->render = color_render;
+    btn_next->event_handler = page_next_handler;
+    btn_next->x = 20;
+    btn_next->y = 425;
+    btn_next->w = 120;
+    btn_next->h = 40;
+    btn_next->priv_data = (void *)&col_purple;
+
+    /* 切到第 1 页后再创建，ipgui_widget_create(NULL) 会挂到当前页 */
+    ipgui_screen_page_switch(&main_screen, 1);
+
+    ipgui_widget_t * page2_bg = ipgui_widget_create(NULL);
+    page2_bg->name = "PAGE 2";
+    page2_bg->render = color_render;
+    page2_bg->x = 60;
+    page2_bg->y = 60;
+    page2_bg->w = 680;
+    page2_bg->h = 300;
+    page2_bg->priv_data = (void *)&col_page2_bg;
+
+    ipgui_widget_t * page2_a = ipgui_widget_create(NULL);
+    page2_a->name = "A";
+    page2_a->render = color_render;
+    page2_a->x = 120;
+    page2_a->y = 140;
+    page2_a->w = 160;
+    page2_a->h = 140;
+    page2_a->priv_data = (void *)&col_red;
+
+    ipgui_widget_t * page2_b = ipgui_widget_create(NULL);
+    page2_b->name = "B";
+    page2_b->render = color_render;
+    page2_b->x = 320;
+    page2_b->y = 140;
+    page2_b->w = 160;
+    page2_b->h = 140;
+    page2_b->priv_data = (void *)&col_green;
+
+    ipgui_widget_t * page2_c = ipgui_widget_create(NULL);
+    page2_c->name = "C";
+    page2_c->render = color_render;
+    page2_c->x = 520;
+    page2_c->y = 140;
+    page2_c->w = 160;
+    page2_c->h = 140;
+    page2_c->priv_data = (void *)&col_orange;
+
+    ipgui_widget_t * btn_back = ipgui_widget_create(NULL);
+    btn_back->name = "BACK";
+    btn_back->render = color_render;
+    btn_back->event_handler = page_back_handler;
+    btn_back->x = 20;
+    btn_back->y = 425;
+    btn_back->w = 120;
+    btn_back->h = 40;
+    btn_back->priv_data = (void *)&col_gray;
+
+    /* 回到启动页，运行时用 NEXT / BACK 互切 */
+    ipgui_screen_page_switch(&main_screen, 0);
 
     /* ========== 曲线控件 ========== */
     // ipgui_widget_t * widget_curve = ipgui_widget_create(NULL);

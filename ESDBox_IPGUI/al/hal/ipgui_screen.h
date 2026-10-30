@@ -87,7 +87,7 @@ extern __IPGUI_API__ ipgui_err_t ipgui_screen_init(
  */
 extern __IPGUI_API__ void        ipgui_screen_page_switch(
                                         ipgui_scr_t        * scr,
-                                        u32_t                page);
+                                        u8_t                page);
 
 extern __IPGUI_API__ ipgui_err_t ipgui_scr_create_pfb(
                                         ipgui_scr_t        * scr, 
