@@ -979,6 +979,11 @@ int main(void)
     page2_bg->w = 680;
     page2_bg->h = 300;
     page2_bg->priv_data = (void *)&col_page2_bg;
+    /* 本页内容容器可滚动：勾上 SCROLLABLE 后，内核在 ipgui_screen_handle_widget_event
+     * 里自动调用 ipgui_widget_scroll_handler，拖动改 scroll_x/scroll_y，松手带惯性，
+     * 不需要自己写 event_handler */
+    page2_bg->flags |= IPGUI_WIDGET_FLAG_SCROLLABLE;
+    page2_bg->scroll_dir = IPGUI_SCROLL_DIR_GESTURE;
 
     /* 网格容器：A 跨两行，B/C 第一行，D/E 自动流到第二行 */
     ipgui_widget_t * page2_a = ipgui_widget_create(page2_bg);

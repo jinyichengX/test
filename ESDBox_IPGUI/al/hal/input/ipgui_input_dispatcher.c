@@ -379,7 +379,7 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
                     cur_state->cur_y);
 
                 if (!target) {
-                    ipgui_dbg_error("hit test failed\r\n");
+                    // ipgui_dbg_error("hit test failed\r\n");//逻辑正确，可以取消注释
                     return IPGUI_ERR_NOK;
                 }
                 cur_state->grabbed = target;
@@ -420,7 +420,7 @@ __IPGUI_STATIC__ ipgui_err_t ipgui_default_event_converter(
                     raw_evt->evt_info.pointer_pos.x,
                     raw_evt->evt_info.pointer_pos.y);
                 if (!target) {
-                    ipgui_dbg_error("hit test failed, no widget hovered\r\n");
+                    // ipgui_dbg_error("no widget hovered\r\n");//逻辑正确，可以取消注释
                     return IPGUI_ERR_NOK;
                 }
                 widget_evt->target = target;
