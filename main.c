@@ -8,11 +8,14 @@
 
 #include "ipgui_screen.h"
 #include "ipgui_widget.h"
+#include "ipgui_grid.h"
 #include "ipgui_input_dispatcher.h"
 #include "ipgui_blend.h"
 #include "ipgui_pattle.h"
 #include "ipgui_draw_arc.h"
 #include "ipgui_image.h"
+#include "ipgui_draw_image_api.h"
+#include "ipgui_draw_pixel.h"
 #include "ipgui_time.h"
 #include "ipgui_animation.h"
 #include "ipgui_draw_icon.h"
@@ -125,7 +128,8 @@ void color_render(ipgui_widget_t * w, ipgui_widget_render_ctx_t * ctx)
     s.left_top_radius = s.right_top_radius = s.left_bottom_radius = s.right_bottom_radius = 12;
     ipgui_box_bg_style_t bg;
     bg.paint.type = IPGUI_PAINT_COLOR;
-    IPGUI_COLOR_SET(bg.paint.src.color, 255, ((u32_t)c->r << 16) | ((u32_t)c->g << 8) | c->b);
+    u32_t rgb = ((u32_t)c->r << 16) | ((u32_t)c->g << 8) | c->b;
+    IPGUI_COLOR_SET(bg.paint.src.color, 255, rgb);
     bg.opacity = 100; bg.blend_mode = IPGUI_BLEND_NORMAL;
     ipgui_draw_box_background(ctx->surf, NULL, &box, &s, &bg);
 
@@ -491,6 +495,195 @@ static void page_back_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
         ipgui_screen_page_switch(&main_screen, 0);
 }
 
+static void page_next2_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
+{
+    if (e->type == IPGUI_WIDGET_EVENT_RELEASED)
+        ipgui_screen_page_switch(&main_screen, 2);
+}
+
+static void page2_back_handler(ipgui_widget_t * w, ipgui_widget_evt_t * e)
+{
+    if (e->type == IPGUI_WIDGET_EVENT_RELEASED)
+        ipgui_screen_page_switch(&main_screen, 1);
+}
+
+/* ========== 第 2 页：手机桌面图标排布 ==========
+ * 手机壳/屏幕/状态栏/桌面图标网格/页码点，全部用网格布局摆放。
+ */
+#define APP_ICON_COUNT 12
+
+typedef struct { u8_t r, g, b, radius; } panel_color_t;
+
+typedef struct {
+    ipgui_image_data_t * img;
+    const s8_t         * label;
+} app_icon_t;
+
+static panel_color_t panel_phone  = {0x0d, 0x0f, 0x16, 28};
+static panel_color_t panel_screen = {0x1b, 0x20, 0x2e, 20};
+
+static ipgui_image_data_t app_imgs[APP_ICON_COUNT];
+static app_icon_t         app_icons[APP_ICON_COUNT];
+
+static const s8_t * app_icon_paths[APP_ICON_COUNT] = {
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/amazon-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/Discord Server-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/dribbble-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/dropbox-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/envato marketplace-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/evernote-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/facebook-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/flickr-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/gmail-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/google chrome-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/hi-512x512.bmp",
+    "M:/test/ESDBox_IPGUI/widget/src/app_icons/instagram-512x512.bmp",
+};
+
+static const s8_t * app_icon_labels[APP_ICON_COUNT] = {
+    "Amazon", "Discord", "Dribbble", "Dropbox",
+    "Envato", "Evernote", "Facebook", "Flickr",
+    "Gmail", "Chrome", "Hi", "Instagram",
+};
+
+/* 大圆角纯色块：手机外壳与屏幕 */
+static void panel_render(ipgui_widget_t * w, ipgui_widget_render_ctx_t * ctx)
+{
+    panel_color_t * c = (panel_color_t *)w->priv_data;
+    ipgui_aabb_t box = {{0, 0}, {w->w - 1, w->h - 1}};
+    ipgui_box_style_t s; ipgui_memset(&s, 0, sizeof(s));
+    s.left_top_radius = s.right_top_radius =
+        s.left_bottom_radius = s.right_bottom_radius = c->radius;
+    ipgui_box_bg_style_t bg;
+    bg.paint.type = IPGUI_PAINT_COLOR;
+    /* 注意：IPGUI_COLOR_SET 的第三个参数没有加括号，必须传单个变量，
+     * 否则 rgb >> 16 会按运算符优先级先算最后一项 */
+    u32_t rgb = ((u32_t)c->r << 16) | ((u32_t)c->g << 8) | c->b;
+    IPGUI_COLOR_SET(bg.paint.src.color, 255, rgb);
+    bg.opacity = 255;
+    bg.blend_mode = IPGUI_BLEND_NORMAL;
+    ipgui_draw_box_background(ctx->surf, NULL, &box, &s, &bg);
+}
+
+/* 状态栏：左侧时间，右侧电量胶囊 */
+static void status_bar_render(ipgui_widget_t * w, ipgui_widget_render_ctx_t * ctx)
+{
+    ipgui_font_style_t fs; ipgui_memset(&fs, 0, sizeof(fs));
+    fs.font = &open_sans_11px;
+    fs.paint.type = IPGUI_PAINT_COLOR;
+    IPGUI_COLOR_SET(fs.paint.src.color, 255, 0xFFFFFF);
+    fs.opacity = 235;
+    fs.blend_mode = IPGUI_BLEND_NORMAL;
+    ipgui_draw_builtin_text(ctx->surf, NULL, &fs, "9:41", 2, 3);
+
+    ipgui_coord_t tw = ipgui_builtin_text_width(fs.font, "5G");
+    ipgui_draw_builtin_text(ctx->surf, NULL, &fs, "5G", w->w - 30 - tw, 3);
+
+    ipgui_aabb_t bat = {{w->w - 24, 6}, {w->w - 3, 14}};
+    ipgui_box_style_t s; ipgui_memset(&s, 0, sizeof(s));
+    s.left_top_radius = s.right_top_radius =
+        s.left_bottom_radius = s.right_bottom_radius = 3;
+    ipgui_box_bg_style_t bg;
+    bg.paint.type = IPGUI_PAINT_COLOR;
+    IPGUI_COLOR_SET(bg.paint.src.color, 255, 0xFFFFFF);
+    bg.opacity = 210;
+    bg.blend_mode = IPGUI_BLEND_NORMAL;
+    ipgui_draw_box_background(ctx->surf, NULL, &bat, &s, &bg);
+}
+
+/* 把方图四角切成圆角：用底色按覆盖率涂掉圆角矩形之外的像素（2x2 超采样抗锯齿） */
+static void carve_round_corners(ipgui_surf_t * surf,
+    ipgui_coord_t x, ipgui_coord_t y, ipgui_coord_t size, ipgui_coord_t r,
+    ipgui_color_t color)
+{
+    for (ipgui_coord_t j = 0; j < r; j++) {
+        for (ipgui_coord_t i = 0; i < r; i++) {
+            u8_t outside = 0;
+            for (u8_t sy = 0; sy < 2; sy++) {
+                for (u8_t sx = 0; sx < 2; sx++) {
+                    s32_t dx = 4 * (r - i) - (1 + 2 * sx);
+                    s32_t dy = 4 * (r - j) - (1 + 2 * sy);
+                    if (dx * dx + dy * dy > 16 * r * r) outside++;
+                }
+            }
+            if (0 == outside) continue;
+            u8_t op = (u8_t)(outside * 255 / 4);
+            ipgui_draw_pixel(surf, NULL, x + i,              y + j,              color, 255, op, IPGUI_BLEND_NORMAL);
+            ipgui_draw_pixel(surf, NULL, x + size - 1 - i,   y + j,              color, 255, op, IPGUI_BLEND_NORMAL);
+            ipgui_draw_pixel(surf, NULL, x + i,              y + size - 1 - j,   color, 255, op, IPGUI_BLEND_NORMAL);
+            ipgui_draw_pixel(surf, NULL, x + size - 1 - i,   y + size - 1 - j,   color, 255, op, IPGUI_BLEND_NORMAL);
+        }
+    }
+}
+
+/* 单个桌面图标：圆角底板 + 等比缩放图标 + 名称 */
+static void app_icon_render(ipgui_widget_t * w, ipgui_widget_render_ctx_t * ctx)
+{
+    app_icon_t * app = (app_icon_t *)w->priv_data;
+    ipgui_coord_t tile = 54;
+    ipgui_coord_t tx = ((w->w - 1) - tile) / 2;
+    ipgui_coord_t ty = ((w->h - 1) - (tile + 16)) / 2;
+    ipgui_aabb_t box = {{tx, ty}, {tx + tile - 1, ty + tile - 1}};
+
+    /* 图标源图自带黑底，用同色圆角底板收口，得到规整的 App 图标外形 */
+    ipgui_box_style_t s; ipgui_memset(&s, 0, sizeof(s));
+    s.left_top_radius = s.right_top_radius =
+        s.left_bottom_radius = s.right_bottom_radius = 14;
+    ipgui_box_bg_style_t bg;
+    bg.paint.type = IPGUI_PAINT_COLOR;
+    IPGUI_COLOR_SET(bg.paint.src.color, 255, 0x000000);
+    bg.opacity = 100;
+    bg.blend_mode = IPGUI_BLEND_NORMAL;
+    ipgui_draw_box_background(ctx->surf, NULL, &box, &s, &bg);
+
+    if (app->img) {
+        ipgui_image_draw_style_t st;
+        st.opacity = 255;
+        st.blend_mode = IPGUI_BLEND_NORMAL;
+        ipgui_draw_image_in_rect(ctx->surf, app->img, &box,
+            IPGUI_IMG_ALIGN_CENTER, IPGUI_IMG_FIT_STRETCH,
+            &st, IPGUI_IMAGE_QUALITY_HIGH);
+
+        /* 源图是整块方图，用屏幕底色把四角切成圆角 */
+        ipgui_color_t screen_bg;
+        u32_t sbg = ((u32_t)panel_screen.r << 16) | ((u32_t)panel_screen.g << 8) | panel_screen.b;
+        IPGUI_COLOR_SET(screen_bg, 255, sbg);
+        carve_round_corners(ctx->surf, tx, ty, tile, 12, screen_bg);
+    }
+
+    ipgui_font_style_t fs; ipgui_memset(&fs, 0, sizeof(fs));
+    fs.font = &open_sans_11px;
+    fs.paint.type = IPGUI_PAINT_COLOR;
+    IPGUI_COLOR_SET(fs.paint.src.color, 255, 0xFFFFFF);
+    fs.opacity = 235;
+    fs.blend_mode = IPGUI_BLEND_NORMAL;
+    ipgui_coord_t tw = ipgui_builtin_text_width(fs.font, app->label);
+    ipgui_draw_builtin_text(ctx->surf, NULL, &fs, app->label,
+        ((w->w - 1) - tw) / 2, ty + tile + 3);
+}
+
+/* 底部页码点 */
+static void desk_dots_render(ipgui_widget_t * w, ipgui_widget_render_ctx_t * ctx)
+{
+    ipgui_coord_t cx = (w->w - 1) / 2;
+    ipgui_coord_t cy = (w->h - 1) / 2;
+    for (u8_t i = 0; i < 3; i++) {
+        ipgui_aabb_t d = {
+            {cx + (ipgui_coord_t)(i - 1) * 12 - 2, cy - 2},
+            {cx + (ipgui_coord_t)(i - 1) * 12 + 2, cy + 2}
+        };
+        ipgui_box_style_t s; ipgui_memset(&s, 0, sizeof(s));
+        s.left_top_radius = s.right_top_radius =
+            s.left_bottom_radius = s.right_bottom_radius = 2;
+        ipgui_box_bg_style_t bg;
+        bg.paint.type = IPGUI_PAINT_COLOR;
+        IPGUI_COLOR_SET(bg.paint.src.color, 255, 0xFFFFFF);
+        bg.opacity = (i == 0) ? 235 : 90;
+        bg.blend_mode = IPGUI_BLEND_NORMAL;
+        ipgui_draw_box_background(ctx->surf, NULL, &d, &s, &bg);
+    }
+}
+
 int main(void)
 {
     ipgui_input_dispatcher_init(&dispatcher);
@@ -787,32 +980,71 @@ int main(void)
     page2_bg->h = 300;
     page2_bg->priv_data = (void *)&col_page2_bg;
 
-    ipgui_widget_t * page2_a = ipgui_widget_create(NULL);
+    /* 网格容器：A 跨两行，B/C 第一行，D/E 自动流到第二行 */
+    ipgui_widget_t * page2_a = ipgui_widget_create(page2_bg);
     page2_a->name = "A";
     page2_a->render = color_render;
-    page2_a->x = 120;
-    page2_a->y = 140;
-    page2_a->w = 160;
-    page2_a->h = 140;
+    page2_a->w = 100;
+    page2_a->h = 100;
     page2_a->priv_data = (void *)&col_red;
 
-    ipgui_widget_t * page2_b = ipgui_widget_create(NULL);
+    ipgui_widget_t * page2_b = ipgui_widget_create(page2_bg);
     page2_b->name = "B";
     page2_b->render = color_render;
-    page2_b->x = 320;
-    page2_b->y = 140;
-    page2_b->w = 160;
-    page2_b->h = 140;
+    page2_b->w = 100;
+    page2_b->h = 100;
     page2_b->priv_data = (void *)&col_green;
 
-    ipgui_widget_t * page2_c = ipgui_widget_create(NULL);
+    ipgui_widget_t * page2_c = ipgui_widget_create(page2_bg);
     page2_c->name = "C";
     page2_c->render = color_render;
-    page2_c->x = 520;
-    page2_c->y = 140;
     page2_c->w = 160;
-    page2_c->h = 140;
+    page2_c->h = 100;
     page2_c->priv_data = (void *)&col_orange;
+
+    ipgui_widget_t * page2_d = ipgui_widget_create(page2_bg);
+    page2_d->name = "D";
+    page2_d->render = color_render;
+    page2_d->w = 100;
+    page2_d->h = 100;
+    page2_d->priv_data = (void *)&col_purple;
+
+    ipgui_widget_t * page2_e = ipgui_widget_create(page2_bg);
+    page2_e->name = "E";
+    page2_e->render = color_render;
+    page2_e->w = 100;
+    page2_e->h = 100;
+    page2_e->priv_data = (void *)&col_blue;
+
+    /* 列：1fr | 120px | auto(取 C 的宽度)；行：120px | 1fr */
+    static const ipgui_grid_track_t grid_cols[] = {
+        {IPGUI_GRID_TRACK_FR,    1},
+        {IPGUI_GRID_TRACK_FIXED, 120},
+        {IPGUI_GRID_TRACK_AUTO,  0},
+    };
+    static const ipgui_grid_track_t grid_rows[] = {
+        {IPGUI_GRID_TRACK_FIXED, 120},
+        {IPGUI_GRID_TRACK_FR,    1},
+    };
+    /* 按子控件创建顺序对应：A 跨两行，其余默认 1x1 自动放置 */
+    static const ipgui_grid_item_t grid_items[] = {
+        {IPGUI_GRID_AUTO, IPGUI_GRID_AUTO, 1, 2},
+    };
+    ipgui_grid_cfg_t grid_cfg = {
+        .cols = grid_cols,
+        .col_count = 3,
+        .rows = grid_rows,
+        .row_count = 2,
+        .items = grid_items,
+        .item_count = 1,
+        .col_gap = 12,
+        .row_gap = 12,
+        .pad_left = 16,
+        .pad_top = 16,
+        .pad_right = 16,
+        .pad_bottom = 16,
+    };
+    ipgui_grid_apply(page2_bg, &grid_cfg);
 
     ipgui_widget_t * btn_back = ipgui_widget_create(NULL);
     btn_back->name = "BACK";
@@ -823,6 +1055,120 @@ int main(void)
     btn_back->w = 120;
     btn_back->h = 40;
     btn_back->priv_data = (void *)&col_gray;
+
+    ipgui_widget_t * btn_next2 = ipgui_widget_create(NULL);
+    btn_next2->name = "NEXT";
+    btn_next2->render = color_render;
+    btn_next2->event_handler = page_next2_handler;
+    btn_next2->x = 660;
+    btn_next2->y = 425;
+    btn_next2->w = 120;
+    btn_next2->h = 40;
+    btn_next2->priv_data = (void *)&col_purple;
+
+    /* ========== 第 2 页：手机桌面 ========== */
+    ipgui_screen_page_switch(&main_screen, 2);
+
+    ipgui_widget_t * phone_body = ipgui_widget_create(NULL);
+    phone_body->name = "手机外壳";
+    phone_body->render = panel_render;
+    phone_body->x = 250;
+    phone_body->y = 15;
+    phone_body->w = 300;
+    phone_body->h = 450;
+    phone_body->priv_data = (void *)&panel_phone;
+
+    ipgui_widget_t * phone_screen = ipgui_widget_create(NULL);
+    phone_screen->name = "手机屏幕";
+    phone_screen->render = panel_render;
+    phone_screen->x = 258;
+    phone_screen->y = 23;
+    phone_screen->w = 284;
+    phone_screen->h = 434;
+    phone_screen->priv_data = (void *)&panel_screen;
+
+    ipgui_widget_t * status_bar = ipgui_widget_create(NULL);
+    status_bar->name = "状态栏";
+    status_bar->render = status_bar_render;
+    status_bar->x = 266;
+    status_bar->y = 29;
+    status_bar->w = 268;
+    status_bar->h = 20;
+
+    /* 桌面图标网格：4 列 x 3 行，自动流放置 12 个图标 */
+    ipgui_widget_t * desk_grid = ipgui_widget_create(NULL);
+    desk_grid->name = "桌面网格";
+    desk_grid->x = 266;
+    desk_grid->y = 31;
+    desk_grid->w = 268;
+    desk_grid->h = 414;
+
+    static const ipgui_grid_track_t desk_cols[] = {
+        {IPGUI_GRID_TRACK_FR, 1}, {IPGUI_GRID_TRACK_FR, 1},
+        {IPGUI_GRID_TRACK_FR, 1}, {IPGUI_GRID_TRACK_FR, 1},
+    };
+    static const ipgui_grid_track_t desk_rows[] = {
+        {IPGUI_GRID_TRACK_FR, 1}, {IPGUI_GRID_TRACK_FR, 1},
+        {IPGUI_GRID_TRACK_FR, 1},
+    };
+    ipgui_grid_cfg_t desk_cfg = {
+        .cols = desk_cols,
+        .col_count = 4,
+        .rows = desk_rows,
+        .row_count = 3,
+        .items = (const ipgui_grid_item_t *)0,
+        .item_count = 0,
+        .col_gap = 4,
+        .row_gap = 6,
+        .pad_left = 8,
+        .pad_top = 36,
+        .pad_right = 8,
+        .pad_bottom = 22,
+    };
+
+    for (u8_t i = 0; i < APP_ICON_COUNT; i++) {
+        ipgui_img_dsc_t icon_dsc;
+        app_icons[i].img = (ipgui_image_data_t *)0;
+        app_icons[i].label = app_icon_labels[i];
+
+        if (0 == test_bmp(app_icon_paths[i], &icon_dsc)) {
+            app_imgs[i].pixmap  = icon_dsc.pixmap;
+            app_imgs[i].px_size = (u8_t)(icon_dsc.stride / icon_dsc.w);
+            app_imgs[i].fmt     = IPGUI_IMG_FMT_BGR888;  /* 24bit bmp 内存顺序 B,G,R */
+            app_imgs[i].stride  = icon_dsc.stride;
+            app_imgs[i].w       = icon_dsc.w;
+            app_imgs[i].h       = icon_dsc.h;
+            app_icons[i].img    = &app_imgs[i];
+        } else {
+            printf("load app icon failed: %s\n", (const char *)app_icon_paths[i]);
+        }
+
+        ipgui_widget_t * icon = ipgui_widget_create(desk_grid);
+        icon->name = (const char *)app_icon_labels[i];
+        icon->render = app_icon_render;
+        icon->priv_data = (void *)&app_icons[i];
+        icon->w = 60;
+        icon->h = 100;
+    }
+    ipgui_grid_apply(desk_grid, &desk_cfg);
+
+    ipgui_widget_t * desk_dots = ipgui_widget_create(NULL);
+    desk_dots->name = "页码点";
+    desk_dots->render = desk_dots_render;
+    desk_dots->x = 266;
+    desk_dots->y = 437;
+    desk_dots->w = 268;
+    desk_dots->h = 8;
+
+    ipgui_widget_t * btn_back2 = ipgui_widget_create(NULL);
+    btn_back2->name = "BACK";
+    btn_back2->render = color_render;
+    btn_back2->event_handler = page2_back_handler;
+    btn_back2->x = 20;
+    btn_back2->y = 425;
+    btn_back2->w = 120;
+    btn_back2->h = 40;
+    btn_back2->priv_data = (void *)&col_gray;
 
     /* 回到启动页，运行时用 NEXT / BACK 互切 */
     ipgui_screen_page_switch(&main_screen, 0);

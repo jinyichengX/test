@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPGUI 网格布局参数可视化工具</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1a1a2e;--panel-bg:#16213e;--card-bg:#0f3460;--accent:#e94560;--accent-hover:#ff6b81;--text:#e0e0e0;--text-dim:#999;--border:#2a2a4a;--track:#333;--ok:#4caf50;--warn:#ff9800;--radius:8px}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+.app{display:flex;height:100vh;max-width:1600px;margin:0 auto}
+
+.preview-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#dbdbdf;position:relative;min-width:0;overflow:hidden;padding:24px;gap:14px}
+.stage{position:relative}
+.frame{position:absolute;left:0;top:0;background:#eef1f6;border:1px solid #9aa3b2;box-shadow:0 4px 18px rgba(0,0,0,.18);transform-origin:top left}
+.pad-layer{position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(233,69,96,.07) 0 6px,transparent 6px 12px);pointer-events:none}
+.content{position:absolute;background:#ccd3de;pointer-events:none}
+.cells{position:absolute;inset:0}
+.cell{position:absolute;border:1px dashed #b9c1cf;background:rgba(255,255,255,.55);display:flex;align-items:flex-start;justify-content:flex-start;overflow:hidden}
+.cell span{font:600 10px/1 monospace;color:#8a93a3;padding:2px 3px}
+.boxes{position:absolute;inset:0}
+.box{position:absolute;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:600 13px/1.4 'Segoe UI',sans-serif;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);overflow:hidden;transition:left .12s ease,top .12s ease,width .12s ease,height .12s ease}
+.box b{font-size:14px}
+.box i{font-style:normal;font-size:10px;opacity:.85;font-family:monospace}
+.axis-tag{position:absolute;font:600 11px/1 monospace;color:#5b6474;background:rgba(255,255,255,.85);border:1px solid #c3cad6;border-radius:3px;padding:2px 4px;white-space:nowrap}
+.preview-hint{font-size:12px;color:#5b6474;font-family:monospace}
+.preview-hint b{color:var(--accent)}
+
+.control-panel{width:420px;background:var(--panel-bg);display:flex;flex-direction:column;border-left:1px solid var(--border);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--track) transparent}
+.control-panel::-webkit-scrollbar{width:6px}
+.control-panel::-webkit-scrollbar-thumb{background:var(--track);border-radius:3px}
+.panel-header{padding:16px 20px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel-bg);z-index:2}
+.panel-header h1{font-size:17px;font-weight:600;color:var(--accent)}
+.panel-header .sub{font-size:11px;color:var(--text-dim);margin-top:4px;font-family:monospace}
+.panel-body{padding:10px 16px 24px;display:flex;flex-direction:column;gap:8px}
+
+.cg{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.cg .title{font-size:11px;font-weight:600;color:var(--text-dim);letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.cg .title code{color:var(--accent);font-size:11px}
+
+.row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.row:last-child{margin-bottom:0}
+.row label{font-size:11px;color:var(--text-dim);min-width:52px}
+.row .sp{flex:1}
+input[type=number],select{background:#0d1b33;border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:11px;padding:4px 5px;outline:none;font-family:monospace}
+input[type=number]{width:64px}
+input[type=number]:focus,select:focus{border-color:var(--accent)}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:4px;background:var(--track);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;background:var(--accent);border-radius:50%;cursor:pointer}
+
+.list-item{display:flex;align-items:center;gap:5px;padding:4px 6px;margin-bottom:5px;border-radius:5px;background:rgba(0,0,0,.18);border:1px solid transparent;font-size:11px}
+.list-item.focus{border-color:var(--accent);background:rgba(233,69,96,.1)}
+.list-item .idx{width:16px;text-align:center;color:var(--text-dim);font-family:monospace;font-size:10px}
+.list-item .nm{width:46px;color:var(--text);font-family:monospace;font-size:11px}
+.list-item input[type=number]{width:52px}
+.list-item select{width:62px;font-size:10px}
+.del{width:18px;height:18px;line-height:1;border:1px solid var(--border);background:transparent;color:var(--text-dim);border-radius:4px;cursor:pointer;font-size:12px;flex:none}
+.del:hover{color:var(--warn);border-color:var(--warn)}
+.add{width:100%;padding:5px;border:1px dashed var(--border);background:transparent;color:var(--text-dim);border-radius:5px;font-size:11px;cursor:pointer;margin-top:4px}
+.add:hover{color:var(--accent);border-color:var(--accent)}
+
+table.res{width:100%;border-collapse:collapse;font-size:10px;font-family:monospace}
+table.res th{color:var(--text-dim);font-weight:600;text-align:left;padding:2px 3px;border-bottom:1px solid var(--border)}
+table.res td{padding:2px 3px;color:var(--text)}
+table.res td.k{color:var(--accent)}
+.muted{color:var(--text-dim);font-size:10px}
+
+pre.code{background:#0b1526;border:1px solid var(--border);border-radius:5px;padding:8px;font-size:10px;line-height:1.5;color:#9fd3b6;overflow-x:auto;max-height:220px;white-space:pre;font-family:Consolas,monospace}
+.btn-row{display:flex;gap:6px;margin-top:6px}
+.btn{flex:1;padding:6px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:var(--text)}
+.btn-pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-pri:hover{background:var(--accent-hover)}
+.btn-sec:hover{background:rgba(255,255,255,.06)}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ok);color:#fff;padding:7px 18px;border-radius:5px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="preview-area">
+    <div class="stage" id="stage">
+      <div class="frame" id="frame">
+        <div class="pad-layer" id="padLayer"></div>
+        <div class="content" id="content"></div>
+        <div class="cells" id="cells"></div>
+        <div class="boxes" id="boxes"></div>
+      </div>
+    </div>
+    <div class="preview-hint" id="hint"></div>
+  </div>
+
+  <div class="control-panel">
+    <div class="panel-header">
+      <h1>网格布局参数可视化</h1>
+      <div class="sub">ipgui_grid_apply(container, &amp;cfg)</div>
+    </div>
+    <div class="panel-body">
+
+      <div class="cg">
+        <div class="title">容器 container <code>w / h</code></div>
+        <div class="row">
+          <label>w</label><input type="range" id="cw" min="120" max="800" value="680">
+          <input type="number" id="cwN" value="680" min="1" max="4096">
+        </div>
+        <div class="row">
+          <label>h</label><input type="range" id="ch" min="80" max="600" value="300">
+          <input type="number" id="chN" value="300" min="1" max="4096">
+        </div>
+      </div>
+
+      <div class="cg">
+        <div class="title">列轨道 <code>cols[]</code><span class="muted" id="colCount">3 条</span></div>
+        <div id="colList"></div>
+        <button class="add" id="addCol">+ 添加列</button>
+      </div>
+
+      <div class="cg">
+        <div class="title">行轨道 <code>rows[]</code><span class="muted" id="rowCount">2 条</span></div>
+        <div id="rowList"></div>
+        <button class="add" id="addRow">+ 添加行</button>
+      </div>
+
+      <div class="cg">
+        <div class="title">间距与内边距 <code>gap / pad_*</code></div>
+        <div class="row"><label>col_gap</label><input type="range" id="cgap" min="0" max="40" value="12"><input type="number" id="cgapN" value="12" min="0" max="400"></div>
+        <div class="row"><label>row_gap</label><input type="range" id="rgap" min="0" max="40" value="12"><input type="number" id="rgapN" value="12" min="0" max="400"></div>
+        <div class="row"><label>pad_left</label><input type="range" id="pl" min="0" max="80" value="16"><input type="number" id="plN" value="16" min="0" max="400"></div>
+        <div class="row"><label>pad_top</label><input type="range" id="pt" min="0" max="80" value="16"><input type="number" id="ptN" value="16" min="0" max="400"></div>
+        <div class="row"><label>pad_right</label><input type="range" id="pr" min="0" max="80" value="16"><input type="number" id="prN" value="16" min="0" max="400"></div>
+        <div class="row"><label>pad_bottom</label><input type="range" id="pb" min="0" max="80" value="16"><input type="number" id="pbN" value="16" min="0" max="400"></div>
+      </div>
+
+      <div class="cg">
+        <div class="title">子控件 <code>items[]</code><span class="muted" id="itemCount">5 个</span></div>
+        <div class="row" style="margin-bottom:6px">
+          <span class="muted" style="flex:1">字段顺序：col / row / col_span / row_span；<br>col=row=255(AUTO) 即自动流；w/h 为 auto 轨道的内容尺寸</span>
+        </div>
+        <div id="itemList"></div>
+        <button class="add" id="addItem">+ 添加子控件</button>
+      </div>
+
+      <div class="cg">
+        <div class="title">解析结果 <code>轨道尺寸</code></div>
+        <table class="res" id="resTable"></table>
+      </div>
+
+      <div class="cg">
+        <div class="title">生成的 C 配置</div>
+        <pre class="code" id="code"></pre>
+        <div class="btn-row">
+          <button class="btn btn-pri" id="copyBtn">复制代码</button>
+          <button class="btn btn-sec" id="resetBtn">重置示例</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+/* ============================================================================
+ * IPGUI 网格布局参数可视化工具
+ * 与 core/ui/layout/ipgui_grid.c 的求解过程逐行对应：
+ *   pass1 占位 + auto 内容尺寸统计 -> resolve 轨道尺寸 -> pass2 写入几何
+ * 预览使用纯 DOM 绝对定位渲染，不使用 canvas。
+ * ============================================================================ */
+const $ = id => document.getElementById(id);
+const AUTO = 255, MAXC = 16, MAXR = 32;
+const COLORS = ['#e05d5d','#5db85d','#f08a3a','#9b59b6','#4a90d9','#d9a94a','#4ab8b0','#c05db8'];
+
+/* ---------------- 默认示例（对应 main.c 第 1 页） ---------------- */
+function defaultState() {
+  return {
+    w: 680, h: 300,
+    cols: [{t:'fr',v:1},{t:'fixed',v:120},{t:'auto',v:0}],
+    rows: [{t:'fixed',v:120},{t:'fr',v:1}],
+    colGap: 12, rowGap: 12,
+    pad: {l:16, t:16, r:16, b:16},
+    items: [
+      {name:'A', w:100, h:100, col:AUTO, row:AUTO, cs:1, rs:2},
+      {name:'B', w:100, h:100, col:AUTO, row:AUTO, cs:1, rs:1},
+      {name:'C', w:160, h:100, col:AUTO, row:AUTO, cs:1, rs:1},
+      {name:'D', w:100, h:100, col:AUTO, row:AUTO, cs:1, rs:1},
+      {name:'E', w:100, h:100, col:AUTO, row:AUTO, cs:1, rs:1}
+    ]
+  };
+}
+let state = defaultState();
+
+/* ---------------- 单轴轨道 ---------------- */
+function buildAxis(defs) {
+  const a = {type:[], size:[], fr:[]};
+  for (let i = 0; i < MAXR; i++) {
+    const d = defs[i];
+    if (d && d.t === 'fixed') { a.type[i] = 'fixed'; a.size[i] = Math.max(0, d.v | 0); a.fr[i] = 0; }
+    else if (d && d.t === 'fr') { a.type[i] = 'fr'; a.size[i] = 0; a.fr[i] = Math.max(1, d.v | 0); }
+    else { a.type[i] = 'auto'; a.size[i] = 0; a.fr[i] = 0; }
+  }
+  return a;
+}
+
+/* 解析轨道尺寸：fixed/auto 已就绪，fr 按剩余空间分配，余数给最后一条 fr */
+function resolveAxis(ax, used, avail, gap) {
+  ax.pos = [];
+  if (used <= 0) return;
+  let usedPx = 0, frTotal = 0, lastFr = -1;
+  for (let i = 0; i < used; i++) {
+    if (ax.type[i] === 'fr') frTotal += ax.fr[i];
+    else usedPx += ax.size[i];
+  }
+  let free = avail - usedPx - (used > 1 ? (used - 1) * gap : 0);
+  if (free < 0) free = 0;
+  let remain = free;
+  for (let i = 0; i < used; i++) {
+    if (ax.type[i] !== 'fr') continue;
+    ax.size[i] = Math.floor(free * ax.fr[i] / frTotal);
+    remain -= ax.size[i];
+    lastFr = i;
+  }
+  if (lastFr >= 0) ax.size[lastFr] += remain;
+  let pos = 0;
+  for (let i = 0; i < used; i++) { ax.pos[i] = pos; pos += ax.size[i] + gap; }
+}
+
+/* 把跨格内容尺寸摊到其覆盖的 auto 轨道上 */
+function fitSpan(ax, start, span, need, gap) {
+  let hasAuto = false;
+  for (let i = start; i < start + span; i++) if (ax.type[i] === 'auto') hasAuto = true;
+  if (!hasAuto) return;
+  let req = need - (span - 1) * gap;
+  if (req < 0) req = 0;
+  const each = Math.ceil(req / span);
+  for (let i = start; i < start + span; i++)
+    if (ax.type[i] === 'auto' && ax.size[i] < each) ax.size[i] = each;
+}
+
+/* ---------------- 排布一遍 ---------------- */
+function place(s, ax, ay, ncols, write) {
+  const occ = Array.from({length: MAXC}, () => new Set());
+  let usedC = Math.max(1, s.cols.length);
+  let usedR = s.rows.length;
+  let cursorCol = 0, cursorRow = 0;
+  const boxes = [];
+
+  const isFree = (c, r, cs, rs) => {
+    for (let cc = c; cc < c + cs; cc++)
+      for (let rr = r; rr < r + rs; rr++)
+        if (occ[cc].has(rr)) return false;
+    return true;
+  };
+  const occupy = (c, r, cs, rs) => {
+    for (let cc = c; cc < c + cs; cc++)
+      for (let rr = r; rr < r + rs; rr++) occ[cc].add(rr);
+  };
+
+  s.items.forEach((it, idx) => {
+    let cs = Math.min(it.cs || 1, MAXC);
+    let rs = Math.min(it.rs || 1, MAXR);
+    cs = Math.min(cs, ncols);
+    const exC = (it.col === AUTO) ? -1 : Math.min(it.col, MAXC - 1);
+    const exR = (it.row === AUTO) ? -1 : Math.min(it.row, MAXR - 1);
+    let c0 = -1, r0 = -1;
+
+    if (exC >= 0 && exR >= 0) {
+      c0 = Math.min(exC, MAXC - cs);
+      r0 = Math.min(exR, MAXR - rs);
+      if (c0 < 0 || r0 < 0) { c0 = -1; r0 = -1; }
+    } else if (exC >= 0) {
+      c0 = Math.min(exC, MAXC - cs);
+      if (c0 < 0) { c0 = -1; }
+      else {
+        for (r0 = 0; r0 + rs <= MAXR; r0++) if (isFree(c0, r0, cs, rs)) break;
+        if (r0 + rs > MAXR) { c0 = -1; r0 = -1; }
+      }
+    } else if (exR >= 0) {
+      r0 = Math.min(exR, MAXR - rs);
+      if (r0 < 0) { r0 = -1; }
+      else {
+        for (c0 = 0; c0 + cs <= MAXC; c0++) if (isFree(c0, r0, cs, rs)) break;
+        if (c0 + cs > MAXC) { c0 = -1; r0 = -1; }
+      }
+    } else {
+      let c = cursorCol, r = cursorRow;
+      while (r + rs <= MAXR) {
+        if (c + cs > ncols) { c = 0; r++; continue; }
+        if (isFree(c, r, cs, rs)) { c0 = c; r0 = r; break; }
+        c++;
+        if (c >= ncols) { c = 0; r++; }
+      }
+      if (c0 >= 0) { cursorCol = c0; cursorRow = r0; }
+    }
+
+    const box = {idx, name: it.name, col: c0, row: r0, cs, rs, ok: false, x: 0, y: 0, w: it.w, h: it.h};
+    if (c0 >= 0 && r0 >= 0) {
+      occupy(c0, r0, cs, rs);
+      if (c0 + cs > usedC) usedC = c0 + cs;
+      if (r0 + rs > usedR) usedR = r0 + rs;
+      if (!write) {
+        fitSpan(ax, c0, cs, it.w, s.colGap);
+        fitSpan(ay, r0, rs, it.h, s.rowGap);
+      } else {
+        box.ok = true;
+        box.x = s.pad.l + ax.pos[c0];
+        box.y = s.pad.t + ay.pos[r0];
+        box.w = ax.pos[c0 + cs - 1] + ax.size[c0 + cs - 1] - ax.pos[c0];
+        box.h = ay.pos[r0 + rs - 1] + ay.size[r0 + rs - 1] - ay.pos[r0];
+      }
+    }
+    boxes.push(box);
+  });
+
+  return {usedC, usedR, boxes};
+}
+
+/* ---------------- 求解入口（对应 ipgui_grid_apply） ---------------- */
+function solve(s) {
+  const ncolsBase = Math.max(1, s.cols.length);
+  let maxSpan = 1;
+  s.items.forEach(it => { const v = it.cs || 1; if (v > maxSpan) maxSpan = v; });
+  let ncols = Math.min(MAXC, Math.max(ncolsBase, maxSpan));
+
+  const ax = buildAxis(s.cols);
+  const ay = buildAxis(s.rows);
+
+  const p1 = place(s, ax, ay, ncols, false);
+
+  const availW = Math.max(0, s.w - s.pad.l - s.pad.r);
+  const availH = Math.max(0, s.h - s.pad.t - s.pad.b);
+  resolveAxis(ax, p1.usedC, availW, s.colGap);
+  resolveAxis(ay, p1.usedR, availH, s.rowGap);
+
+  const p2 = place(s, ax, ay, ncols, true);
+  return {ax, ay, ncols, usedC: p2.usedC, usedR: p2.usedR, boxes: p2.boxes, availW, availH};
+}
+/* ---------------- 预览渲染（纯 DOM） ---------------- */
+const previewArea = document.querySelector('.preview-area');
+const frame = $('frame'), stage = $('stage'), padLayer = $('padLayer'),
+      contentEl = $('content'), cellsEl = $('cells'), boxesEl = $('boxes');
+
+function fitFrame() {
+  const s = state;
+  frame.style.width = s.w + 'px';
+  frame.style.height = s.h + 'px';
+  const availW = Math.max(120, previewArea.clientWidth - 48);
+  const availH = Math.max(80, previewArea.clientHeight - 96);
+  const k = Math.min(1, availW / s.w, availH / s.h);
+  frame.style.transform = 'scale(' + k + ')';
+  stage.style.width = Math.max(1, s.w * k) + 'px';
+  stage.style.height = Math.max(1, s.h * k) + 'px';
+  return k;
+}
+
+function render() {
+  const s = state;
+  const res = solve(s);
+  const k = fitFrame();
+
+  contentEl.style.left = s.pad.l + 'px';
+  contentEl.style.top = s.pad.t + 'px';
+  contentEl.style.width = Math.max(0, s.w - s.pad.l - s.pad.r) + 'px';
+  contentEl.style.height = Math.max(0, s.h - s.pad.t - s.pad.b) + 'px';
+
+  /* 单元格（含跨格 gap 的轨道边界） */
+  let ch = '';
+  for (let c = 0; c < res.usedC; c++) {
+    for (let r = 0; r < res.usedR; r++) {
+      const x = s.pad.l + res.ax.pos[c];
+      const y = s.pad.t + res.ay.pos[r];
+      ch += '<div class="cell" style="left:' + x + 'px;top:' + y + 'px;width:' +
+            res.ax.size[c] + 'px;height:' + res.ay.size[r] + 'px"><span>' + c + ',' + r + '</span></div>';
+    }
+  }
+  cellsEl.innerHTML = ch;
+
+  /* 子控件实际几何 */
+  let bh = '', skipped = 0;
+  res.boxes.forEach(b => {
+    if (!b.ok) { skipped++; return; }
+    const color = COLORS[b.idx % COLORS.length];
+    bh += '<div class="box" style="left:' + b.x + 'px;top:' + b.y + 'px;width:' + b.w +
+          'px;height:' + b.h + 'px;background:' + color + '"><b>' + b.name + '</b><i>' +
+          b.x + ',' + b.y + ' ' + b.w + '×' + b.h + '</i></div>';
+  });
+  boxesEl.innerHTML = bh;
+
+  $('hint').innerHTML = '内容区 <b>' + res.availW + '×' + res.availH + '</b> · 网格 <b>' +
+      res.ncols + '×' + res.usedR + '</b> · 缩放 ' + Math.round(k * 100) + '%' +
+      (skipped ? ' · <span style="color:#e94560">' + skipped + ' 个越界未放置</span>' : '');
+
+  /* 解析结果表 */
+  let th = '<tr><th>#</th><th>type</th><th>size</th><th>pos</th></tr>';
+  const axisRows = (title, axis, count) => {
+    let h = '<tr><td colspan="4" class="k" style="padding-top:4px">' + title + '</td></tr>';
+    for (let i = 0; i < count; i++) {
+      const t = axis.type[i];
+      const v = t === 'fr' ? 'fr ' + axis.fr[i] : (t === 'fixed' ? 'fixed' : 'auto');
+      h += '<tr><td>' + i + '</td><td>' + v + '</td><td>' + axis.size[i] +
+           'px</td><td class="muted">@' + axis.pos[i] + '</td></tr>';
+    }
+    return h;
+  };
+  th += axisRows('cols', res.ax, res.usedC);
+  th += axisRows('rows', res.ay, res.usedR);
+  $('resTable').innerHTML = th;
+
+  $('code').textContent = makeCode(s);
+}
+
+/* ---------------- 生成 C 代码 ---------------- */
+function makeCode(s) {
+  const tn = t => t === 'fixed' ? 'IPGUI_GRID_TRACK_FIXED'
+             : t === 'fr' ? 'IPGUI_GRID_TRACK_FR' : 'IPGUI_GRID_TRACK_AUTO';
+  const cm = d => d.t === 'fixed' ? d.v + 'px' : (d.t === 'fr' ? d.v + 'fr' : 'auto 内容尺寸');
+  let c = '/* 列轨道：' + s.cols.map(cm).join(' | ') + ' */\n';
+  c += 'static const ipgui_grid_track_t grid_cols[] = {\n';
+  s.cols.forEach(d => { c += '    {' + tn(d.t) + ', ' + d.v + '},\n'; });
+  c += '};\n';
+
+  if (s.rows.length) {
+    c += '\n/* 行轨道：' + s.rows.map(cm).join(' | ') + ' */\n';
+    c += 'static const ipgui_grid_track_t grid_rows[] = {\n';
+    s.rows.forEach(d => { c += '    {' + tn(d.t) + ', ' + d.v + '},\n'; });
+    c += '};\n';
+  } else {
+    c += '\n/* rows 为空：所有行按 auto 隐式补齐 */\n';
+  }
+
+  const needItems = s.items.some(it => it.col !== AUTO || it.row !== AUTO || (it.cs || 1) !== 1 || (it.rs || 1) !== 1);
+  if (needItems) {
+    c += '\n/* 第 i 项对应控件树中第 i 个子控件 */\nstatic const ipgui_grid_item_t grid_items[] = {\n';
+    s.items.forEach(it => {
+      c += '    {' + (it.col === AUTO ? 'IPGUI_GRID_AUTO' : it.col) + ', ' +
+                    (it.row === AUTO ? 'IPGUI_GRID_AUTO' : it.row) + ', ' +
+                    (it.cs || 1) + ', ' + (it.rs || 1) + '},   /* ' + it.name + ' */\n';
+    });
+    c += '};\n';
+  }
+
+  c += '\nipgui_grid_cfg_t grid_cfg = {\n';
+  c += '    .cols = grid_cols, .col_count = ' + s.cols.length + ',\n';
+  c += '    .rows = ' + (s.rows.length ? 'grid_rows' : 'NULL') + ', .row_count = ' + s.rows.length + ',\n';
+  c += '    .items = ' + (needItems ? 'grid_items' : 'NULL') + ', .item_count = ' + (needItems ? s.items.length : 0) + ',\n';
+  c += '    .col_gap = ' + s.colGap + ', .row_gap = ' + s.rowGap + ',\n';
+  c += '    .pad_left = ' + s.pad.l + ', .pad_top = ' + s.pad.t +
+       ', .pad_right = ' + s.pad.r + ', .pad_bottom = ' + s.pad.b + ',\n';
+  c += '};\nipgui_grid_apply(container, &grid_cfg);\n';
+  return c;
+}
+/* ---------------- 控制面板 ---------------- */
+function trackRow(kind, i, d) {
+  const unit = d.t === 'fr' ? '份' : 'px';
+  const opts = ['fixed', 'fr', 'auto'].map(t =>
+    '<option value="' + t + '"' + (d.t === t ? ' selected' : '') + '>' + t.toUpperCase() + '</option>').join('');
+  return '<div class="list-item" data-i="' + i + '">' +
+    '<span class="idx">' + i + '</span>' +
+    '<select data-act="type">' + opts + '</select>' +
+    '<input type="number" data-act="value" value="' + d.v + '" min="0" max="4096" step="1"' +
+      (d.t === 'auto' ? ' disabled' : '') + '>' +
+    '<span class="muted" style="flex:1">' + unit + '</span>' +
+    '<button class="del" data-act="del" title="删除轨道">×</button></div>';
+}
+
+function renderTracks() {
+  $('colList').innerHTML = state.cols.map((d, i) => trackRow('col', i, d)).join('');
+  $('rowList').innerHTML = state.rows.map((d, i) => trackRow('row', i, d)).join('');
+  $('colCount').textContent = state.cols.length + ' 条';
+  $('rowCount').textContent = state.rows.length + ' 条';
+}
+
+function itemRow(it, i) {
+  const sel = cur => '<option value="255"' + (cur === AUTO ? ' selected' : '') + '>AUTO</option>' +
+    Array.from({length: MAXC}, (_, k) => '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + k + '</option>').join('');
+  return '<div class="list-item" data-i="' + i + '" style="flex-wrap:wrap">' +
+    '<span class="idx">' + i + '</span>' +
+    '<input type="text" data-act="name" value="' + it.name + '" style="width:42px">' +
+    '<span class="muted">w</span><input type="number" data-act="w" value="' + it.w + '" min="0" style="width:52px">' +
+    '<span class="muted">h</span><input type="number" data-act="h" value="' + it.h + '" min="0" style="width:52px">' +
+    '<button class="del" data-act="del" title="删除子控件">×</button>' +
+    '<div style="display:flex;gap:4px;width:100%;align-items:center;padding-left:21px;margin-top:3px">' +
+      '<span class="muted">col</span><select data-act="col" style="width:58px">' + sel(it.col) + '</select>' +
+      '<span class="muted">row</span><select data-act="row" style="width:58px">' + sel(it.row) + '</select>' +
+      '<span class="muted">cs</span><input type="number" data-act="cs" value="' + it.cs + '" min="0" max="16" style="width:40px">' +
+      '<span class="muted">rs</span><input type="number" data-act="rs" value="' + it.rs + '" min="0" max="32" style="width:40px">' +
+    '</div></div>';
+}
+
+function renderItems() {
+  $('itemList').innerHTML = state.items.map((it, i) => itemRow(it, i)).join('');
+  $('itemCount').textContent = state.items.length + ' 个';
+}
+
+/* ---------------- 事件绑定 ---------------- */
+function bindTrackList(el, kind) {
+  const arr = () => kind === 'col' ? state.cols : state.rows;
+
+  el.addEventListener('input', e => {
+    const row = e.target.closest('.list-item');
+    if (!row || e.target.dataset.act !== 'value') return;
+    arr()[+row.dataset.i].v = Math.max(0, Math.min(4096, +e.target.value || 0));
+    render();
+  });
+
+  el.addEventListener('change', e => {
+    const row = e.target.closest('.list-item');
+    if (!row || e.target.dataset.act !== 'type') return;
+    const d = arr()[+row.dataset.i];
+    d.t = e.target.value;
+    if (d.t === 'auto') d.v = 0;
+    else if (d.v <= 0) d.v = 1;
+    renderTracks();
+    render();
+  });
+
+  el.addEventListener('click', e => {
+    const btn = e.target.closest('.del');
+    if (!btn) return;
+    arr().splice(+btn.closest('.list-item').dataset.i, 1);
+    renderTracks();
+    render();
+  });
+}
+
+$('itemList').addEventListener('input', e => {
+  const row = e.target.closest('.list-item');
+  if (!row) return;
+  const it = state.items[+row.dataset.i];
+  const act = e.target.dataset.act;
+  if (!it) return;
+  if (act === 'name') it.name = e.target.value || '?';
+  else if (act === 'w' || act === 'h' || act === 'cs' || act === 'rs')
+    it[act] = Math.max(0, Math.min(4096, +e.target.value || 0));
+  else return;
+  render();
+});
+
+$('itemList').addEventListener('change', e => {
+  const row = e.target.closest('.list-item');
+  if (!row) return;
+  const it = state.items[+row.dataset.i];
+  const act = e.target.dataset.act;
+  if (it && (act === 'col' || act === 'row')) {
+    it[act] = +e.target.value;
+    render();
+  }
+});
+
+$('itemList').addEventListener('click', e => {
+  const btn = e.target.closest('.del');
+  if (!btn) return;
+  state.items.splice(+btn.closest('.list-item').dataset.i, 1);
+  renderItems();
+  render();
+});
+
+$('addCol').addEventListener('click', () => {
+  if (state.cols.length >= MAXC) return;
+  state.cols.push({t: 'fr', v: 1});
+  renderTracks(); render();
+});
+$('addRow').addEventListener('click', () => {
+  if (state.rows.length >= MAXR) return;
+  state.rows.push({t: 'auto', v: 0});
+  renderTracks(); render();
+});
+$('addItem').addEventListener('click', () => {
+  const n = state.items.length;
+  state.items.push({name: String.fromCharCode(65 + (n % 26)), w: 100, h: 100,
+                    col: AUTO, row: AUTO, cs: 1, rs: 1});
+  renderItems(); render();
+});
+
+/* 滑杆与数字框成对绑定 */
+function link(idRange, idNum, apply) {
+  const r = $(idRange), n = $(idNum);
+  const set = v => {
+    v = Math.max(0, Math.min(4096, v | 0));
+    apply(v);
+    r.value = v;
+    if (+n.value !== v) n.value = v;
+    render();
+  };
+  r.addEventListener('input', () => set(+r.value));
+  n.addEventListener('input', () => set(+n.value || 0));
+}
+
+link('cw', 'cwN', v => state.w = Math.max(1, v));
+link('ch', 'chN', v => state.h = Math.max(1, v));
+link('cgap', 'cgapN', v => state.colGap = v);
+link('rgap', 'rgapN', v => state.rowGap = v);
+link('pl', 'plN', v => state.pad.l = v);
+link('pt', 'ptN', v => state.pad.t = v);
+link('pr', 'prN', v => state.pad.r = v);
+link('pb', 'pbN', v => state.pad.b = v);
+
+bindTrackList($('colList'), 'col');
+bindTrackList($('rowList'), 'row');
+
+function syncInputs() {
+  const pairs = [['cw','cwN',state.w], ['ch','chN',state.h],
+                 ['cgap','cgapN',state.colGap], ['rgap','rgapN',state.rowGap],
+                 ['pl','plN',state.pad.l], ['pt','ptN',state.pad.t],
+                 ['pr','prN',state.pad.r], ['pb','pbN',state.pad.b]];
+  pairs.forEach(([r, n, v]) => { $(r).value = v; $(n).value = v; });
+}
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 1400);
+}
+
+$('copyBtn').addEventListener('click', () => {
+  const txt = $('code').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(() => toast('代码已复制')).catch(() => toast('复制失败'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); toast('代码已复制');
+  }
+});
+
+$('resetBtn').addEventListener('click', () => {
+  state = defaultState();
+  renderAll();
+  toast('已重置为 main.c 示例');
+});
+
+window.addEventListener('resize', fitFrame);
+
+function renderAll() {
+  renderTracks();
+  renderItems();
+  syncInputs();
+  render();
+}
+
+renderAll();
+
+</script>
+</body>
+</html>
