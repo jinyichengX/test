@@ -8,38 +8,22 @@
 extern "C" {
 #endif
 
-/* 盒阴影样式 */
+/* 盒子外阴影样式，作用于盒子，不区分是带了边框的本体还是不带边框的本体 */
 typedef struct {
-    ipgui_color_t      color;          /* 阴影颜色 */
+    ipgui_paint_t      paint;          /* 阴影 */
     u8_t               opacity;        /* 阴影不透明度 */
     ipgui_coord_t      blur;           /* 模糊半径 */
     ipgui_coord_t      spread;         /* 扩展半径 */
     ipgui_coord_t      offset_x;       /* 水平偏移 */
     ipgui_coord_t      offset_y;       /* 垂直偏移 */
-} ipgui_box_shadow_style_t;
+} ipgui_box_outer_shadow_style_t;
 
-/* 绘制盒阴影
- * @surf:     目标绘制表面
- * @clip:     裁剪区域（可为 NULL = surf 边界）
- * @box:      控件边界盒（padding_box，全局坐标）
- * @style:    圆角样式（可为 NULL = 无圆角）
- * @shadow_style: 阴影样式
- */
-extern __IPGUI_API__ void ipgui_draw_box_shadow(
+extern __IPGUI_API__ void ipgui_draw_box_outer_shadow(
     ipgui_surf_t              * surf,
     ipgui_aabb_t              * clip,
     ipgui_aabb_t              * box,
     ipgui_box_style_t         * style,
-    ipgui_box_shadow_style_t  * shadow_style);
-
-/* ========== 测试接口：纯矩形阴影（无圆角、无spread、无offset） ========== */
-/* 两遍分离高斯卷积，malloc/free 全缓冲，仅供桌面验证 */
-void ipgui_draw_box_shadow_test(
-    ipgui_surf_t  * surf,
-    ipgui_coord_t   box_x, ipgui_coord_t   box_y,
-    ipgui_coord_t   box_w, ipgui_coord_t   box_h,
-    ipgui_coord_t   blur,
-    ipgui_color_t   shadow_color, u8_t opacity);
+    ipgui_box_outer_shadow_style_t  * shadow_style);
 
 #ifdef __cplusplus
 }
